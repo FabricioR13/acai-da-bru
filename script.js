@@ -1272,7 +1272,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const pedidoId = gerarIdPedido();
         const numeroWhatsApp = configLoja.whatsapp;
         const itensPedido = carrinho
-            .map((item) => `  - ${item.quantidade}x [${codigoDoProduto(item)}] ${item.nome}${detalhesDoItem(item).length ? ` (${detalhesDoItem(item).join(" · ")})` : ""}`)
+            .map((item) => `  - ${item.quantidade}x [${codigoDoProduto(item)}] ${item.nome}${detalhesDoItem(item).length ? ` (${detalhesDoItem(item).join(" · ")})` : ""} — *${formatarMoeda(item.preco * item.quantidade)}*${item.quantidade > 1 ? ` (${formatarMoeda(item.preco)} cada)` : ""}`)
             .join("\n");
         const subtotal = carrinho.reduce(
             (acc, item) => acc + item.preco * item.quantidade,
