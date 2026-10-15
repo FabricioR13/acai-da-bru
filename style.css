@@ -1,15 +1,15 @@
 /* Reset & base */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 :root{
-  /* Paleta Mamona's Açaí: roxo vibrante + dourado, combinando com as artes da loja */
-  --primary-color:#7C3AED;      /* roxo vibrante */
-  --primary-strong:#5B21B6;
-  --secondary-color:#1E1033;    /* roxo bem escuro, quase preto */
-  --accent-color:#F2C94C;       /* dourado para detalhes/preços */
-  --text-color:#1F1533;         /* roxo-grafite */
-  --light:#FFF8F0;              /* fundo claro quente */
-  --light-2:#F3E8FF;
-  --border-color:#E9DDFB;
+  /* Paleta Açaí da Bru: vinho + dourado, combinando com o cardápio e as artes da loja */
+  --primary-color:#7A1F4B;      /* vinho */
+  --primary-strong:#5C1638;
+  --secondary-color:#2B0D1E;    /* vinho bem escuro, quase preto */
+  --accent-color:#D4A24C;       /* dourado para detalhes/preços */
+  --text-color:#2B1420;         /* vinho-grafite */
+  --light:#FFF9F2;              /* fundo claro quente */
+  --light-2:#F8ECEF;
+  --border-color:#EEDDE3;
   --success-color:#16a34a;
   --error-color:#e11d48;
 }
@@ -28,7 +28,7 @@ h1,h2,h3{font-family:'Montserrat',sans-serif}
 /* Compensa a altura do header fixo (sticky) ao rolar até uma seção pelo menu.
    No celular o header fica mais alto (2 linhas: logo/menu/carrinho + busca), por
    isso o valor base é maior e é reduzido no desktop, onde o header cabe numa linha só. */
-#inicio,#produtos,#about-section{scroll-margin-top:150px}
+#inicio,#promocoes,#produtos,#about-section{scroll-margin-top:150px}
 
 /* Header */
 header{
@@ -422,7 +422,7 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 .detail-modal.show{opacity:1;visibility:visible;transform:translate(-50%,-50%)}
 .detail-carousel{position:relative;background:#f8fafc;aspect-ratio:1/1;overflow:hidden;border-radius:16px 16px 0 0}
 .detail-carousel-track{display:flex;height:100%;transition:transform .3s ease}
-.detail-carousel-track img{width:100%;height:100%;object-fit:cover;flex-shrink:0}
+.detail-carousel-track img{width:100%;height:100%;object-fit:contain;flex-shrink:0}
 .detail-carousel-arrow{
   position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.92);border:none;
   width:36px;height:36px;border-radius:50%;cursor:pointer;box-shadow:0 4px 12px rgba(2,6,23,.15);
@@ -470,7 +470,7 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 
 /* Responsivo */
 @media (min-width:768px){
-  #inicio,#produtos,#about-section{scroll-margin-top:100px}
+  #inicio,#promocoes,#produtos,#about-section{scroll-margin-top:100px}
   .search-container{order:2;flex-basis:auto;width:auto}
   .header-nav{order:3;flex:0 1 auto;overflow-x:visible}
   .header-nav a{font-size:.88rem;padding:.25rem .1rem}
@@ -489,3 +489,87 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 /* Esconde a barra "Ver Carrinho" em telas maiores */
 @media (min-width:769px){.view-cart-banner{display:none}}
 
+
+/* ── Carrossel de promoções (abaixo do topo) ─────────────────────────────── */
+.promo-section{width:100%;max-width:1200px;margin:0 auto;padding:1.6rem 1rem .4rem}
+.promo-header{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:.9rem}
+.promo-kicker{display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-color)}
+.promo-titulo{font-family:'Montserrat',sans-serif;font-size:1.6rem;font-weight:800;color:var(--secondary-color);line-height:1.15}
+.promo-arrows{display:none;gap:.5rem}
+.promo-arrow{width:40px;height:40px;border-radius:50%;border:1px solid var(--border-color);background:#fff;color:var(--primary-color);cursor:pointer;transition:.2s}
+.promo-arrow:hover{background:var(--primary-color);color:#fff;border-color:var(--primary-color)}
+.promo-track{
+  display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+  padding:.3rem .2rem 1rem;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.promo-track::-webkit-scrollbar{display:none}
+.promo-card{
+  flex:0 0 78%;max-width:330px;scroll-snap-align:center;
+  display:flex;flex-direction:column;padding:0;border:none;cursor:pointer;text-align:left;font-family:inherit;
+  background:#fff;border-radius:18px;overflow:hidden;
+  box-shadow:0 14px 30px rgba(43,13,30,.14);transition:transform .25s,box-shadow .25s;
+  outline:2px solid transparent;outline-offset:2px;
+}
+.promo-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(43,13,30,.2)}
+.promo-card:focus-visible{outline-color:var(--accent-color)}
+.promo-card-arte{width:100%;aspect-ratio:9/14;object-fit:cover;object-position:center;background:#F7EFE3;display:block}
+.promo-card-rodape{
+  display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+  padding:.8rem 1rem;background:var(--secondary-color);color:#fff;
+}
+.promo-card-nome{font-family:'Montserrat',sans-serif;font-weight:700;font-size:.92rem;line-height:1.25}
+.promo-card-cta{
+  display:inline-flex;align-items:center;gap:.4rem;flex-shrink:0;white-space:nowrap;
+  background:var(--accent-color);color:var(--secondary-color);font-weight:800;font-size:.9rem;
+  padding:.4rem .75rem;border-radius:999px;
+}
+.promo-dots{display:flex;justify-content:center;gap:.45rem}
+.promo-dot{width:8px;height:8px;border-radius:999px;border:none;padding:0;background:var(--border-color);cursor:pointer;transition:.25s}
+.promo-dot.active{width:22px;background:var(--primary-color)}
+@media (min-width:768px){
+  .promo-arrows{display:flex}
+  .promo-card{flex-basis:300px}
+  .promo-titulo{font-size:1.9rem}
+}
+
+/* ── Filtros por categoria (chips) e títulos de grupo ────────────────────── */
+.category-chips{display:flex;gap:.5rem;overflow-x:auto;padding:.2rem .1rem .5rem;scrollbar-width:none;width:100%}
+.category-chips::-webkit-scrollbar{display:none}
+.category-chip{
+  display:inline-flex;align-items:center;gap:.45rem;flex-shrink:0;white-space:nowrap;
+  padding:.55rem 1rem;border-radius:999px;border:1px solid var(--border-color);background:#fff;
+  font-family:inherit;font-size:.88rem;font-weight:600;color:var(--text-color);cursor:pointer;transition:.2s;
+}
+.category-chip i{color:var(--primary-color);font-size:.85rem}
+.category-chip:hover{border-color:var(--primary-color)}
+.category-chip.active{background:var(--primary-color);border-color:var(--primary-color);color:#fff}
+.category-chip.active i{color:var(--accent-color)}
+.products-group-title{
+  grid-column:1/-1;font-family:'Montserrat',sans-serif;font-size:1.25rem;font-weight:800;
+  color:var(--secondary-color);margin:.8rem 0 -.2rem;display:flex;align-items:center;gap:.6rem;
+}
+.products-group-title::after{content:"";flex:1;height:1px;background:var(--border-color)}
+.products-container > .products-group-title:first-child{margin-top:0}
+/* Rodapé do card ocupa a sobra de altura (cards ficam da mesma altura no carrossel) */
+.promo-card-rodape{flex:1}
+
+/* Celular: logo + menu + carrinho na mesma linha — o menu encolhe (e rola de lado se
+   precisar) em vez de empurrar o carrinho pra uma segunda linha */
+@media (max-width:767px){
+  header{padding:.7rem 1rem;gap:.7rem}
+  .header-nav{flex:1 1 0;gap:.8rem}
+  /* o total já aparece na barra fixa "Ver Carrinho" no rodapé do celular */
+  .cart-icon-total{display:none}
+}
+
+/* Logo com imagem própria (Açaí da Bru): mostra o logo inteiro, sem recorte em círculo,
+   e esconde o nome em texto visualmente (continua acessível para leitores de tela) */
+.logo--com-imagem .logo-img{width:auto;height:3.4rem;border-radius:0;border:none;box-shadow:none;object-fit:contain}
+.logo--com-imagem h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (min-width:768px){.logo--com-imagem .logo-img{height:3.8rem}}
+
+/* Entrega: Número e Bairro lado a lado */
+.form-row{display:flex;gap:.8rem}
+.form-group--numero{flex:0 0 32%}
+.form-group--bairro{flex:1;min-width:0}
+.form-opcional{font-weight:500;color:#9ca3af;font-size:.78rem}

@@ -1,11 +1,11 @@
 // ─── FIREBASE CONFIG ──────────────────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey: "AIzaSyAU9m89_OAsxJy7MggJkdY88wmvuCISALU",
-  authDomain: "mamonas-acai.firebaseapp.com",
-  projectId: "mamonas-acai",
-  storageBucket: "mamonas-acai.firebasestorage.app",
-  messagingSenderId: "778665319873",
-  appId: "1:778665319873:web:bd7b95b2f65f5ac08aa340"
+  apiKey: "AIzaSyCLBk9GA0kisT7aCm5HFBuRBqvShaycfys",
+  authDomain: "acai-da-bru-41a8d.firebaseapp.com",
+  projectId: "acai-da-bru-41a8d",
+  storageBucket: "acai-da-bru-41a8d.firebasestorage.app",
+  messagingSenderId: "356703842862",
+  appId: "1:356703842862:web:d3de3f91843e4cfaf625bf"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
@@ -124,12 +124,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     // A barra de categorias da loja é montada a partir da coleção "categorias":
     // basta cadastrar/editar categorias pelo admin, sem precisar mexer neste arquivo.
     const CATEGORIAS_PADRAO = [
-        { id: "acai", nome: "Açaí", icone: "fa-bowl-rice" },
-        { id: "crepe-copo", nome: "Crepe no Copo", icone: "fa-ice-cream" },
-        { id: "crepe-salgado", nome: "Crepe Salgado", icone: "fa-pizza-slice" },
-        { id: "crepe-doce", nome: "Crepe Doce", icone: "fa-cookie" },
-        { id: "milkshake", nome: "Milkshake", icone: "fa-mug-saucer" },
-        { id: "sorvete", nome: "Sorvete no Copo", icone: "fa-ice-cream" },
+        { id: "promocoes", nome: "Promoções", icone: "fa-tags", ordem: 1 },
+        { id: "acai", nome: "Açaí", icone: "fa-bowl-food", ordem: 2 },
+        { id: "especiais", nome: "Especiais da Bru", icone: "fa-star", ordem: 3 },
+        { id: "bebidas", nome: "Bebidas", icone: "fa-bottle-water", ordem: 4 },
     ];
     let categorias = [];
     try {
@@ -141,11 +139,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Erro ao carregar categorias do Firebase:", e);
     }
     if (!categorias.length) categorias = CATEGORIAS_PADRAO;
+    // O Firestore devolve as categorias em ordem alfabética do ID — o campo "ordem"
+    // (opcional) define a sequência na loja; sem ele, a categoria vai pro final.
+    categorias.sort((a, b) => (a.ordem ?? 99) - (b.ordem ?? 99));
 
     // --- CARREGAR CONFIGURAÇÕES DA LOJA DO FIREBASE ---
     const CONFIG_PADRAO = {
-        nomeLoja: "Mamona's Açaí",
-        whatsapp: "5551997619270",
+        nomeLoja: "Açaí da Bru",
+        whatsapp: "5551993126436",
         retiradaDias: [0, 1, 2, 3, 4, 5, 6],
         retiradaHoraInicio: "08:00",
         retiradaHoraFim: "18:00",
@@ -153,21 +154,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         retiradaPausaInicio: "",
         retiradaPausaFim: "",
         bannerUrl: "https://images.unsplash.com/photo-1684403620650-81dc661a69db?auto=format&fit=crop&w=1600&h=500&q=80",
-        corPrimaria: "#7C3AED",
-        corSecundaria: "#1E1033",
-        corDestaque: "#F2C94C",
-        heroTag: "Sabor de verdade",
-        heroTitulo: "Açaí, crepes e muito mais",
-        heroSubtitulo: "Monte do seu jeito e peça em poucos cliques",
-        heroCorFundo: "#1E1033",
-        heroCorFundoFim: "#5B21B6",
-        logoUrl: "",
+        corPrimaria: "#7A1F4B",
+        corSecundaria: "#2B0D1E",
+        corDestaque: "#D4A24C",
+        heroTag: "Açaí tem amor em cada colher",
+        heroTitulo: "Mais que açaí, é sobre momentos doces e especiais",
+        heroSubtitulo: "Do seu jeito, do seu gosto — peça em poucos cliques",
+        heroCorFundo: "#2B0D1E",
+        heroCorFundoFim: "#7A1F4B",
+        logoUrl: "assets/logo.jpg",
         entregaDisponivel: true,
         retiradaDisponivel: true,
-        sobreNome: "",
-        sobreTexto: "",
-        sobreFoto: "",
-        sobreLink: "",
+        sobreNome: "Açaí da Bru",
+        sobreTexto: "Açaí de qualidade, feito com carinho e montado do seu jeito. Siga a gente no Instagram e fique de olho nas promoções da semana!",
+        sobreFoto: "assets/copo-quadrado.jpg",
+        sobreLink: "https://www.instagram.com/acaidabru_cb/",
     };
     let configLoja = { ...CONFIG_PADRAO };
     try {
@@ -184,8 +185,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         appliedCoupon = null;
 
     // Variáveis de estado para filtros
-    // null = tela de categorias (nenhuma escolhida ainda); "all" existe só como valor do
-    // botão "Categorias" na barra do topo, que também volta pra tela de categorias.
+    // null = todos os produtos (chip "Todos"); senão, o id da categoria escolhida.
     let categoriaAtiva = null;
     let termoBusca = "";
 
@@ -221,6 +221,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             logoImgEl.hidden = true;
         }
+        // Com logo cadastrado, o nome em texto fica só para leitores de tela (o logo já traz o nome)
+        document.querySelector(".logo")?.classList.toggle("logo--com-imagem", !!configLoja.logoUrl);
 
         const heroTagEl = document.querySelector(".hero-tag"),
             heroTituloEl = document.querySelector(".hero-content h2"),
@@ -232,7 +234,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (heroSectionEl && configLoja.bannerUrl) {
             // Foto de fundo (definida pelo admin em "Foto de fundo do hero") com uma camada escura
             // por cima, pra manter o texto branco legível — no lugar do degradê de cores.
-            heroSectionEl.style.backgroundImage = `linear-gradient(to bottom, rgba(30,16,51,.55), rgba(30,16,51,.8)), url("${configLoja.bannerUrl}")`;
+            heroSectionEl.style.backgroundImage = `linear-gradient(to bottom, rgba(43,13,30,.55), rgba(43,13,30,.8)), url("${configLoja.bannerUrl}")`;
             heroSectionEl.classList.add("hero-section--foto");
             heroSectionEl.classList.remove("hero-section--claro");
         } else if (heroSectionEl && configLoja.heroCorFundo) {
@@ -406,12 +408,30 @@ document.addEventListener("DOMContentLoaded", async () => {
         return id;
     };
 
+    // Endereço de entrega montado a partir dos campos: "Rua X, 123 — Bairro Y"
+    const enderecoCompleto = () => {
+        const rua = document.getElementById("delivery-address").value.trim();
+        const numero = document.getElementById("delivery-numero").value.trim();
+        const bairro = document.getElementById("delivery-bairro").value.trim();
+        return `${rua}${numero ? `, ${numero}` : ""}${bairro ? ` — ${bairro}` : ""}`;
+    };
+
     const validarCampos = (ids) => {
         let valid = true;
         ids.forEach((id) => {
             const el = document.getElementById(id);
             if (!el) return;
             let isFieldValid = el.value.trim() !== "";
+
+            // CEP é opcional: vazio vale; preenchido precisa ter os 8 dígitos
+            if (id === "delivery-cep") {
+                const digitos = el.value.replace(/\D/g, "").length;
+                isFieldValid = digitos === 0 || digitos === 8;
+            }
+            // Celular: DDD + 9 dígitos = 11 números, nem mais nem menos
+            if (id.includes("telefone") && isFieldValid) {
+                isFieldValid = el.value.replace(/\D/g, "").length === 11;
+            }
 
             if (id.includes("nome") && isFieldValid) {
                 if (el.value.trim().split(" ").filter((word) => word).length < 2) {
@@ -427,7 +447,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         });
         if (!valid) {
-            alert("Por favor, preencha todos os campos obrigatórios marcados em vermelho.");
+            alert("Confira os campos marcados em vermelho. O celular precisa ter DDD + 9 dígitos, e o CEP (se preenchido) 8 dígitos.");
         }
         return valid;
     };
@@ -454,7 +474,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 return validarCampos(["pickup-date", "pickup-time"]);
             }
-            return validarCampos(["delivery-cep", "delivery-address"]);
+            return validarCampos(["delivery-cep", "delivery-address", "delivery-numero", "delivery-bairro"]);
         }
         if (etapaAtual === 4) {
             return validarCampos(["identificacao-nome", "identificacao-telefone"]);
@@ -477,12 +497,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             </ul>`;
 
         if (tipoEntrega === "delivery") {
-            const cep = document.getElementById("delivery-cep").value;
-            const endereco = document.getElementById("delivery-address").value;
+            const cep = document.getElementById("delivery-cep").value.trim();
             resumoEntregaBloco.innerHTML = `
                 <h5>Entrega (Moto)</h5>
-                <p>CEP: ${cep}</p>
-                <p>Endereço: ${endereco}</p>`;
+                <p>Endereço: ${enderecoCompleto()}</p>
+                ${cep ? `<p>CEP: ${cep}</p>` : ""}`;
         } else {
             const dataInput = document.getElementById("pickup-date").value;
             const hora = document.getElementById("pickup-time").value;
@@ -836,65 +855,157 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Ponto único pra trocar de categoria — chamado pelos ladrilhos de categoria
     // e pelo botão "voltar às categorias".
+    // Promoções com data de término ("promoAte": "AAAA-MM-DD") saem da loja sozinhas
+    // depois desse dia — sem precisar lembrar de desativar no admin.
+    const promoVencida = (p) => {
+        if (!p.promoAte) return false;
+        const fim = new Date(`${p.promoAte}T23:59:59`);
+        return !Number.isNaN(fim.getTime()) && fim < new Date();
+    };
+    produtos = produtos.filter((p) => !promoVencida(p));
+
+    // --- CARROSSEL DE PROMOÇÕES (logo abaixo do topo) ---
+    // Mostra os produtos marcados como "destaque" usando a arte da promoção
+    // (campo "banner" ou a primeira foto da galeria). Clicar abre o produto.
+    const promoSection = document.getElementById("promocoes"),
+        promoTrack = document.getElementById("promo-track"),
+        promoDots = document.getElementById("promo-dots");
+    const renderPromocoes = () => {
+        const promos = produtos.filter((p) => p.destaque);
+        if (!promoSection || !promos.length) {
+            if (promoSection) promoSection.hidden = true;
+            return;
+        }
+        promoTrack.innerHTML = promos
+            .map((p) => {
+                const arte = p.banner || (Array.isArray(p.galeria) && p.galeria[0]) || p.imagem;
+                return `
+                <button class="promo-card" type="button" data-id="${p.id}" aria-label="Ver promoção: ${p.nome}">
+                    <img class="promo-card-arte" src="${arte}" alt="${p.nome}" loading="lazy">
+                    <span class="promo-card-rodape">
+                        <span class="promo-card-nome">${p.nome}</span>
+                        <span class="promo-card-cta">${formatarMoeda(Math.min(...tamanhosDoProduto(p).map((t) => Number(t.preco) || 0)))} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                    </span>
+                </button>`;
+            })
+            .join("");
+        promoDots.innerHTML = promos.length > 1
+            ? promos.map((_, i) => `<button class="promo-dot${i === 0 ? " active" : ""}" type="button" data-idx="${i}" aria-label="Promoção ${i + 1}"></button>`).join("")
+            : "";
+        promoSection.hidden = false;
+    };
+    const promoIndiceAtual = () => {
+        const cards = [...promoTrack.children];
+        const centro = promoTrack.scrollLeft + promoTrack.clientWidth / 2;
+        let melhor = 0, dist = Infinity;
+        cards.forEach((c, i) => {
+            const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - centro);
+            if (d < dist) { dist = d; melhor = i; }
+        });
+        return melhor;
+    };
+    const irParaPromo = (i) => {
+        const card = promoTrack.children[i];
+        if (!card) return;
+        promoTrack.scrollTo({ left: card.offsetLeft - (promoTrack.clientWidth - card.offsetWidth) / 2, behavior: "smooth" });
+    };
+    if (promoTrack) {
+        promoTrack.addEventListener("scroll", () => {
+            const i = promoIndiceAtual();
+            promoDots.querySelectorAll(".promo-dot").forEach((d, j) => d.classList.toggle("active", j === i));
+        }, { passive: true });
+        promoDots.addEventListener("click", (e) => {
+            const dot = e.target.closest(".promo-dot");
+            if (dot) irParaPromo(Number(dot.dataset.idx));
+        });
+        document.getElementById("promo-prev")?.addEventListener("click", () => irParaPromo(Math.max(0, promoIndiceAtual() - 1)));
+        document.getElementById("promo-next")?.addEventListener("click", () => irParaPromo(Math.min(promoTrack.children.length - 1, promoIndiceAtual() + 1)));
+        // Passa sozinho a cada 5s; para quando o cliente mexe no carrossel
+        let promoAuto = setInterval(() => {
+            const total = promoTrack.children.length;
+            if (total > 1 && promoTrack.scrollWidth > promoTrack.clientWidth + 4) irParaPromo((promoIndiceAtual() + 1) % total);
+        }, 5000);
+        ["pointerdown", "touchstart", "wheel"].forEach((ev) =>
+            promoTrack.addEventListener(ev, () => clearInterval(promoAuto), { passive: true, once: true }));
+    }
+
     const selecionarCategoria = (categoriaId) => {
         categoriaAtiva = categoriaId === "all" ? null : categoriaId;
         filtrarEMostrarProdutos();
-        document.getElementById("produtos")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
-    // Tela inicial de categorias — mostrada antes do cliente escolher o que quer ver,
-    // pra não jogar todos os produtos misturados de cara.
-    const renderCategoriaTiles = () => {
+    // Barra de filtros (chips) acima dos produtos: "Todos" + uma por categoria que tenha produto.
+    const renderFiltros = () => {
         const heading = document.getElementById("products-heading");
-        heading.hidden = true;
-        heading.innerHTML = "";
-
-        const container = document.querySelector(".products-container");
-        container.classList.add("category-tiles-view");
-        if (!categorias.length) {
-            container.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #999;">
-                    <p style="font-size: 1.1rem; font-weight: 600;">Nenhuma categoria cadastrada ainda</p>
-                </div>`;
-            return;
-        }
-        container.innerHTML = categorias
-            .map((c) =>
-                c.foto
-                    ? `
-            <button class="category-tile category-tile--foto" data-category="${c.id}">
-                <img class="category-tile-photo" src="${c.foto}" alt="" loading="lazy">
-                <span class="category-tile-name">${c.nome}</span>
-            </button>`
-                    : `
-            <button class="category-tile" data-category="${c.id}">
-                <span class="category-tile-icon"><i class="fa-solid ${c.icone || "fa-tag"}" aria-hidden="true"></i></span>
-                <span class="category-tile-name">${c.nome}</span>
-            </button>`,
-            )
-            .join("");
+        const comProduto = categorias.filter((c) => produtos.some((p) => p.categoria === c.id));
+        const chip = (id, nome, icone) => `
+            <button class="category-chip${(categoriaAtiva || "all") === id ? " active" : ""}" type="button" data-category="${id}">
+                ${icone ? `<i class="fa-solid ${icone}" aria-hidden="true"></i>` : ""}${nome}
+            </button>`;
+        heading.innerHTML = `<div class="category-chips" role="tablist" aria-label="Filtrar por categoria">
+            ${chip("all", "Todos", "fa-border-all")}
+            ${comProduto.map((c) => chip(c.id, c.nome, c.icone)).join("")}
+        </div>`;
+        heading.hidden = false;
     };
 
-    // Função para filtrar e mostrar produtos
+    const cardDoProduto = (p) => {
+        const tagEncomenda =
+            p.disponibilidade === "encomenda"
+                ? `<span class="product-tag tag-encomenda">Sob encomenda${p.prazoDias ? ` · ${p.prazoDias} dias` : ""}</span>`
+                : "";
+        const esgotado =
+            p.estoque !== undefined &&
+            p.estoque !== null &&
+            Number(p.estoque) <= 0;
+        const tagEsgotado = esgotado
+            ? `<span class="product-tag tag-esgotado">Esgotado</span>`
+            : "";
+        const badgeDestaque = p.destaque
+            ? `<span class="product-badge-destaque"><i class="fa-solid fa-star" aria-hidden="true"></i> Promoção</span>`
+            : "";
+        // Preço: produto com um único tamanho mostra o valor fixo; com vários
+        // tamanhos mostra "A partir de" com o menor preço cadastrado.
+        const tamanhos = tamanhosDoProduto(p);
+        const precos = tamanhos.map((t) => Number(t.preco) || 0);
+        const precoTexto = tamanhos.length > 1
+            ? `A partir de ${formatarMoeda(Math.min(...precos))}`
+            : formatarMoeda(precos[0]);
+        // Produto com qualquer tipo de personalização sempre abre os detalhes antes de ir
+        // pro carrinho — só produtos 100% simples adicionam direto.
+        const precisaDetalhe = tamanhos.length > 1
+            || (p.opcaoInclusa && Array.isArray(p.opcaoInclusa.opcoes) && p.opcaoInclusa.opcoes.length)
+            || (Array.isArray(p.complementosLista) && p.complementosLista.length && tamanhos.some(t => Number(t.complementosGratis) > 0))
+            || (Array.isArray(p.adicionaisPagos) && p.adicionaisPagos.length);
+        return `
+            <div class="product-card${esgotado ? " produto-esgotado" : ""}" data-id="${p.id}" data-precisa-detalhe="${precisaDetalhe ? "1" : ""}">
+                ${badgeDestaque}
+                <img class="product-img" src="${p.imagem}" alt="${p.nome}" loading="lazy">
+                <div class="product-info">
+                    <p class="product-code">Código: ${codigoDoProduto(p)}</p>
+                    <h3 class="product-name">${p.nome}</h3>
+                    <p class="product-description">${p.descricao}</p>
+                    ${esgotado ? tagEsgotado : tagEncomenda}
+                    <p class="product-price">${precoTexto}</p>
+                    <button class="product-button"${esgotado ? " disabled" : ""}>${esgotado ? "Esgotado" : (precisaDetalhe ? "Escolher" : "Adicionar ao carrinho")}</button>
+                </div>
+            </div>
+        `;
+    };
+
+    // Função para filtrar e mostrar produtos.
+    // Sem filtro: todos os produtos já na primeira tela, agrupados por categoria.
+    // Com categoria ou busca: só os que batem, numa grade única.
     const filtrarEMostrarProdutos = () => {
-        // Sem categoria escolhida e sem busca: mostra a tela de categorias, não os produtos
-        // misturados. Uma busca digitada, porém, procura em todas as categorias mesmo assim.
-        if (!categoriaAtiva && termoBusca.trim() === "") {
-            renderCategoriaTiles();
-            return;
-        }
+        renderFiltros();
+        const container = document.querySelector(".products-container");
+        const buscando = termoBusca.trim() !== "";
 
         let produtosFiltrados = produtos;
-
-        // Filtro por categoria
         if (categoriaAtiva) {
-            produtosFiltrados = produtosFiltrados.filter(
-                (produto) => produto.categoria === categoriaAtiva,
-            );
+            produtosFiltrados = produtosFiltrados.filter((produto) => produto.categoria === categoriaAtiva);
         }
-
-        // Filtro por busca
-        if (termoBusca.trim() !== "") {
+        if (buscando) {
             const termo = termoBusca.toLowerCase();
             produtosFiltrados = produtosFiltrados.filter(
                 (produto) =>
@@ -902,84 +1013,35 @@ document.addEventListener("DOMContentLoaded", async () => {
                     (produto.descricao || "").toLowerCase().includes(termo),
             );
         }
-
         // Produtos em destaque aparecem primeiro (mantendo a ordem entre eles estável)
         produtosFiltrados = [...produtosFiltrados].sort(
             (a, b) => (b.destaque ? 1 : 0) - (a.destaque ? 1 : 0),
         );
 
-        // Cabeçalho com o nome da categoria (ou da busca) + botão pra voltar às categorias
-        const heading = document.getElementById("products-heading");
-        const nomeCategoria = categoriaAtiva
-            ? (categorias.find((c) => c.id === categoriaAtiva)?.nome || "")
-            : "";
-        const tituloHeading = nomeCategoria || (termoBusca.trim() !== "" ? "Resultado da busca" : "");
-        heading.innerHTML = `
-            <button class="products-heading-voltar" id="btn-voltar-categorias" type="button">
-                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Categorias
-            </button>
-            ${tituloHeading ? `<h2 class="products-heading-titulo">${tituloHeading}</h2>` : ""}
-        `;
-        heading.hidden = false;
-
-        // Renderizar produtos filtrados
-        const container = document.querySelector(".products-container");
-        container.classList.remove("category-tiles-view");
         if (produtosFiltrados.length === 0) {
             container.innerHTML = `
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #999;">
-                            <i class="fa-solid fa-box-open" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                            <p style="font-size: 1.2rem; font-weight: 600;">Nenhum produto encontrado</p>
-                        </div>
-                    `;
-        } else {
-            container.innerHTML = produtosFiltrados
-                .map((p) => {
-                    const tagEncomenda =
-                        p.disponibilidade === "encomenda"
-                            ? `<span class="product-tag tag-encomenda">Sob encomenda${p.prazoDias ? ` · ${p.prazoDias} dias` : ""}</span>`
-                            : "";
-                    const esgotado =
-                        p.estoque !== undefined &&
-                        p.estoque !== null &&
-                        Number(p.estoque) <= 0;
-                    const tagEsgotado = esgotado
-                        ? `<span class="product-tag tag-esgotado">Esgotado</span>`
-                        : "";
-                    const badgeDestaque = p.destaque
-                        ? `<span class="product-badge-destaque"><i class="fa-solid fa-star" aria-hidden="true"></i> Destaque</span>`
-                        : "";
-                    // Preço: produto com um único tamanho mostra o valor fixo; com vários
-                    // tamanhos mostra "A partir de" com o menor preço cadastrado.
-                    const tamanhos = tamanhosDoProduto(p);
-                    const precos = tamanhos.map((t) => Number(t.preco) || 0);
-                    const precoTexto = tamanhos.length > 1
-                        ? `A partir de ${formatarMoeda(Math.min(...precos))}`
-                        : formatarMoeda(precos[0]);
-                    // Produto com qualquer tipo de personalização (tamanho, complementos,
-                    // adicionais ou opção inclusa) sempre abre os detalhes pra o cliente
-                    // escolher antes de ir pro carrinho — só produtos 100% simples adicionam direto.
-                    const precisaDetalhe = tamanhos.length > 1
-                        || (p.opcaoInclusa && Array.isArray(p.opcaoInclusa.opcoes) && p.opcaoInclusa.opcoes.length)
-                        || (Array.isArray(p.complementosLista) && p.complementosLista.length && tamanhos.some(t => Number(t.complementosGratis) > 0))
-                        || (Array.isArray(p.adicionaisPagos) && p.adicionaisPagos.length);
-                    return `
-                        <div class="product-card${esgotado ? " produto-esgotado" : ""}" data-id="${p.id}" data-precisa-detalhe="${precisaDetalhe ? "1" : ""}">
-                            ${badgeDestaque}
-                            <img class="product-img" src="${p.imagem}" alt="${p.nome}" loading="lazy">
-                            <div class="product-info">
-                                <p class="product-code">Código: ${codigoDoProduto(p)}</p>
-                                <h3 class="product-name">${p.nome}</h3>
-                                <p class="product-description">${p.descricao}</p>
-                                ${esgotado ? tagEsgotado : tagEncomenda}
-                                <p class="product-price">${precoTexto}</p>
-                                <button class="product-button"${esgotado ? " disabled" : ""}>${esgotado ? "Esgotado" : (precisaDetalhe ? "Escolher" : "Adicionar ao carrinho")}</button>
-                            </div>
-                        </div>
-                    `;
-                })
-                .join("");
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #999;">
+                    <i class="fa-solid fa-box-open" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <p style="font-size: 1.2rem; font-weight: 600;">Nenhum produto encontrado</p>
+                </div>`;
+            return;
         }
+
+        if (!categoriaAtiva && !buscando) {
+            const grupos = categorias
+                .map((c) => ({ c, itens: produtosFiltrados.filter((p) => p.categoria === c.id) }))
+                .filter((g) => g.itens.length);
+            const semCategoria = produtosFiltrados.filter((p) => !categorias.some((c) => c.id === p.categoria));
+            if (semCategoria.length) grupos.push({ c: { nome: "Outros" }, itens: semCategoria });
+            container.innerHTML = grupos
+                .map((g) => `<h3 class="products-group-title">${g.c.nome}</h3>${g.itens.map(cardDoProduto).join("")}`)
+                .join("");
+            return;
+        }
+
+        container.innerHTML =
+            (buscando ? `<h3 class="products-group-title">Resultado da busca</h3>` : "") +
+            produtosFiltrados.map(cardDoProduto).join("");
     };
 
     // Produtos personalizados (tamanho/opção/complementos/adicionais) geram uma "chave"
@@ -1202,7 +1264,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         const fieldsToValidate = tipoEntrega === "delivery"
-            ? ["delivery-cep", "delivery-address", "identificacao-nome", "identificacao-telefone"]
+            ? ["delivery-cep", "delivery-address", "delivery-numero", "delivery-bairro", "identificacao-nome", "identificacao-telefone"]
             : ["pickup-date", "pickup-time", "identificacao-nome", "identificacao-telefone"];
 
         if (!validarCampos(fieldsToValidate)) return;
@@ -1250,10 +1312,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const telefone = document.getElementById("identificacao-telefone").value;
 
         if (tipoEntrega === "delivery") {
-            const address = document.getElementById("delivery-address").value;
-            const cep = document.getElementById("delivery-cep").value;
+            const cep = document.getElementById("delivery-cep").value.trim();
 
-            mensagem += `*Tipo de Pedido:* Entrega (Moto)\n\n*Nome:* ${nome}\n*Telefone:* ${telefone}\n*CEP:* ${cep}\n*Endereço:* ${address}\n\n${paymentInfo}`;
+            mensagem += `*Tipo de Pedido:* Entrega (Moto)\n\n*Nome:* ${nome}\n*Telefone:* ${telefone}\n*Endereço:* ${enderecoCompleto()}${cep ? `\n*CEP:* ${cep}` : ""}\n\n${paymentInfo}`;
         } else {
             const dataInput = document.getElementById("pickup-date").value;
             const hora = document.getElementById("pickup-time").value;
@@ -1276,12 +1337,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     finishOrderBtn.addEventListener("click", finalizarPedido);
     viewCartBannerBtn.addEventListener("click", abrirCarrinho);
 
-    // Botão "voltar às categorias" acima da grade de produtos (recriado a cada render, por isso delegado)
+    // Chips de filtro acima da grade de produtos (recriados a cada render, por isso delegado)
     document.getElementById("products-heading").addEventListener("click", (e) => {
-        if (!e.target.closest("#btn-voltar-categorias")) return;
-        termoBusca = "";
-        searchInput.value = "";
-        selecionarCategoria("all");
+        const chip = e.target.closest(".category-chip");
+        if (!chip) return;
+        selecionarCategoria(chip.dataset.category);
+    });
+
+    // Clicar numa promoção do carrossel abre o produto
+    promoTrack?.addEventListener("click", (e) => {
+        const card = e.target.closest(".promo-card");
+        if (card) abrirDetalhe(Number.parseInt(card.dataset.id));
     });
 
     // Event listener para campo de busca
@@ -1293,11 +1359,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     document
         .querySelector(".products-container")
         .addEventListener("click", (e) => {
-            const tile = e.target.closest(".category-tile");
-            if (tile) {
-                selecionarCategoria(tile.dataset.category);
-                return;
-            }
             const productCard = e.target.closest(".product-card");
             if (!productCard) return;
             const produtoId = Number.parseInt(productCard.dataset.id);
@@ -1350,6 +1411,42 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 
+    // --- MÁSCARAS DOS CAMPOS ---
+    // Celular: só números, no máximo 11 (DDD + 9 dígitos), formatado como (51) 99999-9999
+    const telefoneInput = document.getElementById("identificacao-telefone");
+    telefoneInput.addEventListener("input", () => {
+        const d = telefoneInput.value.replace(/\D/g, "").slice(0, 11);
+        let v = d;
+        if (d.length > 2) v = `(${d.slice(0, 2)}) ${d.slice(2)}`;
+        if (d.length > 7) v = `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+        telefoneInput.value = v;
+        if (d.length === 11) telefoneInput.classList.remove("error");
+    });
+
+    // CEP: só números, formatado como 00000-000. Com os 8 dígitos, busca rua e bairro
+    // no ViaCEP (serviço gratuito dos Correios) — se falhar, o cliente digita normalmente.
+    const cepInput = document.getElementById("delivery-cep");
+    let ultimoCepBuscado = "";
+    cepInput.addEventListener("input", async () => {
+        const d = cepInput.value.replace(/\D/g, "").slice(0, 8);
+        cepInput.value = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+        if (d.length === 0 || d.length === 8) cepInput.classList.remove("error");
+        if (d.length !== 8 || d === ultimoCepBuscado) return;
+        ultimoCepBuscado = d;
+        try {
+            const resp = await fetch(`https://viacep.com.br/ws/${d}/json/`);
+            const dados = await resp.json();
+            if (dados.erro) return;
+            const ruaEl = document.getElementById("delivery-address"),
+                bairroEl = document.getElementById("delivery-bairro");
+            if (dados.logradouro && !ruaEl.value.trim()) { ruaEl.value = dados.logradouro; ruaEl.classList.remove("error"); }
+            if (dados.bairro && !bairroEl.value.trim()) { bairroEl.value = dados.bairro; bairroEl.classList.remove("error"); }
+            document.getElementById("delivery-numero").focus();
+        } catch (e) {
+            console.warn("Não foi possível consultar o CEP:", e);
+        }
+    });
+
     // Remove o erro ao digitar
     document
         .querySelectorAll(
@@ -1377,7 +1474,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
     novoPedidoBtn.addEventListener("click", iniciarNovoPedido);
 
+    // Clicar no logo volta pro topo (substitui o link "Início" do menu, que não cabia no celular)
+    document.querySelector(".logo")?.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
     // --- INICIALIZAÇÃO ---
+    renderPromocoes();
     filtrarEMostrarProdutos();
     atualizarCarrinho();
     mostrarEtapa(1);

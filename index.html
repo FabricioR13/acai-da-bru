@@ -14,14 +14,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Estilos -->
     <link rel="stylesheet" href="style.css" />
-    <title>Mamona's Açaí</title>
+    <title>Açaí da Bru</title>
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <!-- Prévia do link ao compartilhar (WhatsApp, Instagram, Facebook). Se o site mudar de
+         endereço (domínio próprio), troque o URL abaixo nas linhas og:url e og:image. -->
+    <meta name="description" content="Açaí da Bru: monte seu açaí do seu jeito e peça pelo WhatsApp. Promoções da semana, delivery e retirada.">
+    <meta name="theme-color" content="#7A1F4B">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:site_name" content="Açaí da Bru">
+    <meta property="og:title" content="Açaí da Bru — Peça seu açaí online">
+    <meta property="og:description" content="Monte do seu jeito, veja as promoções da semana e peça em poucos cliques pelo WhatsApp.">
+    <meta property="og:url" content="https://fabricior13.github.io/acai-da-bru/">
+    <meta property="og:image" content="https://fabricior13.github.io/acai-da-bru/assets/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
 </head>
 
 <body>
     <header>
-        <div class="logo">
-            <img class="logo-img" id="logo-img" src="" alt="" hidden>
-            <h1>Mamona's Açaí</h1>
+        <div class="logo logo--com-imagem">
+            <img class="logo-img" id="logo-img" src="assets/logo.jpg" alt="Açaí da Bru">
+            <h1>Açaí da Bru</h1>
         </div>
 
         <div class="search-container" role="search">
@@ -30,8 +45,8 @@
         </div>
 
         <nav class="header-nav" aria-label="Navegação da página">
-            <a href="#inicio">Início</a>
-            <a href="#produtos">Produtos</a>
+            <a href="#promocoes">Promoções</a>
+            <a href="#produtos">Cardápio</a>
             <a href="#about-section" id="nav-sobre-link" hidden>Sobre</a>
         </nav>
 
@@ -47,15 +62,31 @@
     <section class="hero-section" id="inicio">
         <div class="hero-content">
             <!-- Preenchido pelo script.js com base em configuracoes/geral (heroTag/heroTitulo/heroSubtitulo) -->
-            <span class="hero-tag">Sabor de verdade</span>
-            <h2>Açaí, crepes e muito mais</h2>
-            <p>Monte do seu jeito e peça em poucos cliques</p>
+            <span class="hero-tag">Açaí tem amor em cada colher</span>
+            <h2>Mais que açaí, é sobre momentos doces e especiais</h2>
+            <p>Do seu jeito, do seu gosto — peça em poucos cliques</p>
         </div>
     </section>
 
+    <!-- Carrossel de promoções: montado pelo script.js com os produtos marcados como "destaque"
+         (usa a arte da promoção — campo "banner" ou a 1ª foto da galeria). Some se não houver promoção. -->
+    <section class="promo-section" id="promocoes" hidden aria-label="Promoções">
+        <div class="promo-header">
+            <div>
+                <span class="promo-kicker"><i class="fa-solid fa-fire" aria-hidden="true"></i> Só por tempo limitado</span>
+                <h2 class="promo-titulo">Promoções da Bru</h2>
+            </div>
+            <div class="promo-arrows">
+                <button class="promo-arrow" id="promo-prev" type="button" aria-label="Promoção anterior"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                <button class="promo-arrow" id="promo-next" type="button" aria-label="Próxima promoção"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+            </div>
+        </div>
+        <div class="promo-track" id="promo-track"></div>
+        <div class="promo-dots" id="promo-dots"></div>
+    </section>
+
     <main class="products" id="produtos">
-        <!-- Preenchido pelo script.js: título da categoria + botão de voltar, só visível
-             quando o cliente já escolheu uma categoria (não aparece na tela de categorias) -->
+        <!-- Preenchido pelo script.js: chips de filtro por categoria ("Todos" + categorias) -->
         <div class="products-heading" id="products-heading" hidden></div>
         <div class="products-container"><!-- cards ou categorias gerados pelo script --></div>
     </main>
@@ -125,13 +156,24 @@
 
                 <div id="delivery-form-container">
                     <div class="form-group">
-                        <label for="delivery-cep">CEP</label>
-                        <input type="text" id="delivery-cep" placeholder="00000-000" maxlength="9" required>
+                        <label for="delivery-cep">CEP <small class="form-opcional">(opcional — preenche rua e bairro)</small></label>
+                        <input type="text" id="delivery-cep" placeholder="00000-000" maxlength="9" inputmode="numeric" autocomplete="postal-code">
                     </div>
 
                     <div class="form-group">
                         <label for="delivery-address">Endereço</label>
-                        <textarea id="delivery-address" placeholder="Lote, Quadra, Número" required></textarea>
+                        <input type="text" id="delivery-address" placeholder="Rua / Avenida" maxlength="120" autocomplete="address-line1" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group form-group--numero">
+                            <label for="delivery-numero">Número</label>
+                            <input type="text" id="delivery-numero" placeholder="123" maxlength="8" inputmode="numeric" required>
+                        </div>
+                        <div class="form-group form-group--bairro">
+                            <label for="delivery-bairro">Bairro</label>
+                            <input type="text" id="delivery-bairro" placeholder="Seu bairro" maxlength="60" required>
+                        </div>
                     </div>
 
                     <div class="delivery-fee-notice">
@@ -199,7 +241,7 @@
 
                 <div class="form-group">
                     <label for="observacoes-input">Observações do pedido (opcional)</label>
-                    <textarea id="observacoes-input" rows="2" placeholder="Ex: sem granola, pouco leite condensado, embalagens separadas..."></textarea>
+                    <textarea id="observacoes-input" rows="2" placeholder="Ex: sem granola, pouco leite condensado, no combo: copo 1 com..."></textarea>
                 </div>
 
                 <div class="coupon-container">
@@ -219,7 +261,7 @@
                 </div>
                 <div class="form-group">
                     <label for="identificacao-telefone">Telefone (WhatsApp)</label>
-                    <input type="tel" id="identificacao-telefone" placeholder="(XX) XXXXX-XXXX" maxlength="15" required>
+                    <input type="tel" id="identificacao-telefone" placeholder="(51) 99999-9999" maxlength="15" inputmode="numeric" autocomplete="tel-national" required>
                 </div>
             </section>
 
@@ -269,7 +311,7 @@
     </div>
 
     <footer>
-        <p>2026 - PG Semi Joias. Todos os direitos reservados</p>
+        <p>2026 - Açaí da Bru. Todos os direitos reservados</p>
         <p class="footer-credit">Site desenvolvido por <a href="#" id="footer-credit-link" target="_blank" rel="noopener">TF Solutions</a></p>
     </footer>
 

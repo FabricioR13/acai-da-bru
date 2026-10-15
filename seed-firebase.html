@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Seed Firebase – Mamona's Açaí</title>
+  <title>Seed Firebase – Açaí da Bru</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #eee; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
@@ -23,7 +23,7 @@
 </head>
 <body>
 
-<h1>🔥 Seed de Produtos – Mamona's Açaí</h1>
+<h1>🔥 Seed de Produtos – Açaí da Bru</h1>
 <p>As regras do Firestore só permitem gravar quando o pedido vem de alguém logado — por isso, entre com o e-mail e a senha do admin (o mesmo login usado no <code>admin.html</code>) e depois clique no botão para enviar todos os produtos, categorias e o cupom. Execute <strong>apenas uma vez</strong>. Se rodar novamente, usará <code>set</code> com o mesmo ID (não duplica). Os preços e sabores abaixo são um ponto de partida — ajuste tudo depois pelo admin (aba Produtos), inclusive as fotos.</p>
 
 <div id="login-box">
@@ -42,12 +42,12 @@
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyAU9m89_OAsxJy7MggJkdY88wmvuCISALU",
-  authDomain: "mamonas-acai.firebaseapp.com",
-  projectId: "mamonas-acai",
-  storageBucket: "mamonas-acai.firebasestorage.app",
-  messagingSenderId: "778665319873",
-  appId: "1:778665319873:web:bd7b95b2f65f5ac08aa340"
+  apiKey: "AIzaSyCLBk9GA0kisT7aCm5HFBuRBqvShaycfys",
+  authDomain: "acai-da-bru-41a8d.firebaseapp.com",
+  projectId: "acai-da-bru-41a8d",
+  storageBucket: "acai-da-bru-41a8d.firebasestorage.app",
+  messagingSenderId: "356703842862",
+  appId: "1:356703842862:web:d3de3f91843e4cfaf625bf"
 };
 
 // Imagens abaixo são fotos genéricas (banco de imagens gratuito Unsplash) só para os cards terem uma
@@ -59,154 +59,127 @@ const img = (id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=cro
 // "complementosGratis" é quantos itens da lista de complementos o cliente pode escolher sem custo nesse tamanho.
 // "opcaoInclusa" é uma escolha simples incluída no preço (ex: sabor) — deixe null quando não houver.
 // "adicionaisPagos" são extras cobrados à parte.
+// Listas compartilhadas pelos copos de açaí (iguais ao cardápio da Bru)
+const COMPLEMENTOS = [
+  "M&M's", "Paçoca", "Banana", "Granola", "Amendoim",
+  "Chocoball", "Sucrilhos", "Leite em pó", "Ovomaltine", "Bala de goma",
+  "Leite condensado", "Cobertura de morango", "Cobertura de chocolate", "Cobertura de caramelo",
+];
+const ADICIONAIS = [
+  { nome: "Açaí puro", preco: 3.00 },
+  { nome: "Kiwi", preco: 3.00 },
+  { nome: "Abacaxi", preco: 3.00 },
+  { nome: "Morango", preco: 3.00 },
+  { nome: "Oreo", preco: 3.00 },
+  { nome: "Kit Kat", preco: 5.00 },
+  { nome: "Prestígio", preco: 5.00 },
+  { nome: "Stikadinho", preco: 5.00 },
+  { nome: "Ouro Branco", preco: 5.00 },
+  { nome: "Creme Ninho", preco: 6.00 },
+  { nome: "Creme de morango", preco: 6.00 },
+  { nome: "Creme de doce de leite", preco: 6.00 },
+  { nome: "Nutella", preco: 8.00 },
+  { nome: "Creme Ovomaltine", preco: 8.00 },
+];
+
+// "promoAte" (AAAA-MM-DD): último dia da promoção — depois disso o produto some da loja sozinho.
+// "galeria"[0] é a arte usada no carrossel de promoções do topo.
+// Fotos: recortes das artes oficiais da Bru (pasta assets/). Troque pelas fotos reais
+// quando ela mandar, pelo admin (aba Produtos → Upload/Câmera).
 const produtos = [
-  // ── AÇAÍ ──────────────────────────────────────────────────────────────
+  // ── PROMOÇÕES (aparecem com o selo "Destaque") ─────────────────────────
   {
-    id: 1, nome: "Açaí Tradicional", categoria: "acai",
+    id: 1, nome: "Combo Casal", categoria: "promocoes", destaque: true, promoAte: "2026-10-31",
+    tamanhos: [ { nome: "2 açaís de 400ml", preco: 32.80, complementosGratis: 6 } ],
+    opcaoInclusa: null,
+    complementosLista: COMPLEMENTOS,
+    adicionaisPagos: ADICIONAIS,
+    disponibilidade: "pronta", prazoDias: null,
+    imagem: "assets/combo-quadrado.jpg",
+    galeria: ["assets/promo-combo.jpg"],
+    descricao: "Promoção de outubro (01/10 a 31/10): 2 açaís de 400ml com 3 complementos em cada. Escolha os 6 complementos e diga nas observações como dividir entre os copos.",
+  },
+  {
+    id: 2, nome: "Açaí 300ml + Creme Ninho Grátis", categoria: "promocoes", destaque: true, promoAte: "2026-10-31",
+    tamanhos: [ { nome: "300ml", preco: 15.90, complementosGratis: 3 } ],
+    opcaoInclusa: null,
+    complementosLista: COMPLEMENTOS,
+    adicionaisPagos: ADICIONAIS.filter((a) => a.nome !== "Creme Ninho"),
+    disponibilidade: "pronta", prazoDias: null,
+    imagem: "assets/ninho-quadrado.jpg",
+    galeria: ["assets/promo-ninho.jpg"],
+    descricao: "Promoção de outubro (01/10 a 31/10): no copo de 300ml o Creme Ninho vai de graça, além dos 3 complementos.",
+  },
+  {
+    id: 3, nome: "Fondue para 2 Pessoas (Promoção)", categoria: "promocoes", destaque: true, promoAte: "2026-10-16",
+    tamanhos: [ { nome: "", preco: 23.90, complementosGratis: 0 } ],
+    opcaoInclusa: null, complementosLista: [], adicionaisPagos: [],
+    disponibilidade: "pronta", prazoDias: null,
+    imagem: "assets/fondue-quadrado.jpg",
+    galeria: ["assets/promo-fondue.jpg"],
+    descricao: "Válido de 13/10 a 16/10: banana, morango, marshmallow, creme de avelã e creme Ninho por R$ 23,90 (preço normal R$ 26,90).",
+  },
+
+  // ── AÇAÍ ───────────────────────────────────────────────────────────────
+  {
+    id: 4, nome: "Açaí no Copo", categoria: "acai",
     tamanhos: [
-      { nome: "300ml", preco: 13.00, complementosGratis: 2 },
-      { nome: "500ml", preco: 18.00, complementosGratis: 3 },
-      { nome: "700ml", preco: 23.00, complementosGratis: 4 },
+      { nome: "300ml", preco: 15.90, complementosGratis: 3 },
+      { nome: "400ml", preco: 17.90, complementosGratis: 3 },
+      { nome: "500ml", preco: 19.90, complementosGratis: 4 },
+      { nome: "700ml", preco: 28.90, complementosGratis: 4 },
+      { nome: "1L",    preco: 49.90, complementosGratis: 5 },
     ],
     opcaoInclusa: null,
-    complementosLista: ["Granola", "Leite em pó", "Leite condensado", "Paçoca", "Morango", "Banana", "Granulado", "Amendoim"],
-    adicionaisPagos: [
-      { nome: "Nutella", preco: 5.00 },
-      { nome: "Leite Ninho", preco: 4.00 },
-      { nome: "Morango extra", preco: 3.00 },
-      { nome: "Granola turbinada", preco: 3.00 },
-    ],
+    complementosLista: COMPLEMENTOS,
+    adicionaisPagos: ADICIONAIS,
     disponibilidade: "pronta", prazoDias: null,
-    imagem: img("1627308594190-a057cd4bfac8"),
-    descricao: "Açaí puro batido na hora, cremoso, com complementos grátis inclusos conforme o tamanho.",
-  },
-  {
-    id: 2, nome: "Açaí com Morango", categoria: "acai",
-    tamanhos: [
-      { nome: "300ml", preco: 15.00, complementosGratis: 2 },
-      { nome: "500ml", preco: 20.00, complementosGratis: 3 },
-      { nome: "700ml", preco: 25.00, complementosGratis: 4 },
-    ],
-    opcaoInclusa: null,
-    complementosLista: ["Granola", "Leite em pó", "Leite condensado", "Paçoca", "Morango", "Banana", "Granulado", "Amendoim"],
-    adicionaisPagos: [
-      { nome: "Nutella", preco: 5.00 },
-      { nome: "Leite Ninho", preco: 4.00 },
-      { nome: "Morango extra", preco: 3.00 },
-    ],
-    disponibilidade: "pronta", prazoDias: null,
-    imagem: img("1684403620650-81dc661a69db"),
-    descricao: "Açaí batido com morango, já vem com um toque adocicado natural.",
+    imagem: "assets/copo-quadrado.jpg",
+    descricao: "Monte do seu jeito: escolha o tamanho, os complementos grátis e os adicionais que quiser.",
   },
 
-  // ── CREPE NO COPO ────────────────────────────────────────────────────
+  // ── ESPECIAIS DA BRU ───────────────────────────────────────────────────
   {
-    id: 3, nome: "Crepe no Copo", categoria: "crepe-copo",
-    tamanhos: [ { nome: "", preco: 16.00, complementosGratis: 0 } ],
-    opcaoInclusa: { label: "Sabor", opcoes: ["Ninho com Nutella", "Morango com Nutella", "Doce de Leite", "Oreo"] },
-    complementosLista: [],
-    adicionaisPagos: [
-      { nome: "Calda extra", preco: 3.00 },
-      { nome: "Morango extra", preco: 3.00 },
-    ],
-    disponibilidade: "pronta", prazoDias: null,
-    imagem: img("1565087170449-fa23854a6100"),
-    descricao: "Camadas de massa de crepe fininha, recheio cremoso e cobertura, servido no copo.",
-  },
-
-  // ── CREPE SALGADO ────────────────────────────────────────────────────
-  {
-    id: 4, nome: "Crepe de Frango com Catupiry", categoria: "crepe-salgado",
-    tamanhos: [ { nome: "", preco: 18.00, complementosGratis: 0 } ],
-    opcaoInclusa: null, complementosLista: [], adicionaisPagos: [],
-    disponibilidade: "pronta", prazoDias: null,
-    imagem: img("1562059390-a761a084768e"),
-    descricao: "Massa de crepe salgada recheada com frango desfiado e catupiry cremoso.",
-  },
-  {
-    id: 5, nome: "Crepe de Carne Seca com Catupiry", categoria: "crepe-salgado",
-    tamanhos: [ { nome: "", preco: 20.00, complementosGratis: 0 } ],
-    opcaoInclusa: null, complementosLista: [], adicionaisPagos: [],
-    disponibilidade: "pronta", prazoDias: null,
-    imagem: img("1671572579845-52270341950f"),
-    descricao: "Recheio de carne seca desfiada com catupiry, na massa de crepe salgada.",
-  },
-  {
-    id: 6, nome: "Crepe de Calabresa", categoria: "crepe-salgado",
-    tamanhos: [ { nome: "", preco: 17.00, complementosGratis: 0 } ],
-    opcaoInclusa: null, complementosLista: [], adicionaisPagos: [],
-    disponibilidade: "pronta", prazoDias: null,
-    imagem: img("1646530208887-8a791bff4701"),
-    descricao: "Calabresa fatiada com queijo derretido na massa de crepe salgada.",
-  },
-
-  // ── CREPE DOCE ───────────────────────────────────────────────────────
-  {
-    id: 7, nome: "Crepe Doce de Ninho com Nutella", categoria: "crepe-doce",
-    tamanhos: [ { nome: "", preco: 17.00, complementosGratis: 0 } ],
+    id: 5, nome: "Açaí de Morango Cravejado", categoria: "especiais",
+    tamanhos: [ { nome: "400ml", preco: 25.90, complementosGratis: 0 } ],
     opcaoInclusa: null, complementosLista: [],
-    adicionaisPagos: [ { nome: "Morango extra", preco: 3.00 } ],
+    adicionaisPagos: ADICIONAIS,
     disponibilidade: "pronta", prazoDias: null,
-    imagem: img("1734056650036-7002ede7b8f8"),
-    descricao: "Massa de crepe doce recheada com leite Ninho e Nutella.",
+    imagem: "https://images.unsplash.com/photo-1684403620650-81dc661a69db?auto=format&fit=crop&w=800&h=800&q=80",
+    descricao: "Açaí + morango + creme Ninho + cravejado de morango.",
   },
   {
-    id: 8, nome: "Crepe Doce Romeu e Julieta", categoria: "crepe-doce",
-    tamanhos: [ { nome: "", preco: 16.00, complementosGratis: 0 } ],
+    id: 6, nome: "Roleta Fondue (2 pessoas)", categoria: "especiais",
+    tamanhos: [ { nome: "", preco: 26.90, complementosGratis: 0 } ],
     opcaoInclusa: null, complementosLista: [], adicionaisPagos: [],
     disponibilidade: "pronta", prazoDias: null,
-    imagem: img("1731173432456-03df445fad64"),
-    descricao: "Queijo derretido com goiabada, na massa de crepe doce.",
+    imagem: "assets/fondue-quadrado.jpg",
+    descricao: "Banana, morango, marshmallow, creme de avelã e creme Ninho.",
   },
 
-  // ── MILKSHAKE ────────────────────────────────────────────────────────
+  // ── BEBIDAS ────────────────────────────────────────────────────────────
   {
-    id: 9, nome: "Milkshake", categoria: "milkshake",
-    tamanhos: [
-      { nome: "300ml", preco: 14.00, complementosGratis: 0 },
-      { nome: "500ml", preco: 19.00, complementosGratis: 0 },
-    ],
-    opcaoInclusa: { label: "Sabor", opcoes: ["Chocolate", "Morango", "Baunilha", "Ovomaltine"] },
-    complementosLista: [],
-    adicionaisPagos: [
-      { nome: "Calda extra", preco: 2.50 },
-      { nome: "Chantilly", preco: 2.50 },
-    ],
+    id: 7, nome: "Coca-Cola 2L", categoria: "bebidas",
+    tamanhos: [ { nome: "", preco: 14.00, complementosGratis: 0 } ],
+    opcaoInclusa: null, complementosLista: [], adicionaisPagos: [],
     disponibilidade: "pronta", prazoDias: null,
-    imagem: img("1686638745403-d21193f16b2f"),
-    descricao: "Milkshake bem cremoso, batido na hora no sabor que você escolher.",
-  },
-
-  // ── SORVETE NO COPO ──────────────────────────────────────────────────
-  {
-    id: 10, nome: "Sorvete no Copo", categoria: "sorvete",
-    tamanhos: [
-      { nome: "1 bola", preco: 8.00, complementosGratis: 1 },
-      { nome: "2 bolas", preco: 13.00, complementosGratis: 2 },
-      { nome: "3 bolas", preco: 17.00, complementosGratis: 3 },
-    ],
-    opcaoInclusa: { label: "Sabor", opcoes: ["Chocolate", "Morango", "Flocos", "Creme", "Ninho"] },
-    complementosLista: ["Granulado", "Calda de chocolate", "Calda de morango", "Confete"],
-    adicionaisPagos: [ { nome: "Casquinha", preco: 2.00 } ],
-    disponibilidade: "pronta", prazoDias: null,
-    imagem: img("1755004609214-c252674df1ca"),
-    descricao: "Sorvete servido no copo, escolha o sabor e os complementos grátis inclusos.",
+    imagem: "assets/bebida.svg",
+    descricao: "Refrigerante Coca-Cola 2 litros.",
   },
 ];
 
 // Obs: o botão "Todos" é gerado automaticamente pela loja — não precisa (e não deve)
 // cadastrar uma categoria com esse nome/id aqui nem no admin.
+// "ordem" define a sequência das categorias na loja (menor primeiro).
 const categorias = [
-  { id: "acai",          nome: "Açaí",            icone: "fa-bowl-rice" },
-  { id: "crepe-copo",    nome: "Crepe no Copo",    icone: "fa-ice-cream" },
-  { id: "crepe-salgado", nome: "Crepe Salgado",    icone: "fa-pizza-slice" },
-  { id: "crepe-doce",    nome: "Crepe Doce",       icone: "fa-cookie" },
-  { id: "milkshake",     nome: "Milkshake",        icone: "fa-mug-saucer" },
-  { id: "sorvete",       nome: "Sorvete no Copo",  icone: "fa-ice-cream" },
+  { id: "promocoes", nome: "Promoções",         icone: "fa-tags",       ordem: 1 },
+  { id: "acai",      nome: "Açaí",              icone: "fa-bowl-food",  ordem: 2 },
+  { id: "especiais", nome: "Especiais da Bru",  icone: "fa-star",       ordem: 3 },
+  { id: "bebidas",   nome: "Bebidas",           icone: "fa-bottle-water", ordem: 4 },
 ];
 
 const cupons = [
-  { codigo: "DESCONTO10", tipo: "percentual", valor: 10, valorMinimo: 0, validade: null, ativo: true },
+  { codigo: "BRU10", tipo: "percentual", valor: 10, valorMinimo: 0, validade: null, ativo: true },
 ];
 
 firebase.initializeApp(firebaseConfig);
@@ -262,7 +235,7 @@ btn.addEventListener("click", async () => {
         ...p,
         preco: precoBase,
         ativo: true,
-        destaque: false,
+        destaque: p.destaque || false,
         criadoEm: firebase.firestore.FieldValue.serverTimestamp()
       });
       addLog(`✔ [${p.id}] ${p.nome}`, "ok");

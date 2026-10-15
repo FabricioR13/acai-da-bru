@@ -1,4 +1,4 @@
-# Regras do Firestore — PG Semi Joias
+# Regras do Firestore — Açaí da Bru
 
 Copie o bloco abaixo e cole no Console do Firebase:
 

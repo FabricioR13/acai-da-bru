@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin – Mamona's Açaí</title>
+  <title>Admin – Açaí da Bru</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <!-- Cropper.js: ferramenta de recorte manual de foto (usada só no admin). Se não
        carregar por algum motivo (sem internet, CDN bloqueado), o sistema cai
@@ -208,7 +209,7 @@
 <div id="login-screen">
   <div style="text-align:center">
     <img src="assets/tf-solutions-logo.jpg" alt="TF Solutions" style="width:150px;max-width:60vw;height:auto;border-radius:12px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-    <h1>Mamona's Açaí Admin</h1>
+    <h1>Açaí da Bru Admin</h1>
     <p style="margin-top:6px">Acesso restrito</p>
   </div>
   <div class="login-box">
@@ -407,7 +408,7 @@
       <div class="form-grid" style="max-width:640px">
         <div class="form-group full">
           <label>Nome da loja</label>
-          <input type="text" id="config-nome-loja" placeholder="Ex: Mamona's Açaí">
+          <input type="text" id="config-nome-loja" placeholder="Ex: Açaí da Bru">
         </div>
         <div class="form-group full">
           <label>WhatsApp para receber pedidos <small style="color:var(--muted)">(DDI + DDD + número, só números, ex: 5581999999999)</small></label>
@@ -415,23 +416,23 @@
         </div>
         <div class="form-group full">
           <label>Texto de destaque (badge acima do banner)</label>
-          <input type="text" id="config-hero-tag" placeholder="Ex: Sabor de verdade">
+          <input type="text" id="config-hero-tag" placeholder="Ex: Açaí tem amor em cada colher">
         </div>
         <div class="form-group full">
           <label>Título do banner</label>
-          <input type="text" id="config-hero-titulo" placeholder="Ex: Açaí, crepes e muito mais">
+          <input type="text" id="config-hero-titulo" placeholder="Ex: Mais que açaí, é sobre momentos doces e especiais">
         </div>
         <div class="form-group full">
           <label>Subtítulo do banner</label>
           <input type="text" id="config-hero-subtitulo" placeholder="Ex: Monte do seu jeito e peça em poucos cliques">
         </div>
         <div class="form-group full">
-          <label>Cor de fundo da faixa de destaque <small style="color:var(--muted)">(onde fica o texto "Sabor de verdade" — a cor do texto se ajusta automaticamente para continuar legível)</small></label>
-          <input type="color" id="config-hero-cor-fundo" value="#1E1033">
+          <label>Cor de fundo da faixa de destaque <small style="color:var(--muted)">(onde fica o texto de destaque — a cor do texto se ajusta automaticamente para continuar legível)</small></label>
+          <input type="color" id="config-hero-cor-fundo" value="#2B0D1E">
           <label class="toggle-row" style="margin-top:8px"><input type="checkbox" id="config-hero-degrade-ativo" onchange="alternarDegradeHero()"> Usar degradê (duas cores)</label>
           <div id="config-hero-degrade-area" style="display:none;margin-top:6px">
             <label style="font-size:.8rem">Segunda cor do degradê</label>
-            <input type="color" id="config-hero-cor-fundo-fim" value="#5B21B6">
+            <input type="color" id="config-hero-cor-fundo-fim" value="#7A1F4B">
           </div>
         </div>
         <div class="form-group full">
@@ -534,15 +535,15 @@
           <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:4px">
             <div class="form-group">
               <label style="font-size:.75rem">Cor primária <small style="color:var(--muted)">(botões e destaques)</small></label>
-              <input type="color" id="config-cor-primaria" value="#7C3AED">
+              <input type="color" id="config-cor-primaria" value="#7A1F4B">
             </div>
             <div class="form-group">
               <label style="font-size:.75rem">Cor secundária <small style="color:var(--muted)">(fundos escuros)</small></label>
-              <input type="color" id="config-cor-secundaria" value="#1E1033">
+              <input type="color" id="config-cor-secundaria" value="#2B0D1E">
             </div>
             <div class="form-group">
               <label style="font-size:.75rem">Cor de destaque <small style="color:var(--muted)">(categoria ativa)</small></label>
-              <input type="color" id="config-cor-destaque" value="#F2C94C">
+              <input type="color" id="config-cor-destaque" value="#D4A24C">
             </div>
           </div>
         </div>
@@ -690,7 +691,20 @@
       <div class="form-group full"><label>Descrição</label><textarea id="form-descricao" placeholder="Descrição, acabamento, cuidados com a peça..."></textarea></div>
       <div class="form-group full" style="flex-direction:row;gap:20px;align-items:center">
         <label class="toggle-row"><input type="checkbox" id="form-ativo" checked> Produto ativo (visível na loja)</label>
-        <label class="toggle-row"><input type="checkbox" id="form-destaque"> Destaque</label>
+        <label class="toggle-row"><input type="checkbox" id="form-destaque" onchange="alternarAreaPromo()"> Destaque / Promoção <small style="color:var(--muted)">(aparece no carrossel do topo)</small></label>
+      </div>
+
+      <!-- PROMOÇÃO: data de término + arte do carrossel (só aparece com "Destaque" marcado) -->
+      <div class="form-group full" id="form-promo-area" style="display:none;border:1px dashed var(--border);border-radius:10px;padding:12px">
+        <label>Promoção válida até <small style="color:var(--muted)">(opcional — depois desse dia o produto some da loja sozinho)</small></label>
+        <input type="date" id="form-promo-ate">
+        <label style="margin-top:12px">Arte da promoção <small style="color:var(--muted)">(opcional — a arte em pé do Instagram/Status. Sem arte, o carrossel usa a 1ª foto da galeria ou a foto principal)</small></label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <img id="form-banner-preview" alt="" style="width:72px;height:112px;object-fit:cover;border-radius:8px;display:none;border:1px solid var(--border)">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('form-banner-file').click()"><i class="fa-solid fa-image"></i> Escolher arte</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="form-banner-remover" onclick="definirBannerPromo('')" style="display:none"><i class="fa-solid fa-trash"></i> Remover arte</button>
+        </div>
+        <input type="file" id="form-banner-file" accept="image/*" style="display:none">
       </div>
     </div>
     <div class="modal-footer">
@@ -832,12 +846,12 @@
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyAU9m89_OAsxJy7MggJkdY88wmvuCISALU",
-  authDomain: "mamonas-acai.firebaseapp.com",
-  projectId: "mamonas-acai",
-  storageBucket: "mamonas-acai.firebasestorage.app",
-  messagingSenderId: "778665319873",
-  appId: "1:778665319873:web:bd7b95b2f65f5ac08aa340"
+  apiKey: "AIzaSyCLBk9GA0kisT7aCm5HFBuRBqvShaycfys",
+  authDomain: "acai-da-bru-41a8d.firebaseapp.com",
+  projectId: "acai-da-bru-41a8d",
+  storageBucket: "acai-da-bru-41a8d.firebasestorage.app",
+  messagingSenderId: "356703842862",
+  appId: "1:356703842862:web:d3de3f91843e4cfaf625bf"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -951,7 +965,7 @@ function mostrarTabela(lista) {
         const min = Math.min(...precos), max = Math.max(...precos);
         return min === max ? `R$ ${min.toFixed(2).replace('.',',')}` : `R$ ${min.toFixed(2).replace('.',',')} – ${max.toFixed(2).replace('.',',')}`;
       })()}</td>
-      <td>${p.ativo !== false ? '<span class="badge badge-ativo">Ativo</span>' : '<span class="badge badge-inativo">Inativo</span>'}${p.destaque ? ' <span class="badge badge-destaque">★ Destaque</span>' : ''}${p.disponibilidade === 'encomenda' ? ' <span class="badge" style="background:#2a2205;color:var(--blue)">Sob encomenda</span>' : ''}${(p.estoque !== undefined && p.estoque !== null && Number(p.estoque) <= 0) ? ' <span class="badge badge-inativo"><i class="fa-solid fa-triangle-exclamation"></i> Esgotado</span>' : ''}${(p.estoque !== undefined && p.estoque !== null && Number(p.estoque) > 0) ? ` <span style="font-size:.72rem;color:var(--muted)">Estoque: ${p.estoque}</span>` : ''}</td>
+      <td>${p.ativo !== false ? '<span class="badge badge-ativo">Ativo</span>' : '<span class="badge badge-inativo">Inativo</span>'}${p.destaque ? ' <span class="badge badge-destaque">★ Destaque</span>' : ''}${p.promoAte ? (new Date(p.promoAte + "T23:59:59") < new Date() ? ` <span class="badge badge-inativo">Promoção encerrada (${p.promoAte.split("-").reverse().join("/")})</span>` : ` <span style="font-size:.72rem;color:var(--muted)">Promo até ${p.promoAte.split("-").reverse().join("/")}</span>`) : ''}${p.disponibilidade === 'encomenda' ? ' <span class="badge" style="background:#2a2205;color:var(--blue)">Sob encomenda</span>' : ''}${(p.estoque !== undefined && p.estoque !== null && Number(p.estoque) <= 0) ? ' <span class="badge badge-inativo"><i class="fa-solid fa-triangle-exclamation"></i> Esgotado</span>' : ''}${(p.estoque !== undefined && p.estoque !== null && Number(p.estoque) > 0) ? ` <span style="font-size:.72rem;color:var(--muted)">Estoque: ${p.estoque}</span>` : ''}</td>
       <td><div class="actions-cell">
         <button class="btn btn-ghost btn-sm" onclick="abrirModalEditar('${p.docId}')"><i class="fa-solid fa-pen"></i></button>
         <button class="btn btn-danger btn-sm" onclick="confirmarExclusao('produto','${p.docId}','${p.nome.replace(/'/g,"\\'")}')"><i class="fa-solid fa-trash"></i></button>
@@ -1158,6 +1172,34 @@ async function fazerUploadImagem(file, maxDim, quadrado, qualidade, formato) {
   return canvas.toDataURL("image/jpeg", QUALIDADE);
 }
 
+// ── PROMOÇÃO: arte do carrossel + data de término ─────────────────────────
+let _bannerPromo = ""; // data URL (ou caminho) da arte da promoção do produto em edição
+
+function alternarAreaPromo() {
+  document.getElementById("form-promo-area").style.display =
+    document.getElementById("form-destaque").checked ? "block" : "none";
+}
+
+function definirBannerPromo(src) {
+  _bannerPromo = src || "";
+  const prev = document.getElementById("form-banner-preview");
+  prev.src = _bannerPromo;
+  prev.style.display = _bannerPromo ? "block" : "none";
+  document.getElementById("form-banner-remover").style.display = _bannerPromo ? "inline-flex" : "none";
+}
+
+document.getElementById("form-banner-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    // Mantém a proporção da arte (sem recorte quadrado) e limita o tamanho pra caber no Firestore
+    definirBannerPromo(await fazerUploadImagem(file, 1100, false, 0.78));
+  } catch (err) {
+    toast("Erro ao processar a arte: " + err.message, "err");
+  }
+});
+
 // ── UPLOAD DO LOGO (CONFIGURAÇÕES) ───────────────────────────────────────
 let _logoArquivoSelecionado = null;
 let _logoImagemDataUrl = null; // já recortada/comprimida, definida pela ferramenta de recorte manual
@@ -1361,6 +1403,9 @@ function abrirModalCriar() {
   document.getElementById("form-descricao").value= "";
   document.getElementById("form-ativo").checked  = true;
   document.getElementById("form-destaque").checked = false;
+  document.getElementById("form-promo-ate").value = "";
+  definirBannerPromo("");
+  alternarAreaPromo();
   resetarUpload();
   _galeriaAtual = [];
   renderGaleriaThumbs();
@@ -1388,6 +1433,9 @@ function abrirModalEditar(docId) {
   document.getElementById("form-descricao").value    = p.descricao || "";
   document.getElementById("form-ativo").checked      = p.ativo !== false;
   document.getElementById("form-destaque").checked   = !!p.destaque;
+  document.getElementById("form-promo-ate").value    = p.promoAte || "";
+  definirBannerPromo(p.banner || "");
+  alternarAreaPromo();
   setTimeout(() => { document.getElementById("form-categoria").value = p.categoria || ""; }, 0);
   resetarUpload();
   _galeriaAtual = Array.isArray(p.galeria) ? [...p.galeria] : [];
@@ -1416,6 +1464,8 @@ async function salvarProduto() {
   const descricao = document.getElementById("form-descricao").value.trim();
   const ativo     = document.getElementById("form-ativo").checked;
   const destaque  = document.getElementById("form-destaque").checked;
+  const promoAte  = document.getElementById("form-promo-ate").value || null;
+  const banner    = _bannerPromo || null;
 
   if (!nome || !categoria || isNaN(preco) || !tamanhos.length) { toast("Preencha nome, categoria e ao menos um tamanho com preço.", "err"); return; }
 
@@ -1438,7 +1488,7 @@ async function salvarProduto() {
     }
   }
 
-  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, estoque, imagem, galeria: _galeriaAtual, descricao, ativo, destaque };
+  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, estoque, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, promoAte, banner };
   try {
     if (docId) {
       await db.collection("produtos").doc(docId).update(dados);
@@ -2365,8 +2415,8 @@ function renderRelatorioGraficoPagamento() {
 
 // ── CONFIGURAÇÕES ─────────────────────────────────────────────────────────
 const CONFIG_PADRAO = {
-  nomeLoja: "Mamona's Açaí",
-  whatsapp: "5551997619270",
+  nomeLoja: "Açaí da Bru",
+  whatsapp: "5551993126436",
   retiradaDias: [0,1,2,3,4,5,6],
   retiradaHoraInicio: "08:00",
   retiradaHoraFim: "18:00",
@@ -2374,21 +2424,21 @@ const CONFIG_PADRAO = {
   retiradaPausaInicio: "",
   retiradaPausaFim: "",
   bannerUrl: "https://images.unsplash.com/photo-1684403620650-81dc661a69db?auto=format&fit=crop&w=1600&h=500&q=80",
-  corPrimaria: "#7C3AED",
-  corSecundaria: "#1E1033",
-  corDestaque: "#F2C94C",
-  heroTag: "Sabor de verdade",
-  heroTitulo: "Açaí, crepes e muito mais",
-  heroSubtitulo: "Monte do seu jeito e peça em poucos cliques",
-  heroCorFundo: "#1E1033",
-  heroCorFundoFim: "#5B21B6",
-  logoUrl: "",
+  corPrimaria: "#7A1F4B",
+  corSecundaria: "#2B0D1E",
+  corDestaque: "#D4A24C",
+  heroTag: "Açaí tem amor em cada colher",
+  heroTitulo: "Mais que açaí, é sobre momentos doces e especiais",
+  heroSubtitulo: "Do seu jeito, do seu gosto — peça em poucos cliques",
+  heroCorFundo: "#2B0D1E",
+  heroCorFundoFim: "#7A1F4B",
+  logoUrl: "assets/logo.jpg",
   entregaDisponivel: true,
   retiradaDisponivel: true,
-  sobreNome: "",
-  sobreTexto: "",
-  sobreFoto: "",
-  sobreLink: ""
+  sobreNome: "Açaí da Bru",
+  sobreTexto: "Açaí de qualidade, feito com carinho e montado do seu jeito. Siga a gente no Instagram e fique de olho nas promoções da semana!",
+  sobreFoto: "assets/copo-quadrado.jpg",
+  sobreLink: "https://www.instagram.com/acaidabru_cb/"
 };
 
 function alternarDegradeHero() {
@@ -2405,7 +2455,7 @@ async function carregarConfiguracoes() {
     document.getElementById("config-hero-tag").value       = cfg.heroTag || "";
     document.getElementById("config-hero-titulo").value    = cfg.heroTitulo || "";
     document.getElementById("config-hero-subtitulo").value = cfg.heroSubtitulo || "";
-    document.getElementById("config-hero-cor-fundo").value = cfg.heroCorFundo || "#1E1033";
+    document.getElementById("config-hero-cor-fundo").value = cfg.heroCorFundo || "#2B0D1E";
     document.getElementById("config-hero-degrade-ativo").checked = !!cfg.heroCorFundoFim;
     document.getElementById("config-hero-cor-fundo-fim").value = cfg.heroCorFundoFim || "#5B21B6";
     alternarDegradeHero();
