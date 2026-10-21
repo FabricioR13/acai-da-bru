@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Criar nova senha – Açaí da Bru</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!--
+    Página de redefinição de senha do admin (substitui a tela padrão do Firebase, que só tem
+    um campo). Para o link do e-mail abrir aqui: Console do Firebase → Authentication →
+    Templates → Redefinição de senha → lápis → "Personalizar URL de ação" →
+    https://fabricior13.github.io/acai-da-bru/redefinir-senha.html
+  -->
+  <style>
+    :root { --vinho:#7A1F4B; --vinho-escuro:#2B0D1E; --dourado:#D4A24C; --borda:#EEDDE3; --erro:#e11d48; --ok:#16a34a; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #FFF9F2; color: #2B1420; min-height: 100vh;
+           display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+    .card { width: 100%; max-width: 380px; background: #fff; border: 1px solid var(--borda); border-radius: 18px;
+            padding: 28px 24px; box-shadow: 0 16px 40px rgba(43,13,30,.10); text-align: center; }
+    .logo { height: 90px; width: auto; margin-bottom: 10px; }
+    h1 { font-family: 'Montserrat', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--vinho-escuro); margin-bottom: 6px; }
+    .sub { font-size: .88rem; color: #6b7280; margin-bottom: 20px; line-height: 1.5; }
+    .sub strong { color: var(--vinho-escuro); }
+    form { text-align: left; display: flex; flex-direction: column; gap: 14px; }
+    label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: 6px; }
+    .campo { position: relative; }
+    .campo input { width: 100%; padding: 12px 44px 12px 12px; border: 1px solid var(--borda); border-radius: 10px; font-size: 1rem; font-family: inherit; }
+    .campo input:focus { outline: none; border-color: var(--vinho); box-shadow: 0 0 0 3px rgba(122,31,75,.15); }
+    .campo input.erro { border-color: var(--erro); }
+    .olho { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none;
+            width: 36px; height: 36px; cursor: pointer; color: #9ca3af; font-size: 1rem; }
+    .regras { font-size: .78rem; color: #6b7280; list-style: none; display: flex; flex-direction: column; gap: 3px; margin-top: -4px; }
+    .regras li.ok { color: var(--ok); }
+    .regras li i { width: 14px; }
+    .msg { font-size: .85rem; border-radius: 10px; padding: 10px 12px; line-height: 1.45; display: none; text-align: left; }
+    .msg.erro { display: block; background: #FDECEF; color: #9f1239; }
+    .msg.ok { display: block; background: #EAF7EE; color: #166534; }
+    button.principal { width: 100%; padding: 13px; border: none; border-radius: 999px; background: var(--vinho); color: #fff;
+            font-weight: 700; font-size: 1rem; cursor: pointer; font-family: inherit; }
+    button.principal:disabled { opacity: .5; cursor: not-allowed; }
+    a.principal { display: block; text-decoration: none; text-align: center; padding: 13px; border-radius: 999px; background: var(--vinho); color: #fff; font-weight: 700; margin-top: 16px; }
+    .rodape { font-size: .72rem; color: #9ca3af; margin-top: 18px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <img class="logo" src="assets/logo.jpg" alt="Açaí da Bru">
+    <h1 id="titulo">Criar nova senha</h1>
+    <p class="sub" id="subtitulo">Verificando o link…</p>
+
+    <form id="form" hidden novalidate>
+      <div>
+        <label for="senha1">Nova senha</label>
+        <div class="campo">
+          <input type="password" id="senha1" autocomplete="new-password" minlength="6" required>
+          <button type="button" class="olho" data-alvo="senha1" aria-label="Mostrar senha"><i class="fa-solid fa-eye"></i></button>
+        </div>
+      </div>
+      <div>
+        <label for="senha2">Confirme a nova senha</label>
+        <div class="campo">
+          <input type="password" id="senha2" autocomplete="new-password" minlength="6" required>
+          <button type="button" class="olho" data-alvo="senha2" aria-label="Mostrar senha"><i class="fa-solid fa-eye"></i></button>
+        </div>
+      </div>
+      <ul class="regras">
+        <li id="regra-tamanho"><i class="fa-regular fa-circle"></i> Pelo menos 6 caracteres</li>
+        <li id="regra-iguais"><i class="fa-regular fa-circle"></i> As duas senhas iguais</li>
+      </ul>
+      <div class="msg" id="msg"></div>
+      <button type="submit" class="principal" id="btn-salvar" disabled>Salvar nova senha</button>
+    </form>
+
+    <div id="final" hidden>
+      <div class="msg" id="msg-final"></div>
+      <a class="principal" id="btn-entrar" href="admin.html">Entrar no painel</a>
+    </div>
+
+    <p class="rodape">Açaí da Bru · painel administrativo</p>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCLBk9GA0kisT7aCm5HFBuRBqvShaycfys",
+  authDomain: "acai-da-bru-41a8d.firebaseapp.com",
+  projectId: "acai-da-bru-41a8d",
+  storageBucket: "acai-da-bru-41a8d.firebasestorage.app",
+  messagingSenderId: "356703842862",
+  appId: "1:356703842862:web:d3de3f91843e4cfaf625bf"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+auth.languageCode = "pt";
+
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const modo = params.get("mode");
+const codigo = params.get("oobCode");
+// Depois de salvar, volta para o painel (endereço que veio no link, se for deste site)
+const voltar = params.get("continueUrl");
+if (voltar && voltar.startsWith(location.origin)) $("btn-entrar").href = voltar;
+
+const mostrarFinal = (tipo, titulo, texto, mostrarBotao = true) => {
+  $("form").hidden = true;
+  $("titulo").textContent = titulo;
+  $("subtitulo").hidden = true;
+  $("msg-final").className = "msg " + tipo;
+  $("msg-final").innerHTML = texto;
+  $("btn-entrar").hidden = !mostrarBotao;
+  $("final").hidden = false;
+};
+
+const linkInvalido = () => mostrarFinal("erro", "Link expirado",
+  "Este link não vale mais — ele só pode ser usado <strong>uma vez</strong> e expira em cerca de 1 hora.<br><br>" +
+  "Volte ao painel, clique de novo em <strong>\"Esqueci minha senha\"</strong> e use o e-mail <strong>mais recente</strong>.", true);
+
+// Mostrar/ocultar senha
+document.querySelectorAll(".olho").forEach((b) => b.addEventListener("click", () => {
+  const input = $(b.dataset.alvo);
+  const mostrar = input.type === "password";
+  input.type = mostrar ? "text" : "password";
+  b.innerHTML = `<i class="fa-solid ${mostrar ? "fa-eye-slash" : "fa-eye"}"></i>`;
+  b.setAttribute("aria-label", mostrar ? "Esconder senha" : "Mostrar senha");
+}));
+
+// Confere as regras enquanto digita
+const conferir = () => {
+  const s1 = $("senha1").value, s2 = $("senha2").value;
+  const tamanhoOk = s1.length >= 6, iguais = s1.length > 0 && s1 === s2;
+  const marca = (id, ok) => {
+    $(id).classList.toggle("ok", ok);
+    $(id).querySelector("i").className = ok ? "fa-solid fa-circle-check" : "fa-regular fa-circle";
+  };
+  marca("regra-tamanho", tamanhoOk);
+  marca("regra-iguais", iguais);
+  $("senha2").classList.toggle("erro", s2.length > 0 && !iguais && s2.length >= s1.length);
+  $("btn-salvar").disabled = !(tamanhoOk && iguais);
+  return tamanhoOk && iguais;
+};
+$("senha1").addEventListener("input", conferir);
+$("senha2").addEventListener("input", conferir);
+
+(async () => {
+  if (modo !== "resetPassword" || !codigo) {
+    mostrarFinal("erro", "Link incompleto", "Abra o link direto do e-mail de redefinição de senha.", true);
+    return;
+  }
+  try {
+    const email = await auth.verifyPasswordResetCode(codigo);
+    $("subtitulo").innerHTML = `Conta: <strong>${email}</strong><br>Digite a nova senha duas vezes para confirmar.`;
+    $("form").hidden = false;
+    $("senha1").focus();
+  } catch (e) {
+    linkInvalido();
+  }
+})();
+
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  if (!conferir()) return;
+  const btn = $("btn-salvar");
+  btn.disabled = true;
+  btn.textContent = "Salvando…";
+  $("msg").className = "msg";
+  try {
+    await auth.confirmPasswordReset(codigo, $("senha1").value);
+    mostrarFinal("ok", "Senha alterada!", "Pronto! Sua nova senha já está valendo. Use ela para entrar no painel.");
+  } catch (e) {
+    if (["auth/expired-action-code", "auth/invalid-action-code"].includes(e.code)) return linkInvalido();
+    $("msg").className = "msg erro";
+    $("msg").textContent = e.code === "auth/weak-password"
+      ? "Senha muito fraca. Use pelo menos 6 caracteres, de preferência misturando letras e números."
+      : e.code === "auth/network-request-failed"
+        ? "Sem conexão com a internet. Confira e tente de novo."
+        : `Não foi possível salvar agora. Tente de novo. (código: ${e.code || e.message})`;
+    btn.disabled = false;
+    btn.textContent = "Salvar nova senha";
+  }
+});
+  </script>
+</body>
+</html>
