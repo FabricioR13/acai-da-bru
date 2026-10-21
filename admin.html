@@ -925,8 +925,16 @@ async function esqueciSenha() {
   const btn = document.getElementById("btn-esqueci-senha");
   btn.disabled = true;
   try {
-    // Depois de trocar a senha, o link do e-mail traz a pessoa de volta para esta tela
-    await auth.sendPasswordResetEmail(email, { url: location.href.split("#")[0] });
+    // Depois de trocar a senha, o link do e-mail traz a pessoa de volta para esta tela.
+    // Se o Firebase recusar esse endereço de volta (ex: testando no Live Server/127.0.0.1,
+    // que não está nos domínios autorizados), manda o e-mail mesmo assim, sem o "voltar".
+    try {
+      await auth.sendPasswordResetEmail(email, { url: location.href.split("#")[0] });
+    } catch (e) {
+      if (!["auth/unauthorized-continue-uri", "auth/invalid-continue-uri", "auth/missing-continue-uri", "auth/argument-error"].includes(e.code)) throw e;
+      console.warn("Endereço de retorno recusado, enviando sem ele:", e.code);
+      await auth.sendPasswordResetEmail(email);
+    }
     mostrarMsgLogin("info", `Pronto! Se ${email} for o e-mail do admin, chega em alguns minutos uma mensagem com o link para criar uma senha nova. Confira também a caixa de spam.`);
   } catch (e) {
     const msg = e.code === "auth/invalid-email" ? "Esse e-mail não parece válido. Confira e tente de novo."
@@ -934,7 +942,8 @@ async function esqueciSenha() {
       : e.code === "auth/network-request-failed" ? "Sem conexão com a internet. Confira e tente de novo."
       // Por segurança, não dizemos se o e-mail existe ou não
       : e.code === "auth/user-not-found" ? `Pronto! Se ${email} for o e-mail do admin, chega em alguns minutos uma mensagem com o link para criar uma senha nova. Confira também a caixa de spam.`
-      : "Não foi possível enviar agora. Tente de novo em alguns minutos.";
+      : `Não foi possível enviar agora. Tente de novo em alguns minutos. (código: ${e.code || e.message})`;
+    console.error("Falha ao enviar e-mail de redefinição:", e);
     mostrarMsgLogin(e.code === "auth/user-not-found" ? "info" : "erro", msg);
   } finally {
     setTimeout(() => { btn.disabled = false; }, 30000); // evita clicar várias vezes seguidas
