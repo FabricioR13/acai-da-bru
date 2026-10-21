@@ -32,6 +32,18 @@ service cloud.firestore {
     match /vendas/{doc} {
       allow read, write: if request.auth != null;
     }
+
+    // Numeração diária dos pedidos: o site só pode criar o contador do dia
+    // começando em 1, ou somar exatamente +1. Visitante não consegue apagar nem
+    // pular números.
+    match /contadores/{doc} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['total'])
+                    && request.resource.data.total == 1;
+      allow update: if request.resource.data.keys().hasOnly(['total'])
+                    && request.resource.data.total == resource.data.total + 1;
+      allow delete: if request.auth != null;
+    }
   }
 }
 ```
@@ -40,6 +52,7 @@ service cloud.firestore {
 
 - **produtos, categorias, cupons, configuracoes**: qualquer visitante da loja pode *ler* (necessário para o site funcionar sem login), mas só usuários logados no admin podem *escrever* (criar, editar, excluir).
 - **vendas**: dado sensível (faturamento) — só usuários logados podem ler ou escrever. Não é público.
+- **contadores**: numeração diária dos pedidos (`pedidos-AAAA-MM-DD`). O site só consegue somar +1; só o admin logado apaga.
 
 ## Pré-requisito
 

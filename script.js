@@ -1357,7 +1357,82 @@ document.addEventListener("DOMContentLoaded", async () => {
         atualizarCarrinho();
     };
 
-    const finalizarPedido = () => {
+    // --- NUMERAÇÃO DIÁRIA DOS PEDIDOS ---
+    // Contador no Firestore por dia (contadores/pedidos-AAAA-MM-DD): cada pedido soma 1, e no
+    // dia seguinte começa outro documento — então a numeração "zera" sozinha à meia-noite.
+    // As regras do Firestore só deixam o site somar exatamente +1 (ver regras.md).
+    const hojeEmSaoPaulo = () => {
+        const partes = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+            timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+        }).formatToParts(new Date()).map((p) => [p.type, p.value]));
+        return { iso: `${partes.year}-${partes.month}-${partes.day}`, br: `${partes.day}/${partes.month}` };
+    };
+    const proximoNumeroDoDia = async () => {
+        const ref = db.collection("contadores").doc(`pedidos-${hojeEmSaoPaulo().iso}`);
+        const transacao = db.runTransaction(async (t) => {
+            const doc = await t.get(ref);
+            const proximo = (doc.exists ? Number(doc.data().total) || 0 : 0) + 1;
+            t.set(ref, { total: proximo });
+            return proximo;
+        });
+        // Sem internet boa ou com as regras ainda não publicadas: não trava o pedido,
+        // cai no código aleatório de antes depois de alguns segundos.
+        const limite = new Promise((_, rej) => setTimeout(() => rej(new Error("tempo esgotado")), 5000));
+        return Promise.race([transacao, limite]);
+    };
+
+    // --- DADOS DO CLIENTE SALVOS NO CELULAR (localStorage) ---
+    // Ficam só no navegador do próprio cliente; nada disso vai para o banco.
+    const CHAVE_CLIENTE = "acaidabru:cliente";
+    const lerClienteSalvo = () => {
+        try { return JSON.parse(localStorage.getItem(CHAVE_CLIENTE) || "null"); } catch (e) { return null; }
+    };
+    const salvarCliente = () => {
+        try {
+            if (!document.getElementById("salvar-dados-checkbox")?.checked) {
+                localStorage.removeItem(CHAVE_CLIENTE);
+                return;
+            }
+            const v = (id) => document.getElementById(id)?.value.trim() || "";
+            const anterior = lerClienteSalvo() || {};
+            const dados = { ...anterior, nome: v("identificacao-nome"), telefone: v("identificacao-telefone") };
+            // Endereço só é atualizado quando o pedido é de entrega (retirada não apaga o endereço salvo)
+            if (tipoEntrega === "delivery") Object.assign(dados, {
+                cep: v("delivery-cep"), rua: v("delivery-address"), numero: v("delivery-numero"),
+                bairro: v("delivery-bairro"), bairroOutro: v("delivery-bairro-outro"),
+            });
+            localStorage.setItem(CHAVE_CLIENTE, JSON.stringify(dados));
+        } catch (e) { /* navegador sem armazenamento (aba anônima etc.) — segue sem salvar */ }
+    };
+    const preencherClienteSalvo = () => {
+        const c = lerClienteSalvo();
+        if (!c) return;
+        const set = (id, valor) => { const el = document.getElementById(id); if (el && valor && !el.value) el.value = valor; };
+        set("identificacao-nome", c.nome);
+        set("identificacao-telefone", c.telefone);
+        set("delivery-cep", c.cep);
+        set("delivery-address", c.rua);
+        set("delivery-numero", c.numero);
+        const select = document.getElementById("delivery-bairro");
+        if (c.bairro && [...select.options].some((o) => o.value === c.bairro)) {
+            select.value = c.bairro;
+            set("delivery-bairro-outro", c.bairroOutro);
+            select.dispatchEvent(new Event("change"));
+        }
+        document.getElementById("dados-salvos-aviso").hidden = false;
+    };
+    document.getElementById("dados-salvos-limpar").addEventListener("click", () => {
+        try { localStorage.removeItem(CHAVE_CLIENTE); } catch (e) { /* ignora */ }
+        ["identificacao-nome", "identificacao-telefone", "delivery-cep", "delivery-address", "delivery-numero", "delivery-bairro-outro"]
+            .forEach((id) => { document.getElementById(id).value = ""; });
+        const select = document.getElementById("delivery-bairro");
+        select.value = "";
+        select.dispatchEvent(new Event("change"));
+        document.getElementById("dados-salvos-aviso").hidden = true;
+        document.getElementById("delivery-address").focus();
+    });
+
+    const finalizarPedido = async () => {
         // Rede de segurança: os campos já foram validados etapa a etapa, mas confere
         // de novo aqui (ex: caso o cliente volte numa etapa pelos pontinhos e apague algo).
         if (carrinho.length === 0) {
@@ -1372,8 +1447,25 @@ document.addEventListener("DOMContentLoaded", async () => {
             : ["pickup-date", "pickup-time", "identificacao-nome", "identificacao-telefone"];
 
         if (!validarCampos(fieldsToValidate)) return;
+        if (finishOrderBtn.dataset.enviando) return;
 
-        const pedidoId = gerarIdPedido();
+        // Abre a aba do WhatsApp já no clique (antes de esperar o banco) — senão o celular
+        // bloqueia a janela por achar que não foi o cliente que pediu.
+        const janelaWhats = window.open("", "_blank");
+        finishOrderBtn.dataset.enviando = "1";
+        const textoBotao = finishOrderBtn.innerHTML;
+        finishOrderBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Gerando nº do pedido...`;
+
+        let numeroDoDia = null;
+        try { numeroDoDia = await proximoNumeroDoDia(); }
+        catch (e) { console.warn("Numeração diária indisponível, usando código aleatório:", e); }
+        finishOrderBtn.innerHTML = textoBotao;
+        delete finishOrderBtn.dataset.enviando;
+
+        const pedidoId = numeroDoDia ? String(numeroDoDia) : gerarIdPedido();
+        const cabecalhoPedido = numeroDoDia
+            ? `*Pedido nº ${numeroDoDia}* — ${hojeEmSaoPaulo().br}`
+            : `*Nº do Pedido:* #${pedidoId}`;
         const numeroWhatsApp = configLoja.whatsapp;
         const itensPedido = carrinho
             .map((item) => `  - ${item.quantidade}x [${codigoDoProduto(item)}] ${item.nome}${detalhesDoItem(item).length ? ` (${detalhesDoItem(item).join(" · ")})` : ""} — *${formatarMoeda(item.preco * item.quantidade)}*${item.quantidade > 1 ? ` (${formatarMoeda(item.preco)} cada)` : ""}`)
@@ -1393,7 +1485,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const taxaEntrega = taxaEntregaAtual();
         const taxaInfo = tipoEntrega === "delivery" ? `\n*Taxa de entrega:* ${textoTaxaEntrega()}` : "";
         const total = subtotal - discountAmount + taxaEntrega;
-        let mensagem = `*-- NOVO PEDIDO ${configLoja.nomeLoja} --*\n*Nº do Pedido:* #${pedidoId}\n\n*Itens:*\n${itensPedido}\n\n*Subtotal:* ${formatarMoeda(
+        let mensagem = `*-- NOVO PEDIDO ${configLoja.nomeLoja} --*\n${cabecalhoPedido}\n\n*Itens:*\n${itensPedido}\n\n*Subtotal:* ${formatarMoeda(
             subtotal,
         )}${cupomInfo}${taxaInfo}\n*Total:* ${formatarMoeda(
             total,
@@ -1431,8 +1523,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
-        window.open(url, "_blank");
-        mostrarSucesso(pedidoId);
+        if (janelaWhats && !janelaWhats.closed) janelaWhats.location.href = url;
+        else window.location.href = url;
+        salvarCliente();
+        mostrarSucesso(numeroDoDia ? `Nº ${numeroDoDia}` : pedidoId);
     };
 
     // --- EVENT LISTENERS ---
@@ -1651,6 +1745,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     montarBairros();
     atualizarAvisoEntrega();
+    preencherClienteSalvo();
 
     // Cupom: sem nenhum cupom ativo e válido cadastrado, o campo nem aparece no carrinho
     const temCupomAtivo = coupons.some((c) => c.ativo !== false

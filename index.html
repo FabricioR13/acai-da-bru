@@ -145,6 +145,12 @@
             <!-- ETAPA 2: entrega ou retirada -->
             <section class="cart-step" id="cart-step-2" data-step="2" hidden>
                 <h4 class="cart-step-title">Como você quer receber?</h4>
+                <!-- Aparece quando o site preenche os campos com os dados salvos do último pedido -->
+                <p class="dados-salvos-aviso" id="dados-salvos-aviso" hidden>
+                    <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+                    <span>Preenchemos com os dados do seu último pedido.</span>
+                    <button type="button" class="dados-salvos-limpar" id="dados-salvos-limpar">Não sou eu</button>
+                </p>
                 <div class="options-toggle" role="tablist">
                     <button class="delivery-btn active" data-option="delivery" role="tab" aria-selected="true">
                         <i class="fa-solid fa-motorcycle" aria-hidden="true"></i> Entrega
@@ -270,6 +276,10 @@
                     <label for="identificacao-telefone">Telefone (WhatsApp)</label>
                     <input type="tel" id="identificacao-telefone" placeholder="(51) 99999-9999" maxlength="15" inputmode="numeric" autocomplete="tel-national" required>
                 </div>
+                <label class="checkbox-option">
+                    <input type="checkbox" id="salvar-dados-checkbox" checked>
+                    <i class="fa-solid fa-mobile-screen" aria-hidden="true"></i> Lembrar meus dados neste celular para o próximo pedido
+                </label>
             </section>
 
             <!-- ETAPA 5: resumo do pedido -->
@@ -298,7 +308,7 @@
                 <div class="pedido-sucesso">
                     <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
                     <h4>Pedido enviado!</h4>
-                    <p>Confirme o envio na conversa do WhatsApp que abrimos. Guarde o código abaixo — é com ele que você (ou a loja) localiza o seu pedido:</p>
+                    <p>Confirme o envio na conversa do WhatsApp que abrimos. Este é o número do seu pedido — é com ele que você (ou a loja) localiza o pedido:</p>
                     <div class="pedido-sucesso-codigo" id="pedido-sucesso-codigo">AA000000</div>
                     <button class="cart-nav-avancar" id="cart-btn-novo-pedido" type="button">Fazer novo pedido</button>
                 </div>

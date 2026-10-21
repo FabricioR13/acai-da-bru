@@ -587,3 +587,8 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 .delivery-fee-notice{line-height:1.7;border:1px dashed var(--border-color)}
 .delivery-fee-notice strong{color:var(--secondary-color)}
 .delivery-fee-notice i{color:var(--primary-color);margin-right:.2rem}
+
+/* Aviso de dados salvos do último pedido (guardados só no celular do cliente) */
+.dados-salvos-aviso{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.85rem;color:var(--secondary-color);background:var(--light-2);border-radius:.6rem;padding:.55rem .75rem;margin:-.3rem 0 1rem}
+.dados-salvos-aviso i{color:var(--primary-color)}
+.dados-salvos-limpar{margin-left:auto;background:none;border:none;color:var(--primary-color);font-weight:700;text-decoration:underline;cursor:pointer;font-family:inherit;font-size:.85rem;padding:0}
