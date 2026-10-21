@@ -1369,12 +1369,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
     const proximoNumeroDoDia = async () => {
         const ref = db.collection("contadores").doc(`pedidos-${hojeEmSaoPaulo().iso}`);
-        const transacao = db.runTransaction(async (t) => {
+        const somarUm = () => db.runTransaction(async (t) => {
             const doc = await t.get(ref);
             const proximo = (doc.exists ? Number(doc.data().total) || 0 : 0) + 1;
             t.set(ref, { total: proximo });
             return proximo;
         });
+        // Dois pedidos no mesmo instante: o que chegar depois é recusado pela regra (+1 sobre
+        // um valor que já mudou). Espera um pouquinho e tenta de novo, pegando o número seguinte.
+        const transacao = (async () => {
+            for (let tentativa = 1; ; tentativa++) {
+                try { return await somarUm(); }
+                catch (e) {
+                    if (tentativa >= 5 || !["permission-denied", "aborted", "failed-precondition"].includes(e.code)) throw e;
+                    await new Promise((r) => setTimeout(r, 150 + Math.random() * 350));
+                }
+            }
+        })();
         // Sem internet boa ou com as regras ainda não publicadas: não trava o pedido,
         // cai no código aleatório de antes depois de alguns segundos.
         const limite = new Promise((_, rej) => setTimeout(() => rej(new Error("tempo esgotado")), 5000));
