@@ -1,1 +1,7 @@
 .claude/
+
+# Documentos do cliente (não vão para o GitHub público)
+Contrato/
+
+# Fotos originais enviadas pela cliente (as versões recortadas ficam em assets/)
+originais/

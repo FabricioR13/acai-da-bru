@@ -66,7 +66,6 @@ const COMPLEMENTOS = [
   "Leite condensado", "Cobertura de morango", "Cobertura de chocolate", "Cobertura de caramelo",
 ];
 const ADICIONAIS = [
-  { nome: "Açaí puro", preco: 3.00 },
   { nome: "Kiwi", preco: 3.00 },
   { nome: "Abacaxi", preco: 3.00 },
   { nome: "Morango", preco: 3.00 },
@@ -90,14 +89,15 @@ const produtos = [
   // ── PROMOÇÕES (aparecem com o selo "Destaque") ─────────────────────────
   {
     id: 1, nome: "Combo Casal", categoria: "promocoes", destaque: true, promoAte: "2026-10-31",
-    tamanhos: [ { nome: "2 açaís de 400ml", preco: 32.80, complementosGratis: 6 } ],
+    copos: 2, // o cliente monta os 2 açaís separados, 3 complementos grátis em cada
+    tamanhos: [ { nome: "2 açaís de 400ml", preco: 32.80, complementosGratis: 3 } ],
     opcaoInclusa: null,
     complementosLista: COMPLEMENTOS,
     adicionaisPagos: ADICIONAIS,
     disponibilidade: "pronta", prazoDias: null,
     imagem: "assets/combo-quadrado.jpg",
     galeria: ["assets/promo-combo.jpg"],
-    descricao: "Promoção de outubro (01/10 a 31/10): 2 açaís de 400ml com 3 complementos em cada. Escolha os 6 complementos e diga nas observações como dividir entre os copos.",
+    descricao: "Promoção de outubro (01/10 a 31/10): 2 açaís de 400ml com 3 complementos grátis em cada — você monta cada açaí do seu jeito.",
   },
   {
     id: 2, nome: "Açaí 300ml + Creme Ninho Grátis", categoria: "promocoes", destaque: true, promoAte: "2026-10-31",
@@ -145,7 +145,7 @@ const produtos = [
     opcaoInclusa: null, complementosLista: [],
     adicionaisPagos: ADICIONAIS,
     disponibilidade: "pronta", prazoDias: null,
-    imagem: "https://images.unsplash.com/photo-1684403620650-81dc661a69db?auto=format&fit=crop&w=800&h=800&q=80",
+    imagem: "assets/morango-cravejado.jpg",
     descricao: "Açaí + morango + creme Ninho + cravejado de morango.",
   },
   {
@@ -163,7 +163,7 @@ const produtos = [
     tamanhos: [ { nome: "", preco: 14.00, complementosGratis: 0 } ],
     opcaoInclusa: null, complementosLista: [], adicionaisPagos: [],
     disponibilidade: "pronta", prazoDias: null,
-    imagem: "assets/bebida.svg",
+    imagem: "assets/coca-cola.jpg",
     descricao: "Refrigerante Coca-Cola 2 litros.",
   },
 ];

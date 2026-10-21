@@ -438,10 +438,23 @@
         <div class="form-group full">
           <label>Modalidades disponíveis agora</label>
           <div style="display:flex;gap:14px;flex-wrap:wrap">
-            <label class="toggle-row"><input type="checkbox" id="config-entrega-disponivel" checked> Entrega (Moto)</label>
+            <label class="toggle-row"><input type="checkbox" id="config-entrega-disponivel" checked> Entrega</label>
             <label class="toggle-row"><input type="checkbox" id="config-retirada-disponivel" checked> Retirada</label>
           </div>
-          <small style="color:var(--muted);font-size:.75rem;display:block;margin-top:4px">Desmarque temporariamente a que não estiver disponível (ex: motoboy indisponível hoje). Pelo menos uma precisa ficar marcada — some da tela de compra quando desmarcada.</small>
+          <small style="color:var(--muted);font-size:.75rem;display:block;margin-top:4px">Desmarque temporariamente a que não estiver disponível (ex: sem entregador hoje). Pelo menos uma precisa ficar marcada — some da tela de compra quando desmarcada.</small>
+        </div>
+        <div class="form-group full">
+          <label>Taxas de entrega por bairro <small style="color:var(--muted)">(um por linha: Bairro | Taxa. Ex: Campo Belo | 3,00 — aparecem como opções no carrinho e a taxa entra no total do pedido)</small></label>
+          <textarea id="config-taxas-entrega" rows="7" placeholder="Campo Belo | 3,00&#10;Jardim Betânia | 6,00&#10;Guajuviras | 8,00"></textarea>
+          <label class="toggle-row" style="margin-top:6px"><input type="checkbox" id="config-aceitar-outros-bairros" checked> Aceitar pedido de bairro fora da lista (taxa combinada pelo WhatsApp)</label>
+        </div>
+        <div class="form-group">
+          <label>Tempo estimado de entrega</label>
+          <input type="text" id="config-tempo-entrega" placeholder="Ex: 40 a 45 minutos">
+        </div>
+        <div class="form-group">
+          <label>Complemento extra <small style="color:var(--muted)">(valor de cada complemento além dos grátis, em qualquer açaí — 0 = não deixa passar do limite)</small></label>
+          <input type="number" id="config-complemento-extra" min="0" step="0.5" placeholder="2,00">
         </div>
         <div class="form-group full">
           <label>Dias disponíveis para retirada</label>
@@ -625,8 +638,12 @@
         <textarea id="form-opcao-inclusa-opcoes" rows="3" placeholder="Uma opção por linha, ex:&#10;Tradicional&#10;Integral"></textarea>
       </div>
       <div class="form-group full">
-        <label>Complementos grátis <small style="color:var(--muted)">(lista de itens que o cliente escolhe sem custo, até o limite definido em cada tamanho — um por linha)</small></label>
+        <label>Complementos grátis <small style="color:var(--muted)">(lista de itens que o cliente escolhe sem custo, até o limite definido em cada tamanho — um por linha. Passando do limite, cada complemento a mais é cobrado pelo valor de "Complemento extra" das Configurações)</small></label>
         <textarea id="form-complementos" rows="4" placeholder="Granola&#10;Leite em pó&#10;Paçoca&#10;Morango"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Quantidade de açaís no produto <small style="color:var(--muted)">(combo: ex. 2 no Combo Casal — o cliente monta cada açaí separado, com os complementos grátis do tamanho em CADA um. Produto normal: 1)</small></label>
+        <input type="number" id="form-copos" min="1" max="6" step="1" value="1">
       </div>
       <div class="form-group full">
         <label>Adicionais pagos (opcional) <small style="color:var(--muted)">(itens extras cobrados à parte — um por linha: Nome | Preço. Ex: Nutella | 4,00)</small></label>
@@ -1403,6 +1420,7 @@ function abrirModalCriar() {
   document.getElementById("form-descricao").value= "";
   document.getElementById("form-ativo").checked  = true;
   document.getElementById("form-destaque").checked = false;
+  document.getElementById("form-copos").value = 1;
   document.getElementById("form-promo-ate").value = "";
   definirBannerPromo("");
   alternarAreaPromo();
@@ -1433,6 +1451,7 @@ function abrirModalEditar(docId) {
   document.getElementById("form-descricao").value    = p.descricao || "";
   document.getElementById("form-ativo").checked      = p.ativo !== false;
   document.getElementById("form-destaque").checked   = !!p.destaque;
+  document.getElementById("form-copos").value        = Math.max(1, Number(p.copos) || 1);
   document.getElementById("form-promo-ate").value    = p.promoAte || "";
   definirBannerPromo(p.banner || "");
   alternarAreaPromo();
@@ -1465,6 +1484,7 @@ async function salvarProduto() {
   const ativo     = document.getElementById("form-ativo").checked;
   const destaque  = document.getElementById("form-destaque").checked;
   const promoAte  = document.getElementById("form-promo-ate").value || null;
+  const copos     = Math.min(6, Math.max(1, parseInt(document.getElementById("form-copos").value, 10) || 1));
   const banner    = _bannerPromo || null;
 
   if (!nome || !categoria || isNaN(preco) || !tamanhos.length) { toast("Preencha nome, categoria e ao menos um tamanho com preço.", "err"); return; }
@@ -1488,7 +1508,7 @@ async function salvarProduto() {
     }
   }
 
-  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, estoque, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, promoAte, banner };
+  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, estoque, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, promoAte, banner, copos };
   try {
     if (docId) {
       await db.collection("produtos").doc(docId).update(dados);
@@ -2423,7 +2443,16 @@ const CONFIG_PADRAO = {
   retiradaIntervalo: 60,
   retiradaPausaInicio: "",
   retiradaPausaFim: "",
-  bannerUrl: "https://images.unsplash.com/photo-1684403620650-81dc661a69db?auto=format&fit=crop&w=1600&h=500&q=80",
+  bannerUrl: "assets/fundo-hero.jpg",
+  taxasEntrega: [
+    { bairro: "Campo Belo", taxa: 3 }, { bairro: "Recanto dos Girassóis", taxa: 3 },
+    { bairro: "Hortênsias", taxa: 3 }, { bairro: "Camélias", taxa: 3 },
+    { bairro: "Jardim Betânia", taxa: 6 }, { bairro: "Sítio Piranga", taxa: 6 }, { bairro: "Chácara das Rosas", taxa: 6 },
+    { bairro: "Brigadeiro", taxa: 8 }, { bairro: "Guajuviras", taxa: 8 }
+  ],
+  aceitarOutrosBairros: true,
+  tempoEntrega: "40 a 45 minutos",
+  precoComplementoExtra: 2,
   corPrimaria: "#7A1F4B",
   corSecundaria: "#2B0D1E",
   corDestaque: "#D4A24C",
@@ -2488,6 +2517,11 @@ async function carregarConfiguracoes() {
     document.getElementById("config-cor-destaque").value   = cfg.corDestaque;
     document.getElementById("config-entrega-disponivel").checked  = cfg.entregaDisponivel !== false;
     document.getElementById("config-retirada-disponivel").checked = cfg.retiradaDisponivel !== false;
+    document.getElementById("config-taxas-entrega").value = (Array.isArray(cfg.taxasEntrega) ? cfg.taxasEntrega : [])
+      .map(t => `${t.bairro} | ${Number(t.taxa || 0).toFixed(2).replace(".", ",")}`).join("\n");
+    document.getElementById("config-aceitar-outros-bairros").checked = cfg.aceitarOutrosBairros !== false;
+    document.getElementById("config-tempo-entrega").value = cfg.tempoEntrega || "";
+    document.getElementById("config-complemento-extra").value = cfg.precoComplementoExtra ?? "";
     document.getElementById("config-sobre-nome").value  = cfg.sobreNome  || "";
     document.getElementById("config-sobre-texto").value = cfg.sobreTexto || "";
     document.getElementById("config-sobre-link").value  = cfg.sobreLink  || "";
@@ -2542,6 +2576,19 @@ async function salvarConfiguracoes() {
   const corSecundaria = document.getElementById("config-cor-secundaria").value;
   const corDestaque   = document.getElementById("config-cor-destaque").value;
   const entregaDisponivel  = document.getElementById("config-entrega-disponivel").checked;
+  // "Bairro | 3,00" por linha → [{ bairro, taxa }]
+  const taxasEntrega = document.getElementById("config-taxas-entrega").value.split("\n")
+    .map(l => l.split("|").map(x => x.trim()))
+    .filter(([b]) => b)
+    .map(([bairro, taxa]) => {
+      // aceita "3,00", "3.00" ou "3"
+      const t = String(taxa || "0");
+      const n = t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t;
+      return { bairro, taxa: Number(n) || 0 };
+    });
+  const aceitarOutrosBairros = document.getElementById("config-aceitar-outros-bairros").checked;
+  const tempoEntrega = document.getElementById("config-tempo-entrega").value.trim();
+  const precoComplementoExtra = Math.max(0, Number(String(document.getElementById("config-complemento-extra").value).replace(",", ".")) || 0);
   const retiradaDisponivel = document.getElementById("config-retirada-disponivel").checked;
   const sobreNome  = document.getElementById("config-sobre-nome").value.trim();
   const sobreTexto = document.getElementById("config-sobre-texto").value.trim();
@@ -2604,7 +2651,8 @@ async function salvarConfiguracoes() {
       heroTag, heroTitulo, heroSubtitulo, heroCorFundo, heroCorFundoFim,
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
-      sobreNome, sobreTexto, sobreFoto, sobreLink
+      sobreNome, sobreTexto, sobreFoto, sobreLink,
+      taxasEntrega, aceitarOutrosBairros, tempoEntrega, precoComplementoExtra
     });
     toast("Configurações salvas!", "ok");
     await carregarConfiguracoes();

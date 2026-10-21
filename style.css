@@ -573,3 +573,17 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 .form-group--numero{flex:0 0 32%}
 .form-group--bairro{flex:1;min-width:0}
 .form-opcional{font-weight:500;color:#9ca3af;font-size:.78rem}
+
+/* Complementos: dica de grátis/extra e blocos por copo (combo com 2 açaís) */
+.detail-option-hint{font-size:.78rem;color:#6b7280;margin:-.25rem 0 .55rem}
+.detail-checklist.multi-copos{max-height:none;overflow:visible;padding-right:0;gap:.9rem}
+.copo-bloco{border:1px solid var(--border-color);border-radius:.8rem;padding:.6rem;background:#fff}
+.copo-titulo{display:flex;align-items:center;gap:.45rem;font-family:'Montserrat',sans-serif;font-weight:800;font-size:.9rem;color:var(--secondary-color);margin-bottom:.5rem}
+.copo-titulo i{color:var(--primary-color)}
+.copo-titulo .detail-option-counter{margin-left:auto}
+.copo-bloco .detail-checklist{max-height:200px}
+
+/* Entrega: aviso de taxa + tempo estimado */
+.delivery-fee-notice{line-height:1.7;border:1px dashed var(--border-color)}
+.delivery-fee-notice strong{color:var(--secondary-color)}
+.delivery-fee-notice i{color:var(--primary-color);margin-right:.2rem}

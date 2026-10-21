@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atualização do catálogo – Açaí da Bru</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #eee; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 32px 16px; }
+    h1 { font-size: 1.35rem; margin-bottom: 8px; color: #D4A24C; text-align: center; }
+    p  { font-size: .9rem; color: #aaa; margin-bottom: 16px; text-align: center; max-width: 520px; }
+    ul { font-size: .85rem; color: #ccc; max-width: 520px; margin: 0 0 20px 18px; line-height: 1.6; }
+    #login-box { width: 100%; max-width: 320px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
+    #login-box input { padding: 10px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #eee; font-size: .9rem; }
+    #btn { padding: 14px 32px; background: #D4A24C; color: #2B0D1E; font-size: 1rem; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; }
+    #btn:disabled { opacity: .45; cursor: not-allowed; }
+    #log { margin-top: 20px; width: 100%; max-width: 540px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 16px; font-size: .8rem; font-family: monospace; }
+    .ok { color: #4caf50; } .err { color: #f44336; } .info { color: #90caf9; }
+  </style>
+</head>
+<body>
+<h1>🔄 Atualização do catálogo — 21/10</h1>
+<p>Aplica só as mudanças abaixo no Firebase, <strong>sem apagar</strong> o que já foi editado pelo admin (preços, fotos e textos dos outros produtos continuam como estão). Pode rodar mais de uma vez sem problema.</p>
+<ul>
+  <li>Combo Casal: 2 açaís montados separados, 3 complementos grátis em cada</li>
+  <li>Remove o adicional "Açaí puro" de todos os produtos</li>
+  <li>Fotos novas: Morango Cravejado e Coca-Cola 2L</li>
+  <li>Foto de fundo do topo (3 copos)</li>
+  <li>Taxas de entrega por bairro, tempo estimado (40 a 45 min) e complemento extra a R$ 2,00</li>
+</ul>
+<div id="login-box">
+  <input type="email" id="email" placeholder="E-mail do admin" autocomplete="username">
+  <input type="password" id="senha" placeholder="Senha do admin" autocomplete="current-password">
+</div>
+<button id="btn">Entrar e aplicar atualização</button>
+<div id="log"><span class="info">Aguardando…</span></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCLBk9GA0kisT7aCm5HFBuRBqvShaycfys",
+  authDomain: "acai-da-bru-41a8d.firebaseapp.com",
+  projectId: "acai-da-bru-41a8d",
+  storageBucket: "acai-da-bru-41a8d.firebasestorage.app",
+  messagingSenderId: "356703842862",
+  appId: "1:356703842862:web:d3de3f91843e4cfaf625bf"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const log = document.getElementById("log");
+const addLog = (msg, tipo = "ok") => {
+  const span = document.createElement("span"); span.className = tipo; span.textContent = msg;
+  log.appendChild(span); log.appendChild(document.createElement("br"));
+};
+
+document.getElementById("btn").addEventListener("click", async () => {
+  const btn = document.getElementById("btn");
+  const email = document.getElementById("email").value.trim();
+  const senha = document.getElementById("senha").value;
+  if (!email || !senha) { addLog("Preencha e-mail e senha.", "err"); return; }
+  btn.disabled = true; log.innerHTML = "";
+  try { await auth.signInWithEmailAndPassword(email, senha); addLog("✔ Login ok"); }
+  catch (e) { addLog("✘ Falha no login — " + e.message, "err"); btn.disabled = false; return; }
+
+  let erros = 0;
+  const passo = async (nome, fn) => {
+    try { await fn(); addLog("✔ " + nome); }
+    catch (e) { addLog("✘ " + nome + " — " + e.message, "err"); erros++; }
+  };
+
+  // Produtos: busca pelo nome (o ID pode ter mudado se algo foi recriado pelo admin)
+  const snap = await db.collection("produtos").get();
+  const docs = snap.docs.map(d => ({ ref: d.ref, ...d.data() }));
+  const acha = (trecho) => docs.find(p => (p.nome || "").toLowerCase().includes(trecho));
+
+  const combo = acha("combo casal");
+  if (combo) await passo("Combo Casal: 2 açaís, 3 complementos grátis em cada", () => combo.ref.update({
+    copos: 2,
+    tamanhos: [{ nome: "2 açaís de 400ml", preco: 32.80, complementosGratis: 3 }],
+    preco: 32.80,
+    descricao: "Promoção de outubro (01/10 a 31/10): 2 açaís de 400ml com 3 complementos grátis em cada — você monta cada açaí do seu jeito.",
+  }));
+  else { addLog("✘ Combo Casal não encontrado", "err"); erros++; }
+
+  const cravejado = acha("cravejado");
+  if (cravejado) await passo("Foto do Morango Cravejado", () => cravejado.ref.update({ imagem: "assets/morango-cravejado.jpg" }));
+  const coca = acha("coca");
+  if (coca) await passo("Foto da Coca-Cola 2L", () => coca.ref.update({ imagem: "assets/coca-cola.jpg" }));
+
+  for (const p of docs) {
+    const lista = Array.isArray(p.adicionaisPagos) ? p.adicionaisPagos : [];
+    const semAcaiPuro = lista.filter(a => (a.nome || "").trim().toLowerCase() !== "açaí puro");
+    if (semAcaiPuro.length !== lista.length) {
+      await passo(`Remove "Açaí puro" de: ${p.nome}`, () => p.ref.update({ adicionaisPagos: semAcaiPuro }));
+    }
+  }
+
+  await passo("Configurações: fundo do topo, bairros/taxas, tempo de entrega e complemento extra", () =>
+    db.collection("configuracoes").doc("geral").set({
+      bannerUrl: "assets/fundo-hero.jpg",
+      taxasEntrega: [
+        { bairro: "Campo Belo", taxa: 3 }, { bairro: "Recanto dos Girassóis", taxa: 3 },
+        { bairro: "Hortênsias", taxa: 3 }, { bairro: "Camélias", taxa: 3 },
+        { bairro: "Jardim Betânia", taxa: 6 }, { bairro: "Sítio Piranga", taxa: 6 }, { bairro: "Chácara das Rosas", taxa: 6 },
+        { bairro: "Brigadeiro", taxa: 8 }, { bairro: "Guajuviras", taxa: 8 },
+      ],
+      aceitarOutrosBairros: true,
+      tempoEntrega: "40 a 45 minutos",
+      precoComplementoExtra: 2,
+    }, { merge: true }));
+
+  addLog("");
+  addLog(erros ? `━━━ Terminou com ${erros} erro(s) ━━━` : "━━━ Tudo atualizado! Recarregue a loja. ━━━", erros ? "err" : "info");
+  btn.disabled = false;
+});
+</script>
+</body>
+</html>

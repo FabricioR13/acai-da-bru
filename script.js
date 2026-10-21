@@ -153,7 +153,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         retiradaIntervalo: 60,
         retiradaPausaInicio: "",
         retiradaPausaFim: "",
-        bannerUrl: "https://images.unsplash.com/photo-1684403620650-81dc661a69db?auto=format&fit=crop&w=1600&h=500&q=80",
+        bannerUrl: "assets/fundo-hero.jpg",
+        // Entrega: taxa por bairro (editável no admin → Configurações)
+        taxasEntrega: [
+            { bairro: "Campo Belo", taxa: 3 },
+            { bairro: "Recanto dos Girassóis", taxa: 3 },
+            { bairro: "Hortênsias", taxa: 3 },
+            { bairro: "Camélias", taxa: 3 },
+            { bairro: "Jardim Betânia", taxa: 6 },
+            { bairro: "Sítio Piranga", taxa: 6 },
+            { bairro: "Chácara das Rosas", taxa: 6 },
+            { bairro: "Brigadeiro", taxa: 8 },
+            { bairro: "Guajuviras", taxa: 8 },
+        ],
+        aceitarOutrosBairros: true,
+        tempoEntrega: "40 a 45 minutos",
+        // Cada complemento além dos grátis, em qualquer açaí
+        precoComplementoExtra: 2,
         corPrimaria: "#7A1F4B",
         corSecundaria: "#2B0D1E",
         corDestaque: "#D4A24C",
@@ -412,7 +428,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const enderecoCompleto = () => {
         const rua = document.getElementById("delivery-address").value.trim();
         const numero = document.getElementById("delivery-numero").value.trim();
-        const bairro = document.getElementById("delivery-bairro").value.trim();
+        const selectBairro = document.getElementById("delivery-bairro");
+        const bairro = selectBairro.value === "__outro"
+            ? document.getElementById("delivery-bairro-outro").value.trim()
+            : selectBairro.value;
         return `${rua}${numero ? `, ${numero}` : ""}${bairro ? ` — ${bairro}` : ""}`;
     };
 
@@ -474,7 +493,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 return validarCampos(["pickup-date", "pickup-time"]);
             }
-            return validarCampos(["delivery-cep", "delivery-address", "delivery-numero", "delivery-bairro"]);
+            return validarCampos(["delivery-cep", "delivery-address", "delivery-numero", "delivery-bairro",
+                ...(document.getElementById("delivery-bairro").value === "__outro" ? ["delivery-bairro-outro"] : [])]);
         }
         if (etapaAtual === 4) {
             return validarCampos(["identificacao-nome", "identificacao-telefone"]);
@@ -499,9 +519,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (tipoEntrega === "delivery") {
             const cep = document.getElementById("delivery-cep").value.trim();
             resumoEntregaBloco.innerHTML = `
-                <h5>Entrega (Moto)</h5>
+                <h5>Entrega</h5>
                 <p>Endereço: ${enderecoCompleto()}</p>
-                ${cep ? `<p>CEP: ${cep}</p>` : ""}`;
+                ${cep ? `<p>CEP: ${cep}</p>` : ""}
+                <p>Taxa de entrega: ${textoTaxaEntrega()}</p>
+                ${configLoja.tempoEntrega ? `<p>Tempo estimado: ${configLoja.tempoEntrega}</p>` : ""}`;
         } else {
             const dataInput = document.getElementById("pickup-date").value;
             const hora = document.getElementById("pickup-time").value;
@@ -630,35 +652,84 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Estado da seleção atual no modal de detalhes (reseta toda vez que abre um produto)
     let detailTamanhoIdx = 0;
-    let detailComplementosSelecionados = [];
+    // Complementos escolhidos POR COPO: produto normal tem 1 copo; combo (campo "copos",
+    // ex: Combo Casal = 2) tem um bloco de complementos pra cada copo.
+    let detailComplementosPorCopo = [[]];
     let detailAdicionaisSelecionados = [];
 
     const detailTamanhoAtual = () => {
         const tamanhos = tamanhosDoProduto(detailProdutoAtual);
         return tamanhos[detailTamanhoIdx] || tamanhos[0];
     };
+    const coposDoProduto = (produto) => Math.max(1, Number(produto?.copos) || 1);
+    // Preço de cada complemento além dos grátis. Vale para qualquer açaí: usa o valor do
+    // produto (campo "precoComplementoExtra") ou o padrão da loja (Configurações). 0 = não permite extra.
+    const precoComplementoExtra = (produto) => {
+        const v = produto?.precoComplementoExtra ?? configLoja.precoComplementoExtra;
+        return Number(v) > 0 ? Number(v) : 0;
+    };
+    const limiteGratisPorCopo = () => Number(detailTamanhoAtual()?.complementosGratis) || 0;
+    const qtdComplementosExtras = () => {
+        const limite = limiteGratisPorCopo();
+        return detailComplementosPorCopo.reduce((acc, sel) => acc + Math.max(0, sel.length - limite), 0);
+    };
 
     const detailPrecoUnitario = () => {
         const base = detailTamanhoAtual()?.preco || 0;
-        const extras = detailAdicionaisSelecionados.reduce((acc, a) => acc + (Number(a.preco) || 0), 0);
-        return base + extras;
+        const adicionais = detailAdicionaisSelecionados.reduce((acc, a) => acc + (Number(a.preco) || 0), 0);
+        const extras = qtdComplementosExtras() * precoComplementoExtra(detailProdutoAtual);
+        return base + adicionais + extras;
     };
 
     const renderDetailComplementos = () => {
         const lista = Array.isArray(detailProdutoAtual?.complementosLista) ? detailProdutoAtual.complementosLista : [];
-        const limite = Number(detailTamanhoAtual()?.complementosGratis) || 0;
+        const limite = limiteGratisPorCopo();
+        const precoExtra = precoComplementoExtra(detailProdutoAtual);
+        const copos = coposDoProduto(detailProdutoAtual);
         if (!lista.length || limite <= 0) { detailComplementosGroup.hidden = true; return; }
         detailComplementosGroup.hidden = false;
-        const atingiuLimite = detailComplementosSelecionados.length >= limite;
-        detailComplementosContador.textContent = `(${detailComplementosSelecionados.length}/${limite})`;
-        detailComplementosContador.classList.toggle("limite-atingido", atingiuLimite);
-        detailComplementosLista.innerHTML = lista.map((nome) => {
-            const marcado = detailComplementosSelecionados.includes(nome);
-            const desabilitado = !marcado && atingiuLimite;
-            return `<label class="detail-checklist-item${marcado ? " selecionado" : ""}${desabilitado ? " desabilitado" : ""}">
-                <span class="detail-checklist-item-nome"><input type="checkbox" data-complemento="${nome}" ${marcado ? "checked" : ""} ${desabilitado ? "disabled" : ""}> ${nome}</span>
-            </label>`;
-        }).join("");
+
+        const dicaEl = document.getElementById("detail-complementos-dica");
+        if (dicaEl) {
+            dicaEl.textContent = `${limite} grátis${copos > 1 ? " por copo" : ""}`
+                + (precoExtra ? ` · cada complemento a mais + ${formatarMoeda(precoExtra)}` : "");
+        }
+
+        const contador = (sel) => {
+            const extras = Math.max(0, sel.length - limite);
+            return extras ? `${limite}/${limite} grátis + ${extras} extra${extras > 1 ? "s" : ""}` : `${sel.length}/${limite}`;
+        };
+        const itensHtml = (sel, copoIdx) => {
+            const atingiuLimite = sel.length >= limite;
+            return lista.map((nome) => {
+                const marcado = sel.includes(nome);
+                // Sem preço de extra configurado, mantém o comportamento antigo: trava no limite grátis
+                const desabilitado = !marcado && atingiuLimite && !precoExtra;
+                const ehExtra = !marcado && atingiuLimite && precoExtra;
+                return `<label class="detail-checklist-item${marcado ? " selecionado" : ""}${desabilitado ? " desabilitado" : ""}">
+                    <span class="detail-checklist-item-nome"><input type="checkbox" data-copo="${copoIdx}" data-complemento="${nome}" ${marcado ? "checked" : ""} ${desabilitado ? "disabled" : ""}> ${nome}</span>
+                    ${ehExtra ? `<span class="detail-checklist-item-preco">+ ${formatarMoeda(precoExtra)}</span>` : ""}
+                </label>`;
+            }).join("");
+        };
+
+        detailComplementosLista.classList.toggle("multi-copos", copos > 1);
+        if (copos > 1) {
+            detailComplementosContador.textContent = "";
+            const nomeTamanho = detailTamanhoAtual()?.nome || "";
+            const tamanhoCopo = (nomeTamanho.match(/\d+\s*ml/i) || [""])[0];
+            detailComplementosLista.innerHTML = detailComplementosPorCopo.map((sel, i) => `
+                <div class="copo-bloco">
+                    <p class="copo-titulo"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i> ${i + 1}º açaí${tamanhoCopo ? ` (${tamanhoCopo})` : ""}
+                        <span class="detail-option-counter${sel.length >= limite ? " limite-atingido" : ""}">${contador(sel)}</span></p>
+                    <div class="detail-checklist">${itensHtml(sel, i)}</div>
+                </div>`).join("");
+        } else {
+            const sel = detailComplementosPorCopo[0];
+            detailComplementosContador.textContent = `(${contador(sel)})`;
+            detailComplementosContador.classList.toggle("limite-atingido", sel.length >= limite);
+            detailComplementosLista.innerHTML = itensHtml(sel, 0);
+        }
     };
 
     const renderDetailAdicionais = () => {
@@ -708,7 +779,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Reseta a seleção sempre que abre um produto
         detailTamanhoIdx = 0;
-        detailComplementosSelecionados = [];
+        detailComplementosPorCopo = Array.from({ length: coposDoProduto(produto) }, () => []);
         detailAdicionaisSelecionados = [];
 
         const tamanhos = tamanhosDoProduto(produto);
@@ -766,9 +837,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     detailSizeSelect.addEventListener("change", () => {
         detailTamanhoIdx = Number(detailSizeSelect.value) || 0;
         // Muda de tamanho pode reduzir o limite de complementos grátis — descarta os que passarem do limite
-        const novoLimite = Number(detailTamanhoAtual()?.complementosGratis) || 0;
-        if (detailComplementosSelecionados.length > novoLimite) {
-            detailComplementosSelecionados = detailComplementosSelecionados.slice(0, novoLimite);
+        // (com complemento extra pago, o que passar do novo limite vira extra; sem ele, corta)
+        const novoLimite = limiteGratisPorCopo();
+        if (!precoComplementoExtra(detailProdutoAtual)) {
+            detailComplementosPorCopo = detailComplementosPorCopo.map((sel) => sel.slice(0, novoLimite));
         }
         renderDetailComplementos();
         atualizarPrecoDetalhe();
@@ -778,12 +850,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         const input = e.target.closest("input[data-complemento]");
         if (!input) return;
         const nome = input.dataset.complemento;
+        const copoIdx = Number(input.dataset.copo) || 0;
+        let sel = detailComplementosPorCopo[copoIdx] || [];
         if (input.checked) {
-            if (!detailComplementosSelecionados.includes(nome)) detailComplementosSelecionados.push(nome);
+            if (!sel.includes(nome)) sel = [...sel, nome];
         } else {
-            detailComplementosSelecionados = detailComplementosSelecionados.filter((c) => c !== nome);
+            sel = sel.filter((c) => c !== nome);
         }
+        detailComplementosPorCopo[copoIdx] = sel;
+        // Mantém a rolagem de cada lista no lugar ao redesenhar
+        const rolagens = [...detailComplementosLista.querySelectorAll(".detail-checklist")].map((l) => l.scrollTop);
+        const rolagemPrincipal = detailComplementosLista.scrollTop;
         renderDetailComplementos();
+        detailComplementosLista.scrollTop = rolagemPrincipal;
+        detailComplementosLista.querySelectorAll(".detail-checklist").forEach((l, i) => { l.scrollTop = rolagens[i] || 0; });
+        atualizarPrecoDetalhe();
     });
 
     detailAdicionaisLista.addEventListener("change", (e) => {
@@ -816,7 +897,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         adicionarAoCarrinho(detailProdutoAtual.id, null, {
             tamanho: detailSizeGroup.hidden ? null : detailTamanhoAtual().nome,
             opcaoInclusa: detailInclusoGroup.hidden ? null : detailInclusoSelect.value,
-            complementos: [...detailComplementosSelecionados],
+            complementos: detailComplementosPorCopo.flat(),
+            complementosPorCopo: coposDoProduto(detailProdutoAtual) > 1 ? detailComplementosPorCopo.map((sel) => [...sel]) : null,
+            complementosExtras: qtdComplementosExtras(),
             adicionais: [...detailAdicionaisSelecionados],
             preco: detailPrecoUnitario(),
         });
@@ -1057,13 +1140,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         const opcaoInclusa = opcoes.opcaoInclusa || null;
         const complementos = Array.isArray(opcoes.complementos) ? opcoes.complementos : [];
         const adicionais = Array.isArray(opcoes.adicionais) ? opcoes.adicionais : [];
+        const complementosPorCopo = Array.isArray(opcoes.complementosPorCopo) ? opcoes.complementosPorCopo : null;
+        const complementosExtras = Number(opcoes.complementosExtras) || 0;
         const preco = opcoes.preco !== undefined ? opcoes.preco : (tamanhosDoProduto(produto)[0]?.preco || Number(produto.preco) || 0);
 
         const chave = [
             produtoId,
             tamanho || "",
             opcaoInclusa || "",
-            [...complementos].sort().join(","),
+            complementosPorCopo
+                ? complementosPorCopo.map((sel) => [...sel].sort().join(",")).join("|")
+                : [...complementos].sort().join(","),
             adicionais.map((a) => a.nome).sort().join(","),
         ].join("__");
 
@@ -1091,6 +1178,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             tamanhoSelecionado: tamanho,
             opcaoInclusaSelecionada: opcaoInclusa,
             complementosSelecionados: complementos,
+            complementosPorCopo,
+            complementosExtras,
             adicionaisSelecionados: adicionais,
             _chave: chave,
         });
@@ -1104,7 +1193,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         const partes = [];
         if (item.tamanhoSelecionado) partes.push(item.tamanhoSelecionado);
         if (item.opcaoInclusaSelecionada) partes.push(item.opcaoInclusaSelecionada);
-        if (item.complementosSelecionados?.length) partes.push(`Complementos: ${item.complementosSelecionados.join(", ")}`);
+        if (item.complementosPorCopo?.length > 1) {
+            item.complementosPorCopo.forEach((sel, i) =>
+                partes.push(`${i + 1}º açaí: ${sel.length ? sel.join(", ") : "sem complementos"}`));
+        } else if (item.complementosSelecionados?.length) {
+            partes.push(`Complementos: ${item.complementosSelecionados.join(", ")}`);
+        }
+        if (item.complementosExtras) partes.push(`${item.complementosExtras} complemento${item.complementosExtras > 1 ? "s" : ""} extra${item.complementosExtras > 1 ? "s" : ""}`);
         if (item.adicionaisSelecionados?.length) partes.push(`Adicionais: ${item.adicionaisSelecionados.map(a => a.nome).join(", ")}`);
         return partes;
     };
@@ -1182,8 +1277,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         const discountAmount = calcularDesconto(subtotal);
-        const total = subtotal - discountAmount;
+        const taxaEntrega = carrinho.length ? taxaEntregaAtual() : 0;
+        const total = subtotal - discountAmount + taxaEntrega;
         subtotalElem.textContent = formatarMoeda(subtotal);
+        const linhaTaxa = document.querySelector(".delivery-fee-line");
+        if (linhaTaxa) {
+            const mostrar = tipoEntrega === "delivery" && textoTaxaEntrega();
+            linhaTaxa.style.display = mostrar ? "flex" : "none";
+            document.getElementById("cart-delivery-fee").textContent = textoTaxaEntrega();
+        }
         if (discountAmount > 0) {
             cartDiscountElem.textContent = `- ${formatarMoeda(discountAmount)}`;
             discountLineElem.style.display = "flex";
@@ -1264,7 +1366,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         const fieldsToValidate = tipoEntrega === "delivery"
-            ? ["delivery-cep", "delivery-address", "delivery-numero", "delivery-bairro", "identificacao-nome", "identificacao-telefone"]
+            ? ["delivery-cep", "delivery-address", "delivery-numero", "delivery-bairro",
+                ...(document.getElementById("delivery-bairro").value === "__outro" ? ["delivery-bairro-outro"] : []),
+                "identificacao-nome", "identificacao-telefone"]
             : ["pickup-date", "pickup-time", "identificacao-nome", "identificacao-telefone"];
 
         if (!validarCampos(fieldsToValidate)) return;
@@ -1286,10 +1390,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             )})`;
         }
 
-        const total = subtotal - discountAmount;
+        const taxaEntrega = taxaEntregaAtual();
+        const taxaInfo = tipoEntrega === "delivery" ? `\n*Taxa de entrega:* ${textoTaxaEntrega()}` : "";
+        const total = subtotal - discountAmount + taxaEntrega;
         let mensagem = `*-- NOVO PEDIDO ${configLoja.nomeLoja} --*\n*Nº do Pedido:* #${pedidoId}\n\n*Itens:*\n${itensPedido}\n\n*Subtotal:* ${formatarMoeda(
             subtotal,
-        )}${cupomInfo}\n*Total:* ${formatarMoeda(
+        )}${cupomInfo}${taxaInfo}\n*Total:* ${formatarMoeda(
             total,
         )}\n\n-------------------------\n\n`;
 
@@ -1314,7 +1420,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (tipoEntrega === "delivery") {
             const cep = document.getElementById("delivery-cep").value.trim();
 
-            mensagem += `*Tipo de Pedido:* Entrega (Moto)\n\n*Nome:* ${nome}\n*Telefone:* ${telefone}\n*Endereço:* ${enderecoCompleto()}${cep ? `\n*CEP:* ${cep}` : ""}\n\n${paymentInfo}`;
+            mensagem += `*Tipo de Pedido:* Entrega${configLoja.tempoEntrega ? ` (estimativa: ${configLoja.tempoEntrega})` : ""}\n\n*Nome:* ${nome}\n*Telefone:* ${telefone}\n*Endereço:* ${enderecoCompleto()}${cep ? `\n*CEP:* ${cep}` : ""}\n\n${paymentInfo}`;
         } else {
             const dataInput = document.getElementById("pickup-date").value;
             const hora = document.getElementById("pickup-time").value;
@@ -1397,6 +1503,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 deliveryForm.style.display = "none";
                 pickupForm.style.display = "block";
             }
+            atualizarCarrinho();
         }),
     );
 
@@ -1440,7 +1547,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             const ruaEl = document.getElementById("delivery-address"),
                 bairroEl = document.getElementById("delivery-bairro");
             if (dados.logradouro && !ruaEl.value.trim()) { ruaEl.value = dados.logradouro; ruaEl.classList.remove("error"); }
-            if (dados.bairro && !bairroEl.value.trim()) { bairroEl.value = dados.bairro; bairroEl.classList.remove("error"); }
+            // Seleciona o bairro da lista se o nome bater (ignorando acento/maiúscula)
+            if (dados.bairro && !bairroEl.value) {
+                const op = [...bairroEl.options].find((o) => o.value && o.value !== "__outro"
+                    && o.value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === dados.bairro.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
+                if (op) { bairroEl.value = op.value; bairroEl.dispatchEvent(new Event("change")); }
+            }
             document.getElementById("delivery-numero").focus();
         } catch (e) {
             console.warn("Não foi possível consultar o CEP:", e);
@@ -1476,6 +1588,77 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Clicar no logo volta pro topo (substitui o link "Início" do menu, que não cabia no celular)
     document.querySelector(".logo")?.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
+    // --- ENTREGA: TAXA POR BAIRRO ---
+    // Lista de bairros/taxas vem de configuracoes/geral.taxasEntrega (editável no admin).
+    const OPCAO_OUTRO_BAIRRO = "__outro";
+    const bairroSelect = document.getElementById("delivery-bairro"),
+        bairroOutroGroup = document.getElementById("delivery-bairro-outro-group"),
+        bairroOutroInput = document.getElementById("delivery-bairro-outro"),
+        deliveryFeeNotice = document.getElementById("delivery-fee-notice");
+    const taxasEntrega = () => (Array.isArray(configLoja.taxasEntrega) ? configLoja.taxasEntrega : [])
+        .filter((t) => t && t.bairro)
+        .map((t) => ({ bairro: String(t.bairro).trim(), taxa: Number(t.taxa) || 0 }));
+    const semAcento = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+    const montarBairros = () => {
+        const lista = taxasEntrega();
+        const porTaxa = {};
+        lista.forEach((t) => { (porTaxa[t.taxa] = porTaxa[t.taxa] || []).push(t.bairro); });
+        bairroSelect.innerHTML = `<option value="" disabled selected>Selecione</option>` +
+            Object.keys(porTaxa).map(Number).sort((a, b) => a - b).map((taxa) => `
+                <optgroup label="Taxa ${formatarMoeda(taxa)}">
+                    ${porTaxa[taxa].map((b) => `<option value="${b}">${b}</option>`).join("")}
+                </optgroup>`).join("") +
+            (configLoja.aceitarOutrosBairros !== false ? `<option value="${OPCAO_OUTRO_BAIRRO}">Outro bairro (taxa a combinar)</option>` : "");
+    };
+
+    const bairroEscolhido = () => bairroSelect.value === OPCAO_OUTRO_BAIRRO
+        ? bairroOutroInput.value.trim()
+        : bairroSelect.value;
+    // null = taxa a combinar (bairro fora da lista) ou bairro ainda não escolhido
+    const taxaDoBairro = () => {
+        const t = taxasEntrega().find((x) => x.bairro === bairroSelect.value);
+        return t ? t.taxa : null;
+    };
+    const taxaEntregaAtual = () => (tipoEntrega === "delivery" ? (taxaDoBairro() || 0) : 0);
+    const textoTaxaEntrega = () => {
+        if (bairroSelect.value === OPCAO_OUTRO_BAIRRO) return "a combinar pelo WhatsApp";
+        const t = taxaDoBairro();
+        return t === null ? "" : (t > 0 ? formatarMoeda(t) : "Grátis");
+    };
+
+    const atualizarAvisoEntrega = () => {
+        const tempo = configLoja.tempoEntrega ? `<i class="fa-regular fa-clock" aria-hidden="true"></i> Tempo estimado de entrega: <strong>${configLoja.tempoEntrega}</strong>` : "";
+        let taxa = "Escolha o bairro para ver a taxa de entrega.";
+        if (bairroSelect.value === OPCAO_OUTRO_BAIRRO) taxa = "Para bairros fora da lista, a taxa é combinada pelo WhatsApp.";
+        else if (taxaDoBairro() !== null) taxa = `<i class="fa-solid fa-motorcycle" aria-hidden="true"></i> Taxa de entrega para <strong>${bairroSelect.value}</strong>: <strong>${textoTaxaEntrega()}</strong>`;
+        deliveryFeeNotice.innerHTML = `${taxa}${tempo ? `<br>${tempo}` : ""}`;
+    };
+
+    bairroSelect.addEventListener("change", () => {
+        const outro = bairroSelect.value === OPCAO_OUTRO_BAIRRO;
+        bairroOutroGroup.hidden = !outro;
+        bairroOutroInput.required = outro;
+        bairroSelect.classList.remove("error");
+        if (outro) bairroOutroInput.focus();
+        atualizarAvisoEntrega();
+        atualizarCarrinho();
+    });
+    bairroOutroInput.addEventListener("input", () => {
+        if (bairroOutroInput.value.trim()) bairroOutroInput.classList.remove("error");
+    });
+
+    montarBairros();
+    atualizarAvisoEntrega();
+
+    // Cupom: sem nenhum cupom ativo e válido cadastrado, o campo nem aparece no carrinho
+    const temCupomAtivo = coupons.some((c) => c.ativo !== false
+        && !(c.validade && new Date(`${c.validade}T23:59:59`) < new Date()));
+    if (!temCupomAtivo) {
+        document.querySelector(".coupon-container")?.setAttribute("hidden", "");
+        couponFeedback.hidden = true;
+    }
 
     // --- INICIALIZAÇÃO ---
     renderPromocoes();

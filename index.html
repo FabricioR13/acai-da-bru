@@ -147,7 +147,7 @@
                 <h4 class="cart-step-title">Como você quer receber?</h4>
                 <div class="options-toggle" role="tablist">
                     <button class="delivery-btn active" data-option="delivery" role="tab" aria-selected="true">
-                        <i class="fa-solid fa-motorcycle" aria-hidden="true"></i> Entrega (Moto)
+                        <i class="fa-solid fa-motorcycle" aria-hidden="true"></i> Entrega
                     </button>
                     <button class="delivery-btn" data-option="pickup" role="tab" aria-selected="false">
                         <i class="fa-solid fa-store" aria-hidden="true"></i> Retirada
@@ -172,13 +172,20 @@
                         </div>
                         <div class="form-group form-group--bairro">
                             <label for="delivery-bairro">Bairro</label>
-                            <input type="text" id="delivery-bairro" placeholder="Seu bairro" maxlength="60" required>
+                            <!-- Opções montadas pelo script.js a partir de configuracoes/geral.taxasEntrega -->
+                            <select id="delivery-bairro" required>
+                                <option value="" disabled selected>Selecione</option>
+                            </select>
                         </div>
                     </div>
 
-                    <div class="delivery-fee-notice">
-                        Entrega feita por motoboy/app (ex: Uber Moto). A taxa é combinada com você pelo WhatsApp após o pedido.
+                    <div class="form-group" id="delivery-bairro-outro-group" hidden>
+                        <label for="delivery-bairro-outro">Qual o seu bairro?</label>
+                        <input type="text" id="delivery-bairro-outro" placeholder="Digite o bairro" maxlength="60">
                     </div>
+
+                    <!-- Preenchido pelo script.js: taxa do bairro escolhido + tempo estimado de entrega -->
+                    <div class="delivery-fee-notice" id="delivery-fee-notice"></div>
                 </div>
 
                 <div id="pickup-form-container" style="display: none;">
@@ -276,6 +283,9 @@
 
                 <div class="cart-summary">
                     <div class="summary-line"><span>Subtotal</span><span id="cart-subtotal">R$ 0,00</span></div>
+                    <div class="summary-line delivery-fee-line" style="display: none;">
+                        <span>Taxa de entrega</span><span id="cart-delivery-fee">R$ 0,00</span>
+                    </div>
                     <div class="summary-line discount-line" style="display: none;">
                         <span>Desconto</span><span id="cart-discount">- R$ 0,00</span>
                     </div>
@@ -341,7 +351,8 @@
                 <select class="detail-incluso-select" id="detail-incluso-select" aria-label="Escolha uma opção"></select>
             </div>
             <div class="detail-option-group" id="detail-complementos-group" hidden>
-                <label class="detail-option-label">Complementos grátis <span id="detail-complementos-contador" class="detail-option-counter"></span></label>
+                <label class="detail-option-label">Complementos <span id="detail-complementos-contador" class="detail-option-counter"></span></label>
+                <p class="detail-option-hint" id="detail-complementos-dica"></p>
                 <div class="detail-checklist" id="detail-complementos-lista"></div>
             </div>
             <div class="detail-option-group" id="detail-adicionais-group" hidden>
