@@ -910,6 +910,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             complementosExtras: qtdComplementosExtras(),
             adicionais: [...detailAdicionaisSelecionados],
             preco: detailPrecoUnitario(),
+            precoBase: Number(detailTamanhoAtual()?.preco) || 0,
+            nomeTamanhoBase: detailTamanhoAtual()?.nome || "",
+            limiteGratis: limiteGratisPorCopo(),
+            precoExtra: precoComplementoExtra(detailProdutoAtual),
         });
         fecharDetalhe();
     });
@@ -1150,6 +1154,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         const adicionais = Array.isArray(opcoes.adicionais) ? opcoes.adicionais : [];
         const complementosPorCopo = Array.isArray(opcoes.complementosPorCopo) ? opcoes.complementosPorCopo : null;
         const complementosExtras = Number(opcoes.complementosExtras) || 0;
+        const precoBase = opcoes.precoBase !== undefined ? Number(opcoes.precoBase) : null;
+        const nomeTamanhoBase = opcoes.nomeTamanhoBase || "";
+        const limiteGratis = Number(opcoes.limiteGratis) || 0;
+        const precoExtra = Number(opcoes.precoExtra) || 0;
         const preco = opcoes.preco !== undefined ? opcoes.preco : (tamanhosDoProduto(produto)[0]?.preco || Number(produto.preco) || 0);
 
         const chave = [
@@ -1188,6 +1196,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             complementosSelecionados: complementos,
             complementosPorCopo,
             complementosExtras,
+            precoBase,
+            nomeTamanhoBase,
+            limiteGratis,
+            precoExtra,
             adicionaisSelecionados: adicionais,
             _chave: chave,
         });
@@ -1365,6 +1377,47 @@ document.addEventListener("DOMContentLoaded", async () => {
         atualizarCarrinho();
     };
 
+    // --- MENSAGEM DO WHATSAPP: CADA ITEM COM SEUS VALORES ---
+    // Mostra de onde sai o valor de cada item (preço do tamanho + complementos extras +
+    // adicionais), pra loja conferir a conta antes de confirmar o pedido.
+    const itemDetalhadoWhatsApp = (item, n) => {
+        const linhas = [];
+        const titulo = `${item.nome}${item.tamanhoSelecionado ? ` (${item.tamanhoSelecionado})` : ""}`;
+        linhas.push(`*${n}) ${item.quantidade}x ${titulo}* [${codigoDoProduto(item)}]`);
+
+        const base = item.precoBase ?? null;
+        // Linha do preço base: usa o nome do tamanho mesmo quando o produto tem um só (ex: "2 açaís de 400ml")
+        const nomeBase = item.tamanhoSelecionado || !item.nomeTamanhoBase ? titulo : `${item.nome} (${item.nomeTamanhoBase})`;
+        if (base !== null) linhas.push(`   • ${nomeBase}: ${formatarMoeda(base)}`);
+        if (item.opcaoInclusaSelecionada) linhas.push(`   • ${item.opcaoInclusa?.label || "Opção"}: ${item.opcaoInclusaSelecionada}`);
+
+        // Complementos: os primeiros (até o limite) são grátis; o que passar é extra pago
+        const limite = Number(item.limiteGratis) || 0;
+        const precoExtra = Number(item.precoExtra) || 0;
+        const blocos = item.complementosPorCopo?.length > 1
+            ? item.complementosPorCopo.map((sel, i) => ({ rotulo: `${i + 1}º açaí — `, sel }))
+            : (item.complementosSelecionados?.length ? [{ rotulo: "", sel: item.complementosSelecionados }] : []);
+        blocos.forEach(({ rotulo, sel }) => {
+            const gratis = limite ? sel.slice(0, limite) : sel;
+            const extras = limite ? sel.slice(limite) : [];
+            const C = rotulo ? "complementos" : "Complementos";
+            linhas.push(`   • ${rotulo}${C} grátis: ${gratis.length ? gratis.join(", ") : "nenhum"}`);
+            if (extras.length) {
+                linhas.push(`   • ${rotulo}${C} extras: ${extras.join(", ")} (${extras.length} x ${formatarMoeda(precoExtra)}) = ${formatarMoeda(extras.length * precoExtra)}`);
+            }
+        });
+
+        (item.adicionaisSelecionados || []).forEach((a) => {
+            linhas.push(`   • + ${a.nome}: ${formatarMoeda(Number(a.preco) || 0)}`);
+        });
+
+        const totalItem = item.preco * item.quantidade;
+        linhas.push(item.quantidade > 1
+            ? `   *Valor do item: ${formatarMoeda(item.preco)} x ${item.quantidade} = ${formatarMoeda(totalItem)}*`
+            : `   *Valor do item: ${formatarMoeda(totalItem)}*`);
+        return linhas.join("\n");
+    };
+
     // --- NUMERAÇÃO DIÁRIA DOS PEDIDOS ---
     // Contador no Firestore por dia (contadores/pedidos-AAAA-MM-DD): cada pedido soma 1, e no
     // dia seguinte começa outro documento — então a numeração "zera" sozinha à meia-noite.
@@ -1486,9 +1539,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             ? `*Pedido nº ${numeroDoDia}* — ${hojeEmSaoPaulo().br}`
             : `*Nº do Pedido:* #${pedidoId}`;
         const numeroWhatsApp = configLoja.whatsapp;
-        const itensPedido = carrinho
-            .map((item) => `  - ${item.quantidade}x [${codigoDoProduto(item)}] ${item.nome}${detalhesDoItem(item).length ? ` (${detalhesDoItem(item).join(" · ")})` : ""} — *${formatarMoeda(item.preco * item.quantidade)}*${item.quantidade > 1 ? ` (${formatarMoeda(item.preco)} cada)` : ""}`)
-            .join("\n");
+        const itensPedido = carrinho.map((item, i) => itemDetalhadoWhatsApp(item, i + 1)).join("\n\n");
         const subtotal = carrinho.reduce(
             (acc, item) => acc + item.preco * item.quantidade,
             0,
@@ -1504,11 +1555,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         const taxaEntrega = taxaEntregaAtual();
         const taxaInfo = tipoEntrega === "delivery" ? `\n*Taxa de entrega:* ${textoTaxaEntrega()}` : "";
         const total = subtotal - discountAmount + taxaEntrega;
-        let mensagem = `*-- NOVO PEDIDO ${configLoja.nomeLoja} --*\n${cabecalhoPedido}\n\n*Itens:*\n${itensPedido}\n\n*Subtotal:* ${formatarMoeda(
-            subtotal,
-        )}${cupomInfo}${taxaInfo}\n*Total:* ${formatarMoeda(
-            total,
-        )}\n\n-------------------------\n\n`;
+        const qtdItens = carrinho.reduce((acc, i) => acc + i.quantidade, 0);
+        const bairroTaxa = tipoEntrega === "delivery" && bairroEscolhido() ? ` (${bairroEscolhido()})` : "";
+        let mensagem = `*-- NOVO PEDIDO ${configLoja.nomeLoja} --*\n${cabecalhoPedido}\n\n`
+            + `🧾 *ITENS DO PEDIDO*\n\n${itensPedido}\n\n`
+            + `-------------------------\n`
+            + `*Subtotal (${qtdItens} ${qtdItens === 1 ? "item" : "itens"}):* ${formatarMoeda(subtotal)}`
+            + (appliedCoupon ? `\n*Desconto (cupom ${appliedCoupon.codigo}):* - ${formatarMoeda(discountAmount)}` : "")
+            + (tipoEntrega === "delivery" ? `\n*Taxa de entrega${bairroTaxa}:* ${textoTaxaEntrega()}` : "")
+            + `\n💰 *TOTAL: ${formatarMoeda(total)}*`
+            + `\n-------------------------\n\n`;
 
         const paymentMethod = document.querySelector(
             'input[name="payment"]:checked',
