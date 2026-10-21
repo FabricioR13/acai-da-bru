@@ -663,7 +663,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Complementos escolhidos POR COPO: produto normal tem 1 copo; combo (campo "copos",
     // ex: Combo Casal = 2) tem um bloco de complementos pra cada copo.
     let detailComplementosPorCopo = [[]];
-    let detailAdicionaisSelecionados = [];
+    // Adicionais também por copo: no combo, cada açaí tem os seus (o 1º pode ter Nutella e o 2º não)
+    let detailAdicionaisPorCopo = [[]];
+    const adicionaisSelecionadosTodos = () => detailAdicionaisPorCopo.flat();
 
     const detailTamanhoAtual = () => {
         const tamanhos = tamanhosDoProduto(detailProdutoAtual);
@@ -684,7 +686,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const detailPrecoUnitario = () => {
         const base = detailTamanhoAtual()?.preco || 0;
-        const adicionais = detailAdicionaisSelecionados.reduce((acc, a) => acc + (Number(a.preco) || 0), 0);
+        const adicionais = adicionaisSelecionadosTodos().reduce((acc, a) => acc + (Number(a.preco) || 0), 0);
         const extras = qtdComplementosExtras() * precoComplementoExtra(detailProdutoAtual);
         return base + adicionais + extras;
     };
@@ -722,15 +724,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         };
 
         detailComplementosLista.classList.toggle("multi-copos", copos > 1);
+        const temAdicionais = Array.isArray(detailProdutoAtual?.adicionaisPagos) && detailProdutoAtual.adicionaisPagos.length > 0;
         if (copos > 1) {
             detailComplementosContador.textContent = "";
             const nomeTamanho = detailTamanhoAtual()?.nome || "";
             const tamanhoCopo = (nomeTamanho.match(/\d+\s*ml/i) || [""])[0];
             detailComplementosLista.innerHTML = detailComplementosPorCopo.map((sel, i) => `
                 <div class="copo-bloco">
-                    <p class="copo-titulo"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i> ${i + 1}º açaí${tamanhoCopo ? ` (${tamanhoCopo})` : ""}
+                    <p class="copo-titulo"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i> ${i + 1}º açaí${tamanhoCopo ? ` (${tamanhoCopo})` : ""}</p>
+                    <p class="copo-subtitulo">Complementos
                         <span class="detail-option-counter${sel.length >= limite ? " limite-atingido" : ""}">${contador(sel)}</span></p>
                     <div class="detail-checklist">${itensHtml(sel, i)}</div>
+                    ${temAdicionais ? `
+                    <p class="copo-subtitulo">Adicionais do ${i + 1}º açaí <span>(opcional)</span></p>
+                    <div class="detail-checklist">${adicionaisHtml(i)}</div>` : ""}
                 </div>`).join("");
         } else {
             const sel = detailComplementosPorCopo[0];
@@ -740,17 +747,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    const renderDetailAdicionais = () => {
+    const adicionaisHtml = (copoIdx) => {
         const lista = Array.isArray(detailProdutoAtual?.adicionaisPagos) ? detailProdutoAtual.adicionaisPagos : [];
-        if (!lista.length) { detailAdicionaisGroup.hidden = true; return; }
-        detailAdicionaisGroup.hidden = false;
-        detailAdicionaisLista.innerHTML = lista.map((item) => {
-            const marcado = detailAdicionaisSelecionados.some((a) => a.nome === item.nome);
+        const sel = detailAdicionaisPorCopo[copoIdx] || [];
+        return lista.map((item) => {
+            const marcado = sel.some((a) => a.nome === item.nome);
             return `<label class="detail-checklist-item${marcado ? " selecionado" : ""}">
-                <span class="detail-checklist-item-nome"><input type="checkbox" data-adicional="${item.nome}" ${marcado ? "checked" : ""}> ${item.nome}</span>
+                <span class="detail-checklist-item-nome"><input type="checkbox" data-copo="${copoIdx}" data-adicional="${item.nome}" ${marcado ? "checked" : ""}> ${item.nome}</span>
                 <span class="detail-checklist-item-preco">+ ${formatarMoeda(Number(item.preco) || 0)}</span>
             </label>`;
         }).join("");
+    };
+
+    const renderDetailAdicionais = () => {
+        const lista = Array.isArray(detailProdutoAtual?.adicionaisPagos) ? detailProdutoAtual.adicionaisPagos : [];
+        // No combo os adicionais ficam dentro do bloco de cada açaí (ver renderDetailComplementos)
+        if (!lista.length || coposDoProduto(detailProdutoAtual) > 1) { detailAdicionaisGroup.hidden = true; return; }
+        detailAdicionaisGroup.hidden = false;
+        detailAdicionaisLista.innerHTML = adicionaisHtml(0);
     };
 
     const atualizarPrecoDetalhe = () => {
@@ -788,7 +802,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Reseta a seleção sempre que abre um produto
         detailTamanhoIdx = 0;
         detailComplementosPorCopo = Array.from({ length: coposDoProduto(produto) }, () => []);
-        detailAdicionaisSelecionados = [];
+        detailAdicionaisPorCopo = Array.from({ length: coposDoProduto(produto) }, () => []);
 
         const tamanhos = tamanhosDoProduto(produto);
         const temTamanhos = tamanhos.length > 1;
@@ -855,6 +869,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     detailComplementosLista.addEventListener("change", (e) => {
+        // Adicional marcado dentro do bloco de um açaí do combo
+        const inputAdicional = e.target.closest("input[data-adicional]");
+        if (inputAdicional) {
+            alternarAdicional(inputAdicional);
+            const rolagens = [...detailComplementosLista.querySelectorAll(".detail-checklist")].map((l) => l.scrollTop);
+            renderDetailComplementos();
+            detailComplementosLista.querySelectorAll(".detail-checklist").forEach((l, i) => { l.scrollTop = rolagens[i] || 0; });
+            atualizarPrecoDetalhe();
+            return;
+        }
         const input = e.target.closest("input[data-complemento]");
         if (!input) return;
         const nome = input.dataset.complemento;
@@ -875,17 +899,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         atualizarPrecoDetalhe();
     });
 
+    const alternarAdicional = (input) => {
+        const nome = input.dataset.adicional;
+        const copoIdx = Number(input.dataset.copo) || 0;
+        const item = (detailProdutoAtual.adicionaisPagos || []).find((a) => a.nome === nome);
+        if (!item) return;
+        const sel = detailAdicionaisPorCopo[copoIdx] || [];
+        detailAdicionaisPorCopo[copoIdx] = input.checked
+            ? (sel.some((a) => a.nome === nome) ? sel : [...sel, item])
+            : sel.filter((a) => a.nome !== nome);
+    };
+
     detailAdicionaisLista.addEventListener("change", (e) => {
         const input = e.target.closest("input[data-adicional]");
         if (!input) return;
-        const nome = input.dataset.adicional;
-        const item = (detailProdutoAtual.adicionaisPagos || []).find((a) => a.nome === nome);
-        if (!item) return;
-        if (input.checked) {
-            if (!detailAdicionaisSelecionados.some((a) => a.nome === nome)) detailAdicionaisSelecionados.push(item);
-        } else {
-            detailAdicionaisSelecionados = detailAdicionaisSelecionados.filter((a) => a.nome !== nome);
-        }
+        alternarAdicional(input);
         renderDetailAdicionais();
         atualizarPrecoDetalhe();
     });
@@ -908,7 +936,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             complementos: detailComplementosPorCopo.flat(),
             complementosPorCopo: coposDoProduto(detailProdutoAtual) > 1 ? detailComplementosPorCopo.map((sel) => [...sel]) : null,
             complementosExtras: qtdComplementosExtras(),
-            adicionais: [...detailAdicionaisSelecionados],
+            adicionais: adicionaisSelecionadosTodos(),
+            adicionaisPorCopo: coposDoProduto(detailProdutoAtual) > 1 ? detailAdicionaisPorCopo.map((sel) => [...sel]) : null,
             preco: detailPrecoUnitario(),
             precoBase: Number(detailTamanhoAtual()?.preco) || 0,
             nomeTamanhoBase: detailTamanhoAtual()?.nome || "",
@@ -1153,6 +1182,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const complementos = Array.isArray(opcoes.complementos) ? opcoes.complementos : [];
         const adicionais = Array.isArray(opcoes.adicionais) ? opcoes.adicionais : [];
         const complementosPorCopo = Array.isArray(opcoes.complementosPorCopo) ? opcoes.complementosPorCopo : null;
+        const adicionaisPorCopo = Array.isArray(opcoes.adicionaisPorCopo) ? opcoes.adicionaisPorCopo : null;
         const complementosExtras = Number(opcoes.complementosExtras) || 0;
         const precoBase = opcoes.precoBase !== undefined ? Number(opcoes.precoBase) : null;
         const nomeTamanhoBase = opcoes.nomeTamanhoBase || "";
@@ -1167,7 +1197,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             complementosPorCopo
                 ? complementosPorCopo.map((sel) => [...sel].sort().join(",")).join("|")
                 : [...complementos].sort().join(","),
-            adicionais.map((a) => a.nome).sort().join(","),
+            adicionaisPorCopo
+                ? adicionaisPorCopo.map((sel) => sel.map((a) => a.nome).sort().join(",")).join("|")
+                : adicionais.map((a) => a.nome).sort().join(","),
         ].join("__");
 
         const qtdAtualTotal = carrinho
@@ -1201,6 +1233,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             limiteGratis,
             precoExtra,
             adicionaisSelecionados: adicionais,
+            adicionaisPorCopo,
             _chave: chave,
         });
         atualizarCarrinho();
@@ -1214,13 +1247,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (item.tamanhoSelecionado) partes.push(item.tamanhoSelecionado);
         if (item.opcaoInclusaSelecionada) partes.push(item.opcaoInclusaSelecionada);
         if (item.complementosPorCopo?.length > 1) {
-            item.complementosPorCopo.forEach((sel, i) =>
-                partes.push(`${i + 1}º açaí: ${sel.length ? sel.join(", ") : "sem complementos"}`));
+            item.complementosPorCopo.forEach((sel, i) => {
+                const adic = (item.adicionaisPorCopo?.[i] || []).map((a) => `+ ${a.nome}`);
+                partes.push(`${i + 1}º açaí: ${sel.length ? sel.join(", ") : "sem complementos"}${adic.length ? ` (${adic.join(", ")})` : ""}`);
+            });
         } else if (item.complementosSelecionados?.length) {
             partes.push(`Complementos: ${item.complementosSelecionados.join(", ")}`);
         }
         if (item.complementosExtras) partes.push(`${item.complementosExtras} complemento${item.complementosExtras > 1 ? "s" : ""} extra${item.complementosExtras > 1 ? "s" : ""}`);
-        if (item.adicionaisSelecionados?.length) partes.push(`Adicionais: ${item.adicionaisSelecionados.map(a => a.nome).join(", ")}`);
+        if (!item.adicionaisPorCopo && item.adicionaisSelecionados?.length) partes.push(`Adicionais: ${item.adicionaisSelecionados.map(a => a.nome).join(", ")}`);
         return partes;
     };
 
@@ -1397,7 +1432,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const blocos = item.complementosPorCopo?.length > 1
             ? item.complementosPorCopo.map((sel, i) => ({ rotulo: `${i + 1}º açaí — `, sel }))
             : (item.complementosSelecionados?.length ? [{ rotulo: "", sel: item.complementosSelecionados }] : []);
-        blocos.forEach(({ rotulo, sel }) => {
+        blocos.forEach(({ rotulo, sel }, copoIdx) => {
             const gratis = limite ? sel.slice(0, limite) : sel;
             const extras = limite ? sel.slice(limite) : [];
             const C = rotulo ? "complementos" : "Complementos";
@@ -1405,11 +1440,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (extras.length) {
                 linhas.push(`   • ${rotulo}${C} extras: ${extras.join(", ")} (${extras.length} x ${formatarMoeda(precoExtra)}) = ${formatarMoeda(extras.length * precoExtra)}`);
             }
+            // No combo, os adicionais de cada açaí vêm logo abaixo dos complementos dele
+            if (item.adicionaisPorCopo) {
+                (item.adicionaisPorCopo[copoIdx] || []).forEach((a) => {
+                    linhas.push(`   • ${rotulo}+ ${a.nome}: ${formatarMoeda(Number(a.preco) || 0)}`);
+                });
+            }
         });
 
-        (item.adicionaisSelecionados || []).forEach((a) => {
-            linhas.push(`   • + ${a.nome}: ${formatarMoeda(Number(a.preco) || 0)}`);
-        });
+        if (!item.adicionaisPorCopo) {
+            (item.adicionaisSelecionados || []).forEach((a) => {
+                linhas.push(`   • + ${a.nome}: ${formatarMoeda(Number(a.preco) || 0)}`);
+            });
+        }
 
         const totalItem = item.preco * item.quantidade;
         linhas.push(item.quantidade > 1

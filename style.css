@@ -592,3 +592,9 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 .dados-salvos-aviso{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.85rem;color:var(--secondary-color);background:var(--light-2);border-radius:.6rem;padding:.55rem .75rem;margin:-.3rem 0 1rem}
 .dados-salvos-aviso i{color:var(--primary-color)}
 .dados-salvos-limpar{margin-left:auto;background:none;border:none;color:var(--primary-color);font-weight:700;text-decoration:underline;cursor:pointer;font-family:inherit;font-size:.85rem;padding:0}
+
+/* Combo: dentro de cada açaí, subtítulos "Complementos" e "Adicionais do Xº açaí" */
+.copo-titulo{margin-bottom:.3rem}
+.copo-subtitulo{display:flex;align-items:center;gap:.4rem;font-size:.8rem;font-weight:700;color:var(--secondary-color);margin:.55rem 0 .4rem}
+.copo-subtitulo span:not(.detail-option-counter){font-weight:500;color:#9ca3af}
+.copo-subtitulo .detail-option-counter{margin-left:auto}
