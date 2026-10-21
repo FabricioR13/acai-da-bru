@@ -180,7 +180,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         heroCorFundoFim: "#7A1F4B",
         logoUrl: "assets/logo.jpg",
         entregaDisponivel: true,
-        retiradaDisponivel: true,
+        retiradaDisponivel: false, // a Bru só faz entrega
         sobreNome: "Açaí da Bru",
         sobreTexto: "Açaí de qualidade, feito com carinho e montado do seu jeito. Siga a gente no Instagram e fique de olho nas promoções da semana!",
         sobreFoto: "assets/copo-quadrado.jpg",
@@ -318,6 +318,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         const retiradaDisponivel = configLoja.retiradaDisponivel !== false;
         if (entregaBtn) entregaBtn.hidden = !entregaDisponivel;
         if (pickupBtn) pickupBtn.hidden = !retiradaDisponivel;
+        // Só uma modalidade (ex: a loja só entrega): esconde a escolha e ajusta o título da etapa
+        const umaOpcaoSo = entregaDisponivel !== retiradaDisponivel;
+        const toggleEl = document.querySelector("#cart-step-2 .options-toggle");
+        if (toggleEl) toggleEl.hidden = umaOpcaoSo;
+        const tituloEtapa2 = document.querySelector("#cart-step-2 .cart-step-title");
+        if (tituloEtapa2) tituloEtapa2.textContent = umaOpcaoSo
+            ? (entregaDisponivel ? "Endereço de entrega" : "Agende a retirada")
+            : "Como você quer receber?";
         if (!entregaDisponivel && retiradaDisponivel) {
             tipoEntrega = "pickup";
             entregaBtn?.classList.remove("active");
