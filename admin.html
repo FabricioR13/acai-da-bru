@@ -33,6 +33,10 @@
     .login-box input { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--text); font-size: .95rem; outline: none; }
     .login-box input:focus { border-color: var(--gold); }
     #login-error { color: var(--red); font-size: .82rem; display: none; }
+    #login-info { color: var(--green, #4caf50); font-size: .82rem; display: none; line-height: 1.45; }
+    .login-esqueci { background: none; border: none; color: var(--muted); font-size: .82rem; text-decoration: underline; cursor: pointer; align-self: center; padding: 2px; font-family: inherit; }
+    .login-esqueci:hover { color: var(--gold); }
+    .login-lembrar { display: flex; align-items: center; gap: 8px; font-size: .82rem; color: var(--muted); cursor: pointer; }
     #app { display: none; }
     .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
     .topbar-brand { font-weight: 700; font-size: 1.05rem; color: var(--gold); display: flex; align-items: center; gap: 8px; }
@@ -221,10 +225,13 @@
       <label>Senha de acesso</label>
       <input type="password" id="senha-input" placeholder="••••••••">
     </div>
+    <label class="login-lembrar"><input type="checkbox" id="lembrar-login" checked> Manter conectado neste aparelho</label>
     <span id="login-error">E-mail ou senha inválidos.</span>
+    <span id="login-info"></span>
     <button class="btn btn-primary" onclick="fazerLogin()">
       <i class="fa-solid fa-right-to-bracket"></i> Entrar
     </button>
+    <button type="button" class="login-esqueci" id="btn-esqueci-senha" onclick="esqueciSenha()">Esqueci minha senha</button>
   </div>
 </div>
 
@@ -874,17 +881,64 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
-auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+auth.languageCode = "pt"; // e-mails do Firebase (ex: redefinição de senha) em português
 
 // ── LOGIN ──────────────────────────────────────────────────────────────────
-function fazerLogin() {
+function mostrarMsgLogin(tipo, texto) {
+  const err  = document.getElementById("login-error");
+  const info = document.getElementById("login-info");
+  err.style.display = info.style.display = "none";
+  if (!tipo) return;
+  const el = tipo === "erro" ? err : info;
+  el.textContent = texto;
+  el.style.display = "block";
+}
+
+async function fazerLogin() {
   const email = document.getElementById("email-input").value.trim();
   const senha = document.getElementById("senha-input").value;
-  const err   = document.getElementById("login-error");
-  err.style.display = "none";
-  auth.signInWithEmailAndPassword(email, senha).catch(() => {
-    err.style.display = "block";
-  });
+  mostrarMsgLogin(null);
+  // "Manter conectado": no celular da loja fica logado mesmo fechando o navegador;
+  // desmarcado (computador de outra pessoa), sai ao fechar a aba.
+  const manter = document.getElementById("lembrar-login").checked;
+  try {
+    await auth.setPersistence(manter ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
+    await auth.signInWithEmailAndPassword(email, senha);
+  } catch (e) {
+    const msg = e.code === "auth/too-many-requests"
+      ? "Muitas tentativas seguidas. Espere alguns minutos ou use \"Esqueci minha senha\"."
+      : e.code === "auth/network-request-failed"
+        ? "Sem conexão com a internet. Confira e tente de novo."
+        : "E-mail ou senha inválidos.";
+    mostrarMsgLogin("erro", msg);
+  }
+}
+
+// Esqueci minha senha: o Firebase manda um e-mail com link para criar uma senha nova.
+async function esqueciSenha() {
+  const email = document.getElementById("email-input").value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    mostrarMsgLogin("erro", "Digite seu e-mail no campo acima e clique de novo em \"Esqueci minha senha\".");
+    document.getElementById("email-input").focus();
+    return;
+  }
+  const btn = document.getElementById("btn-esqueci-senha");
+  btn.disabled = true;
+  try {
+    // Depois de trocar a senha, o link do e-mail traz a pessoa de volta para esta tela
+    await auth.sendPasswordResetEmail(email, { url: location.href.split("#")[0] });
+    mostrarMsgLogin("info", `Pronto! Se ${email} for o e-mail do admin, chega em alguns minutos uma mensagem com o link para criar uma senha nova. Confira também a caixa de spam.`);
+  } catch (e) {
+    const msg = e.code === "auth/invalid-email" ? "Esse e-mail não parece válido. Confira e tente de novo."
+      : e.code === "auth/too-many-requests" ? "Já enviamos vários e-mails. Espere alguns minutos antes de pedir de novo."
+      : e.code === "auth/network-request-failed" ? "Sem conexão com a internet. Confira e tente de novo."
+      // Por segurança, não dizemos se o e-mail existe ou não
+      : e.code === "auth/user-not-found" ? `Pronto! Se ${email} for o e-mail do admin, chega em alguns minutos uma mensagem com o link para criar uma senha nova. Confira também a caixa de spam.`
+      : "Não foi possível enviar agora. Tente de novo em alguns minutos.";
+    mostrarMsgLogin(e.code === "auth/user-not-found" ? "info" : "erro", msg);
+  } finally {
+    setTimeout(() => { btn.disabled = false; }, 30000); // evita clicar várias vezes seguidas
+  }
 }
 function fazerLogout() { auth.signOut(); }
 document.getElementById("senha-input").addEventListener("keydown", e => { if (e.key === "Enter") fazerLogin(); });
