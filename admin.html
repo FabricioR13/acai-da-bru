@@ -50,6 +50,7 @@
     .side-btn:hover { background: var(--card); color: var(--text); }
     .side-btn.active { background: #2a2205; color: var(--gold); font-weight: 600; }
     .content { padding: 24px; flex: 1; min-width: 0; }
+    [hidden] { display: none !important; }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
     @media (max-width: 800px) {
@@ -113,12 +114,34 @@
     .disp-item.em-falta { opacity: .6; border-style: dashed; }
     .disp-nome { display: flex; flex-direction: column; font-weight: 600; font-size: .9rem; }
     .disp-nome small { font-weight: 400; color: var(--muted); font-size: .72rem; }
-    .disp-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .disp-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; cursor: pointer; display: inline-block; }
     .disp-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
     .disp-switch span { position: absolute; inset: 0; background: #555; border-radius: 999px; transition: .2s; }
     .disp-switch span::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
     .disp-switch input:checked + span { background: var(--green, #4caf50); }
     .disp-switch input:checked + span::before { transform: translateX(20px); }
+    .disp-secao small { color: var(--muted); font-weight: 400; font-size: .75rem; }
+    .ingr-aviso { background: #2a2205; border: 1px solid var(--gold); border-radius: 10px; padding: 12px 14px; margin: 12px 0; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; font-size: .85rem; }
+    .ingr-add { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .ingr-add input { flex: 1; min-width: 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: .9rem; }
+    .ingr-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+    .ingr-item { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+    .ingr-item.em-falta { opacity: .6; border-style: dashed; }
+    .ingr-nome { flex: 1; min-width: 0; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 6px 8px; color: var(--text); font-weight: 600; font-size: .9rem; }
+    .ingr-nome:hover, .ingr-nome:focus { border-color: var(--border); background: var(--surface); outline: none; }
+    .ingr-preco { display: flex; align-items: center; gap: 3px; color: var(--muted); font-size: .8rem; }
+    .ingr-preco input { width: 62px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px; color: var(--gold); font-weight: 700; text-align: right; }
+    .ingr-vazio { color: var(--muted); font-size: .85rem; }
+    .ingr-checklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px; max-height: 220px; overflow-y: auto; }
+    .ingr-check { display: flex; align-items: center; gap: 6px; font-size: .85rem; cursor: pointer; }
+    .ingr-check input { accent-color: var(--gold); width: 15px; height: 15px; }
+    .ingr-check small { color: var(--muted); margin-left: auto; }
+    .tam-cabecalho, .tam-linha { display: grid; grid-template-columns: 1fr 110px 64px 36px; gap: 6px; align-items: center; }
+    .tam-cabecalho { font-size: .72rem; color: var(--muted); padding: 0 2px 4px; }
+    .tam-linha { margin-bottom: 6px; }
+    .tam-linha input { width: 100%; }
+    .tam-preco { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: .8rem; }
+    #form-tamanhos-linhas .btn { padding: 6px 0; }
     .toggle-row input[type=checkbox] { accent-color: var(--gold); width: 16px; height: 16px; cursor: pointer; }
     .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
     #confirm-modal .modal { width: 360px; }
@@ -262,7 +285,7 @@
   <div class="app-body">
   <div class="sidebar">
     <button class="side-btn active" onclick="mudarTab('produtos',this)"><i class="fa-solid fa-box"></i> Produtos</button>
-    <button class="side-btn" onclick="mudarTab('disponivel',this)"><i class="fa-solid fa-toggle-on"></i> Disponível hoje</button>
+    <button class="side-btn" onclick="mudarTab('disponivel',this)"><i class="fa-solid fa-toggle-on"></i> Ingredientes</button>
     <button class="side-btn" onclick="mudarTab('categorias',this)"><i class="fa-solid fa-tags"></i> Categorias</button>
     <button class="side-btn" onclick="mudarTab('cupons',this)"><i class="fa-solid fa-ticket"></i> Cupons</button>
     <button class="side-btn" onclick="mudarTab('pdv',this)"><i class="fa-solid fa-cash-register"></i> PDV</button>
@@ -300,15 +323,41 @@
     <div id="tab-disponivel" class="tab-panel">
       <div class="disp-topo">
         <div>
-          <h2 style="font-size:1.1rem;margin-bottom:4px">Disponível hoje</h2>
+          <h2 style="font-size:1.1rem;margin-bottom:4px">Ingredientes</h2>
           <p id="disp-resumo">Carregando…</p>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="reativarTudoDisponivel()"><i class="fa-solid fa-rotate-left"></i> Reativar tudo</button>
       </div>
-      <p style="color:var(--muted);font-size:.8rem">Acabou algum ingrediente? Desligue aqui e ele some na hora de <strong>todos</strong> os açaís da loja (como complemento e como adicional). Ligue de novo quando chegar.</p>
-      <h3 class="disp-secao"><i class="fa-solid fa-ice-cream"></i> Complementos e adicionais</h3>
-      <div class="disp-lista" id="disp-ingredientes"></div>
-      <h3 class="disp-secao"><i class="fa-solid fa-box"></i> Produtos</h3>
+      <p style="color:var(--muted);font-size:.8rem;line-height:1.5">Cadastre aqui os complementos e adicionais <strong>uma vez só</strong> — eles aparecem em todos os produtos marcados com "Usar os da loja". Mudou o preço? Muda aqui e vale para todos. Acabou algum? Desligue o interruptor e ele some da loja na hora.</p>
+
+      <!-- Aparece só na primeira vez: junta as listas que hoje estão dentro de cada produto -->
+      <div id="ingr-migrar" class="ingr-aviso" hidden>
+        <p><strong>Primeira vez aqui?</strong> Hoje os complementos e adicionais estão escritos dentro de cada produto. Clique abaixo para juntar tudo numa lista só (os produtos continuam iguais na loja).</p>
+        <button class="btn btn-primary btn-sm" onclick="organizarIngredientes()"><i class="fa-solid fa-wand-magic-sparkles"></i> Organizar ingredientes</button>
+      </div>
+
+      <h3 class="disp-secao"><i class="fa-solid fa-ice-cream"></i> Complementos <small>(grátis até o limite do tamanho)</small></h3>
+      <div class="ingr-add">
+        <input type="text" id="novo-complemento" placeholder="Novo complemento (ex: Coco ralado)" maxlength="40" onkeydown="if(event.key==='Enter')adicionarIngrediente('comp')">
+        <button class="btn btn-primary btn-sm" onclick="adicionarIngrediente('comp')"><i class="fa-solid fa-plus"></i> Adicionar</button>
+      </div>
+      <div class="ingr-lista" id="ingr-complementos"></div>
+
+      <h3 class="disp-secao"><i class="fa-solid fa-star"></i> Adicionais <small>(cobrados à parte)</small></h3>
+      <div class="ingr-add">
+        <input type="text" id="novo-adicional" placeholder="Novo adicional (ex: Leite Ninho)" maxlength="40" onkeydown="if(event.key==='Enter')adicionarIngrediente('adic')">
+        <input type="text" id="novo-adicional-preco" placeholder="Preço (ex: 4,00)" inputmode="decimal" style="max-width:130px" onkeydown="if(event.key==='Enter')adicionarIngrediente('adic')">
+        <button class="btn btn-primary btn-sm" onclick="adicionarIngrediente('adic')"><i class="fa-solid fa-plus"></i> Adicionar</button>
+      </div>
+      <div class="ingr-lista" id="ingr-adicionais"></div>
+
+      <div id="ingr-outros-area" hidden>
+        <h3 class="disp-secao"><i class="fa-solid fa-list"></i> Itens de produtos específicos</h3>
+        <p style="color:var(--muted);font-size:.78rem;margin-bottom:8px">Itens que só existem na lista própria de algum produto. Aqui dá para ligar/desligar; para mudar, edite o produto.</p>
+        <div class="disp-lista" id="disp-ingredientes"></div>
+      </div>
+
+      <h3 class="disp-secao"><i class="fa-solid fa-box"></i> Produtos disponíveis hoje</h3>
       <div class="disp-lista" id="disp-produtos"></div>
     </div>
 
@@ -667,8 +716,10 @@
       <div class="form-group full"><label>Código do produto <small style="color:var(--muted)">(opcional — seu próprio código/etiqueta, útil na hora de separar o pedido. Ex: AC01. Se deixar em branco, o sistema usa o número #do produto como código)</small></label><input type="text" id="form-codigo" placeholder="Ex: AC01"></div>
       <div class="form-group"><label>Categoria *</label><select id="form-categoria"><option value="">Selecione...</option></select></div>
       <div class="form-group full">
-        <label>Tamanhos e preços * <small style="color:var(--muted)">(um por linha: Nome do tamanho | Preço | Nº de complementos grátis incluídos nesse tamanho. Ex: 330ml | 13,00 | 3 — se o produto só tem um tamanho/preço, coloque só uma linha, ex: Unidade | 8,00 | 0)</small></label>
-        <textarea id="form-tamanhos" rows="4" placeholder="330ml | 13,00 | 3&#10;500ml | 18,00 | 4&#10;700ml | 23,00 | 5"></textarea>
+        <label>Tamanhos e preços * <small style="color:var(--muted)">(produto com um preço só: deixe uma linha, com o nome em branco ou "Unidade")</small></label>
+        <div class="tam-cabecalho"><span>Tamanho</span><span>Preço</span><span title="Complementos grátis">Grátis</span><span></span></div>
+        <div id="form-tamanhos-linhas"></div>
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px;align-self:flex-start" onclick="adicionarTamanhoLinha()"><i class="fa-solid fa-plus"></i> Adicionar tamanho</button>
       </div>
       <div class="form-group full">
         <label>Opção inclusa (opcional) <small style="color:var(--muted)">(um campo de escolha simples incluído no preço, ex: sabor da massa, tipo de leite — deixe tudo em branco se não houver)</small></label>
@@ -676,16 +727,26 @@
         <textarea id="form-opcao-inclusa-opcoes" rows="3" placeholder="Uma opção por linha, ex:&#10;Tradicional&#10;Integral"></textarea>
       </div>
       <div class="form-group full">
-        <label>Complementos grátis <small style="color:var(--muted)">(lista de itens que o cliente escolhe sem custo, até o limite definido em cada tamanho — um por linha. Passando do limite, cada complemento a mais é cobrado pelo valor de "Complemento extra" das Configurações)</small></label>
-        <textarea id="form-complementos" rows="4" placeholder="Granola&#10;Leite em pó&#10;Paçoca&#10;Morango"></textarea>
+        <label>Complementos grátis <small style="color:var(--muted)">(o cliente escolhe até a quantidade "Grátis" do tamanho; passando disso, cada um custa o valor de "Complemento extra" das Configurações)</small></label>
+        <label class="toggle-row"><input type="checkbox" id="form-usa-comp" onchange="alternarListaLoja('comp')"> Usar os complementos da loja <small style="color:var(--muted)">(aba Ingredientes)</small></label>
+        <div id="form-comp-loja-area" hidden>
+          <small style="color:var(--muted);display:block;margin:6px 0">Desmarque o que <strong>não</strong> vale para este produto:</small>
+          <div class="ingr-checklist" id="form-comp-loja"></div>
+        </div>
+        <textarea id="form-complementos" rows="4" placeholder="Lista própria deste produto — um por linha:&#10;Granola&#10;Leite em pó&#10;Paçoca"></textarea>
       </div>
       <div class="form-group">
         <label>Quantidade de açaís no produto <small style="color:var(--muted)">(combo: ex. 2 no Combo Casal — o cliente monta cada açaí separado, com os complementos grátis do tamanho em CADA um. Produto normal: 1)</small></label>
         <input type="number" id="form-copos" min="1" max="6" step="1" value="1">
       </div>
       <div class="form-group full">
-        <label>Adicionais pagos (opcional) <small style="color:var(--muted)">(itens extras cobrados à parte — um por linha: Nome | Preço. Ex: Nutella | 4,00)</small></label>
-        <textarea id="form-adicionais" rows="3" placeholder="Nutella | 4,00&#10;Leite condensado | 3,00"></textarea>
+        <label>Adicionais pagos (opcional) <small style="color:var(--muted)">(itens extras cobrados à parte)</small></label>
+        <label class="toggle-row"><input type="checkbox" id="form-usa-adic" onchange="alternarListaLoja('adic')"> Usar os adicionais da loja <small style="color:var(--muted)">(aba Ingredientes)</small></label>
+        <div id="form-adic-loja-area" hidden>
+          <small style="color:var(--muted);display:block;margin:6px 0">Desmarque o que <strong>não</strong> vale para este produto:</small>
+          <div class="ingr-checklist" id="form-adic-loja"></div>
+        </div>
+        <textarea id="form-adicionais" rows="3" placeholder="Lista própria deste produto — um por linha: Nome | Preço&#10;Nutella | 4,00"></textarea>
       </div>
       <div class="form-group">
         <label>Disponibilidade</label>
@@ -1029,76 +1090,189 @@ function mesAtualStr() {
 }
 
 
-// ── DISPONÍVEL HOJE ───────────────────────────────────────────────────────
-// Liga/desliga ingredientes (complementos e adicionais) e produtos num toque.
-// Os ingredientes em falta ficam em configuracoes/geral.indisponiveis — a loja
-// esconde esses nomes de TODOS os produtos (ex: "Morango" some como complemento e
-// como adicional). Produtos usam o campo "ativo" que já existe.
+// ── INGREDIENTES (lista única) + DISPONÍVEL HOJE ──────────────────────────
+// Complementos e adicionais ficam cadastrados UMA vez em configuracoes/geral:
+//   complementosLoja: ["Granola", ...]        adicionaisLoja: [{ nome, preco }, ...]
+// Cada produto marca se usa essas listas (usaComplementosLoja / usaAdicionaisLoja) e pode
+// tirar alguns itens só para ele (complementosExceto / adicionaisExceto).
+// O que está em falta fica em configuracoes/geral.indisponiveis (vale para todos os produtos).
 let _indisponiveis = [];
+let _complementosLoja = [];
+let _adicionaisLoja = [];
 const _normNome = (t) => String(t || "").trim().toLowerCase();
+const _fmtPreco = (v) => Number(v || 0).toFixed(2).replace(".", ",");
+const _lerPreco = (t) => {
+  const s = String(t || "").trim().replace(/^R\$\s*/i, "");
+  const n = s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s;
+  return Math.max(0, Number(n) || 0);
+};
+const _escAttr = (t) => String(t).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+const _temListasLoja = () => _complementosLoja.length > 0 || _adicionaisLoja.length > 0;
 
-function ingredientesDaLoja() {
-  const mapa = new Map(); // nome normalizado -> { nome, tipos:Set }
+// Itens que só existem em listas próprias de produtos (fora da lista da loja)
+function itensSoDeProdutos() {
+  const daLoja = new Set([..._complementosLoja, ..._adicionaisLoja.map(a => a.nome)].map(_normNome));
+  const mapa = new Map();
   todosProdutos.forEach(p => {
-    (p.complementosLista || []).forEach(n => {
-      const k = _normNome(n); if (!k) return;
-      if (!mapa.has(k)) mapa.set(k, { nome: String(n).trim(), tipos: new Set() });
-      mapa.get(k).tipos.add("complemento");
-    });
-    (p.adicionaisPagos || []).forEach(a => {
-      const k = _normNome(a.nome); if (!k) return;
-      if (!mapa.has(k)) mapa.set(k, { nome: String(a.nome).trim(), tipos: new Set() });
-      mapa.get(k).tipos.add("adicional");
-    });
+    if (!p.usaComplementosLoja) (p.complementosLista || []).forEach(n => { const k = _normNome(n); if (k && !daLoja.has(k) && !mapa.has(k)) mapa.set(k, String(n).trim()); });
+    if (!p.usaAdicionaisLoja) (p.adicionaisPagos || []).forEach(a => { const k = _normNome(a.nome); if (k && !daLoja.has(k) && !mapa.has(k)) mapa.set(k, String(a.nome).trim()); });
   });
-  return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  return [...mapa.values()].sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+// dentroDeLabel: quando a linha inteira já é um <label> clicável, o interruptor vira <span>
+// (label dentro de label não funciona); nas linhas com campos editáveis ele precisa ser <label>.
+function _switchHtml(ligado, onchange, dentroDeLabel = false) {
+  const tag = dentroDeLabel ? "span" : "label";
+  return `<${tag} class="disp-switch" title="${ligado ? "Disponível — toque para marcar em falta" : "Em falta — toque para voltar"}"><input type="checkbox" ${ligado ? "checked" : ""} onchange="${onchange}"><span></span></${tag}>`;
 }
 
 function renderDisponivel() {
   const emFalta = new Set(_indisponiveis.map(_normNome));
-  const ingr = ingredientesDaLoja();
-  const qtdFalta = ingr.filter(i => emFalta.has(_normNome(i.nome))).length;
+  const migrar = document.getElementById("ingr-migrar");
+  migrar.hidden = _temListasLoja() || !todosProdutos.some(p => (p.complementosLista || []).length || (p.adicionaisPagos || []).length);
+
+  const todosNomes = [..._complementosLoja, ..._adicionaisLoja.map(a => a.nome), ...itensSoDeProdutos()];
+  const qtdFalta = new Set(todosNomes.map(_normNome).filter(k => emFalta.has(k))).size;
   document.getElementById("disp-resumo").textContent = qtdFalta
     ? `${qtdFalta} ${qtdFalta === 1 ? "item em falta" : "itens em falta"} — some${qtdFalta === 1 ? "" : "m"} da loja até você ligar de novo.`
     : "Tudo disponível na loja.";
-  document.getElementById("disp-ingredientes").innerHTML = ingr.length ? ingr.map(i => {
-    const ligado = !emFalta.has(_normNome(i.nome));
-    const tipo = i.tipos.size > 1 ? "complemento e adicional" : [...i.tipos][0];
-    return `<label class="disp-item${ligado ? "" : " em-falta"}">
-      <span class="disp-nome">${i.nome}<small>${tipo}</small></span>
-      <span class="disp-switch"><input type="checkbox" ${ligado ? "checked" : ""} onchange="alternarIngrediente(this, ${JSON.stringify(i.nome).replace(/"/g, "&quot;")})"><span></span></span>
-    </label>`;
-  }).join("") : `<div class="empty-state"><p>Nenhum complemento ou adicional cadastrado.</p></div>`;
 
+  // Complementos da loja
+  document.getElementById("ingr-complementos").innerHTML = _complementosLoja.length ? _complementosLoja.map((nome, i) => {
+    const ligado = !emFalta.has(_normNome(nome));
+    return `<div class="ingr-item${ligado ? "" : " em-falta"}">
+      <input class="ingr-nome" value="${_escAttr(nome)}" maxlength="40" aria-label="Nome do complemento" onchange="renomearIngrediente('comp', ${i}, this)">
+      ${_switchHtml(ligado, `alternarIngredientePorIndice('comp', ${i}, this)`)}
+      <button class="btn btn-danger btn-sm" title="Excluir" onclick="excluirIngrediente('comp', ${i})"><i class="fa-solid fa-trash"></i></button>
+    </div>`;
+  }).join("") : `<p class="ingr-vazio">Nenhum complemento cadastrado ainda.</p>`;
+
+  // Adicionais da loja (com preço)
+  document.getElementById("ingr-adicionais").innerHTML = _adicionaisLoja.length ? _adicionaisLoja.map((a, i) => {
+    const ligado = !emFalta.has(_normNome(a.nome));
+    return `<div class="ingr-item${ligado ? "" : " em-falta"}">
+      <input class="ingr-nome" value="${_escAttr(a.nome)}" maxlength="40" aria-label="Nome do adicional" onchange="renomearIngrediente('adic', ${i}, this)">
+      <span class="ingr-preco"><span>R$</span><input value="${_fmtPreco(a.preco)}" inputmode="decimal" aria-label="Preço de ${_escAttr(a.nome)}" onchange="mudarPrecoAdicional(${i}, this)"></span>
+      ${_switchHtml(ligado, `alternarIngredientePorIndice('adic', ${i}, this)`)}
+      <button class="btn btn-danger btn-sm" title="Excluir" onclick="excluirIngrediente('adic', ${i})"><i class="fa-solid fa-trash"></i></button>
+    </div>`;
+  }).join("") : `<p class="ingr-vazio">Nenhum adicional cadastrado ainda.</p>`;
+
+  // Itens que só existem em produtos com lista própria
+  const outros = itensSoDeProdutos();
+  document.getElementById("ingr-outros-area").hidden = !outros.length;
+  document.getElementById("disp-ingredientes").innerHTML = outros.map(nome => {
+    const ligado = !emFalta.has(_normNome(nome));
+    return `<label class="disp-item${ligado ? "" : " em-falta"}">
+      <span class="disp-nome">${_escAttr(nome)}</span>
+      ${_switchHtml(ligado, `alternarIngrediente(this, ${_escAttr(JSON.stringify(nome))})`, true)}
+    </label>`;
+  }).join("");
+
+  // Produtos ligados/desligados
   const prods = [...todosProdutos].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
   document.getElementById("disp-produtos").innerHTML = prods.map(p => {
     const ligado = p.ativo !== false;
     return `<label class="disp-item${ligado ? "" : " em-falta"}">
-      <span class="disp-nome">${p.nome}<small>${ligado ? "aparece na loja" : "fora da loja"}</small></span>
-      <span class="disp-switch"><input type="checkbox" ${ligado ? "checked" : ""} onchange="alternarProdutoAtivo(this, '${p.docId}')"><span></span></span>
+      <span class="disp-nome">${_escAttr(p.nome)}<small>${ligado ? "aparece na loja" : "fora da loja"}</small></span>
+      ${_switchHtml(ligado, `alternarProdutoAtivo(this, '${p.docId}')`, true)}
     </label>`;
   }).join("");
 }
 
-async function salvarIndisponiveis(lista, msg) {
-  const anterior = _indisponiveis;
-  _indisponiveis = lista;
-  renderDisponivel();
+// Grava as listas da loja + itens em falta de uma vez (merge: não mexe no resto das configurações)
+async function salvarIngredientesLoja(msg) {
   try {
-    await db.collection("configuracoes").doc("geral").set({ indisponiveis: lista }, { merge: true });
-    toast(msg, "ok");
+    await db.collection("configuracoes").doc("geral").set({
+      complementosLoja: _complementosLoja,
+      adicionaisLoja: _adicionaisLoja,
+      indisponiveis: _indisponiveis,
+    }, { merge: true });
+    if (msg) toast(msg, "ok");
+    return true;
   } catch (e) {
-    _indisponiveis = anterior;
-    renderDisponivel();
     toast("Erro ao salvar: " + e.message, "err");
+    await carregarConfiguracoes(); // volta ao que está no banco
+    return false;
+  } finally {
+    renderDisponivel();
   }
 }
 
 function alternarIngrediente(input, nome) {
   const k = _normNome(nome);
-  const semEle = _indisponiveis.filter(n => _normNome(n) !== k);
-  if (input.checked) salvarIndisponiveis(semEle, `${nome} voltou para a loja`);
-  else salvarIndisponiveis([...semEle, nome], `${nome} marcado como em falta`);
+  _indisponiveis = _indisponiveis.filter(n => _normNome(n) !== k);
+  if (!input.checked) _indisponiveis.push(nome);
+  salvarIngredientesLoja(input.checked ? `${nome} voltou para a loja` : `${nome} marcado como em falta`);
+}
+function alternarIngredientePorIndice(tipo, i, input) {
+  const nome = tipo === "comp" ? _complementosLoja[i] : _adicionaisLoja[i]?.nome;
+  if (nome) alternarIngrediente(input, nome);
+}
+
+function adicionarIngrediente(tipo) {
+  const campo = document.getElementById(tipo === "comp" ? "novo-complemento" : "novo-adicional");
+  const nome = campo.value.trim().replace(/\s+/g, " ");
+  if (!nome) { toast("Digite o nome antes de adicionar.", "err"); campo.focus(); return; }
+  const lista = tipo === "comp" ? _complementosLoja : _adicionaisLoja.map(a => a.nome);
+  if (lista.some(n => _normNome(n) === _normNome(nome))) { toast(`"${nome}" já está na lista.`, "err"); return; }
+  if (tipo === "comp") {
+    _complementosLoja = [..._complementosLoja, nome];
+  } else {
+    const precoCampo = document.getElementById("novo-adicional-preco");
+    if (!precoCampo.value.trim()) { toast("Digite o preço do adicional.", "err"); precoCampo.focus(); return; }
+    _adicionaisLoja = [..._adicionaisLoja, { nome, preco: _lerPreco(precoCampo.value) }];
+    precoCampo.value = "";
+  }
+  campo.value = "";
+  salvarIngredientesLoja(`${nome} adicionado — já aparece nos produtos que usam a lista da loja`);
+  campo.focus();
+}
+
+async function renomearIngrediente(tipo, i, input) {
+  const antigo = tipo === "comp" ? _complementosLoja[i] : _adicionaisLoja[i]?.nome;
+  const novo = input.value.trim().replace(/\s+/g, " ");
+  if (!antigo || novo === antigo) return;
+  if (!novo) { input.value = antigo; toast("O nome não pode ficar vazio.", "err"); return; }
+  const outros = (tipo === "comp" ? _complementosLoja : _adicionaisLoja.map(a => a.nome)).filter((_, j) => j !== i);
+  if (outros.some(n => _normNome(n) === _normNome(novo))) { input.value = antigo; toast(`Já existe "${novo}" na lista.`, "err"); return; }
+  if (tipo === "comp") _complementosLoja = _complementosLoja.map((n, j) => j === i ? novo : n);
+  else _adicionaisLoja = _adicionaisLoja.map((a, j) => j === i ? { ...a, nome: novo } : a);
+  _indisponiveis = _indisponiveis.map(n => _normNome(n) === _normNome(antigo) ? novo : n);
+  if (!await salvarIngredientesLoja(`"${antigo}" agora se chama "${novo}"`)) return;
+  // Produtos que tinham tirado esse item continuam sem ele (com o nome novo)
+  const campoExceto = tipo === "comp" ? "complementosExceto" : "adicionaisExceto";
+  for (const p of todosProdutos.filter(p => (p[campoExceto] || []).some(n => _normNome(n) === _normNome(antigo)))) {
+    const lista = p[campoExceto].map(n => _normNome(n) === _normNome(antigo) ? novo : n);
+    try { await db.collection("produtos").doc(p.docId).update({ [campoExceto]: lista }); p[campoExceto] = lista; } catch (e) { console.warn(e); }
+  }
+}
+
+function mudarPrecoAdicional(i, input) {
+  const a = _adicionaisLoja[i];
+  if (!a) return;
+  const preco = _lerPreco(input.value);
+  if (preco === Number(a.preco)) { input.value = _fmtPreco(preco); return; }
+  _adicionaisLoja = _adicionaisLoja.map((x, j) => j === i ? { ...x, preco } : x);
+  salvarIngredientesLoja(`${a.nome} agora custa R$ ${_fmtPreco(preco)} em todos os produtos`);
+}
+
+function excluirIngrediente(tipo, i) {
+  const nome = tipo === "comp" ? _complementosLoja[i] : _adicionaisLoja[i]?.nome;
+  if (!nome) return;
+  // Usa o mesmo modal de confirmação do resto do admin
+  confirmarExclusao("ingrediente", `${tipo}:${i}`, nome);
+}
+async function excluirIngredienteConfirmado(ref) {
+  const [tipo, idx] = ref.split(":");
+  const i = Number(idx);
+  const nome = tipo === "comp" ? _complementosLoja[i] : _adicionaisLoja[i]?.nome;
+  if (!nome) return;
+  if (tipo === "comp") _complementosLoja = _complementosLoja.filter((_, j) => j !== i);
+  else _adicionaisLoja = _adicionaisLoja.filter((_, j) => j !== i);
+  _indisponiveis = _indisponiveis.filter(n => _normNome(n) !== _normNome(nome));
+  await salvarIngredientesLoja(`${nome} excluído da lista`);
 }
 
 async function alternarProdutoAtivo(input, docId) {
@@ -1119,7 +1293,47 @@ async function alternarProdutoAtivo(input, docId) {
 
 function reativarTudoDisponivel() {
   if (!_indisponiveis.length) { toast("Todos os itens já estão disponíveis.", "ok"); return; }
-  salvarIndisponiveis([], "Todos os complementos e adicionais voltaram para a loja");
+  _indisponiveis = [];
+  salvarIngredientesLoja("Todos os complementos e adicionais voltaram para a loja");
+}
+
+// Primeira vez: junta as listas escritas dentro dos produtos numa lista única da loja.
+// Produto cuja lista cabe inteira na lista da loja passa a usá-la (guardando os itens que ele
+// não tinha como "exceção"); produto com item diferente continua com a lista própria.
+async function organizarIngredientes() {
+  const porTamanho = [...todosProdutos].sort((a, b) =>
+    ((b.complementosLista || []).length + (b.adicionaisPagos || []).length) - ((a.complementosLista || []).length + (a.adicionaisPagos || []).length));
+  const comp = [], adic = [];
+  porTamanho.forEach(p => {
+    (p.complementosLista || []).forEach(n => { const nome = String(n).trim(); if (nome && !comp.some(x => _normNome(x) === _normNome(nome))) comp.push(nome); });
+    (p.adicionaisPagos || []).forEach(a => { const nome = String(a.nome || "").trim(); if (nome && !adic.some(x => _normNome(x.nome) === _normNome(nome))) adic.push({ nome, preco: Number(a.preco) || 0 }); });
+  });
+  _complementosLoja = comp;
+  _adicionaisLoja = adic;
+  if (!await salvarIngredientesLoja()) return;
+
+  let convertidos = 0;
+  for (const p of todosProdutos) {
+    const atualiza = {};
+    const lc = p.complementosLista || [];
+    if (lc.length && lc.every(n => comp.some(x => _normNome(x) === _normNome(n)))) {
+      atualiza.usaComplementosLoja = true;
+      atualiza.complementosExceto = comp.filter(x => !lc.some(n => _normNome(n) === _normNome(x)));
+    }
+    const la = p.adicionaisPagos || [];
+    const mesmoPreco = la.every(a => { const c = adic.find(x => _normNome(x.nome) === _normNome(a.nome)); return c && Number(c.preco) === Number(a.preco); });
+    if (la.length && mesmoPreco) {
+      atualiza.usaAdicionaisLoja = true;
+      atualiza.adicionaisExceto = adic.filter(x => !la.some(a => _normNome(a.nome) === _normNome(x.nome))).map(x => x.nome);
+    }
+    if (Object.keys(atualiza).length) {
+      try { await db.collection("produtos").doc(p.docId).update(atualiza); Object.assign(p, atualiza); convertidos++; }
+      catch (e) { toast(`Erro ao atualizar ${p.nome}: ${e.message}`, "err"); }
+    }
+  }
+  toast(`Pronto! ${comp.length} complementos e ${adic.length} adicionais organizados — ${convertidos} produto(s) já usam a lista da loja.`, "ok");
+  await carregarProdutos();
+  renderDisponivel();
 }
 
 // ── PRODUTOS ──────────────────────────────────────────────────────────────
@@ -1174,7 +1388,8 @@ function mostrarTabela(lista) {
       })()}</td>
       <td>${p.ativo !== false ? '<span class="badge badge-ativo">Ativo</span>' : '<span class="badge badge-inativo">Inativo</span>'}${p.destaque ? ' <span class="badge badge-destaque">★ Destaque</span>' : ''}${p.promoAte ? (new Date(p.promoAte + "T23:59:59") < new Date() ? ` <span class="badge badge-inativo">Promoção encerrada (${p.promoAte.split("-").reverse().join("/")})</span>` : ` <span style="font-size:.72rem;color:var(--muted)">Promo até ${p.promoAte.split("-").reverse().join("/")}</span>`) : ''}${p.disponibilidade === 'encomenda' ? ' <span class="badge" style="background:#2a2205;color:var(--blue)">Sob encomenda</span>' : ''}${(p.estoque !== undefined && p.estoque !== null && Number(p.estoque) <= 0) ? ' <span class="badge badge-inativo"><i class="fa-solid fa-triangle-exclamation"></i> Esgotado</span>' : ''}${(p.estoque !== undefined && p.estoque !== null && Number(p.estoque) > 0) ? ` <span style="font-size:.72rem;color:var(--muted)">Estoque: ${p.estoque}</span>` : ''}</td>
       <td><div class="actions-cell">
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalEditar('${p.docId}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-ghost btn-sm" title="Editar" onclick="abrirModalEditar('${p.docId}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-ghost btn-sm" title="Duplicar" onclick="duplicarProduto('${p.docId}')"><i class="fa-solid fa-copy"></i></button>
         <button class="btn btn-danger btn-sm" onclick="confirmarExclusao('produto','${p.docId}','${p.nome.replace(/'/g,"\\'")}')"><i class="fa-solid fa-trash"></i></button>
       </div></td>
     </tr>`).join("");
@@ -1589,6 +1804,114 @@ function formatAdicionaisInput(lista) {
   return lista.map(a => `${a.nome || ""} | ${Number(a.preco || 0).toFixed(2).replace('.', ',')}`).join("\n");
 }
 
+// ── FORMULÁRIO DE PRODUTO: tamanhos em linhas + listas da loja ──────────────
+// Tamanhos: uma linha por tamanho com 3 campos (nome, preço, complementos grátis)
+function renderTamanhosLinhas(tamanhos) {
+  const lista = Array.isArray(tamanhos) && tamanhos.length ? tamanhos : [{ nome: "", preco: "", complementosGratis: 0 }];
+  document.getElementById("form-tamanhos-linhas").innerHTML = lista.map(t => tamanhoLinhaHtml(t)).join("");
+}
+function tamanhoLinhaHtml(t) {
+  const preco = t.preco === "" || t.preco === undefined ? "" : _fmtPreco(t.preco);
+  return `<div class="tam-linha">
+    <input class="tam-nome" placeholder="Ex: 500ml" value="${_escAttr(t.nome || "")}" maxlength="30" aria-label="Nome do tamanho">
+    <span class="tam-preco"><span>R$</span><input class="tam-valor" placeholder="0,00" inputmode="decimal" value="${preco}" aria-label="Preço"></span>
+    <input class="tam-gratis" type="number" min="0" max="20" value="${Number(t.complementosGratis) || 0}" aria-label="Complementos grátis" title="Complementos grátis neste tamanho">
+    <button type="button" class="btn btn-danger btn-sm" title="Remover tamanho" onclick="removerTamanhoLinha(this)"><i class="fa-solid fa-xmark"></i></button>
+  </div>`;
+}
+function adicionarTamanhoLinha() {
+  const cont = document.getElementById("form-tamanhos-linhas");
+  cont.insertAdjacentHTML("beforeend", tamanhoLinhaHtml({ nome: "", preco: "", complementosGratis: 0 }));
+  cont.lastElementChild.querySelector(".tam-nome").focus();
+}
+function removerTamanhoLinha(btn) {
+  const cont = document.getElementById("form-tamanhos-linhas");
+  if (cont.children.length <= 1) { toast("O produto precisa de pelo menos um preço.", "err"); return; }
+  btn.closest(".tam-linha").remove();
+}
+function lerTamanhosLinhas() {
+  return [...document.querySelectorAll("#form-tamanhos-linhas .tam-linha")].map(l => ({
+    nome: l.querySelector(".tam-nome").value.trim(),
+    preco: _lerPreco(l.querySelector(".tam-valor").value),
+    complementosGratis: Math.max(0, parseInt(l.querySelector(".tam-gratis").value, 10) || 0),
+    _vazio: !l.querySelector(".tam-valor").value.trim(),
+  })).filter(t => !(t._vazio && !t.nome)).map(({ _vazio, ...t }) => t);
+}
+
+// Complementos/adicionais: "usar os da loja" (com itens desmarcáveis só para este produto)
+// ou lista própria (texto), para produtos diferentes como um fondue.
+function renderListaLojaProduto(tipo, excetos) {
+  const ehComp = tipo === "comp";
+  const itens = ehComp ? _complementosLoja : _adicionaisLoja;
+  const fora = new Set((excetos || []).map(_normNome));
+  const cont = document.getElementById(ehComp ? "form-comp-loja" : "form-adic-loja");
+  cont.innerHTML = itens.length ? itens.map(it => {
+    const nome = ehComp ? it : it.nome;
+    return `<label class="ingr-check"><input type="checkbox" data-nome="${_escAttr(nome)}" ${fora.has(_normNome(nome)) ? "" : "checked"}> ${_escAttr(nome)}${ehComp ? "" : ` <small>R$ ${_fmtPreco(it.preco)}</small>`}</label>`;
+  }).join("") : `<p class="ingr-vazio">A lista da loja ainda está vazia — cadastre na aba <strong>Ingredientes</strong>.</p>`;
+}
+function alternarListaLoja(tipo) {
+  const ehComp = tipo === "comp";
+  const usa = document.getElementById(ehComp ? "form-usa-comp" : "form-usa-adic").checked;
+  document.getElementById(ehComp ? "form-comp-loja-area" : "form-adic-loja-area").hidden = !usa;
+  document.getElementById(ehComp ? "form-complementos" : "form-adicionais").hidden = usa;
+}
+function preencherListasProduto(p) {
+  const usaComp = !!p.usaComplementosLoja && _complementosLoja.length > 0;
+  const usaAdic = !!p.usaAdicionaisLoja && _adicionaisLoja.length > 0;
+  document.getElementById("form-usa-comp").checked = usaComp;
+  document.getElementById("form-usa-adic").checked = usaAdic;
+  renderListaLojaProduto("comp", p.complementosExceto);
+  renderListaLojaProduto("adic", p.adicionaisExceto);
+  document.getElementById("form-complementos").value = Array.isArray(p.complementosLista) ? p.complementosLista.join("\n") : "";
+  document.getElementById("form-adicionais").value = formatAdicionaisInput(p.adicionaisPagos);
+  alternarListaLoja("comp");
+  alternarListaLoja("adic");
+}
+function lerListasProduto() {
+  const usaComp = document.getElementById("form-usa-comp").checked;
+  const usaAdic = document.getElementById("form-usa-adic").checked;
+  const desmarcados = (id) => [...document.querySelectorAll(`#${id} input[data-nome]`)].filter(i => !i.checked).map(i => i.dataset.nome);
+  const out = { usaComplementosLoja: usaComp, usaAdicionaisLoja: usaAdic };
+  if (usaComp) {
+    out.complementosExceto = desmarcados("form-comp-loja");
+    const fora = new Set(out.complementosExceto.map(_normNome));
+    out.complementosLista = _complementosLoja.filter(n => !fora.has(_normNome(n))); // cópia, para compatibilidade
+  } else {
+    out.complementosExceto = [];
+    out.complementosLista = parseListaLinhas(document.getElementById("form-complementos").value);
+  }
+  if (usaAdic) {
+    out.adicionaisExceto = desmarcados("form-adic-loja");
+    const fora = new Set(out.adicionaisExceto.map(_normNome));
+    out.adicionaisPagos = _adicionaisLoja.filter(a => !fora.has(_normNome(a.nome))).map(a => ({ nome: a.nome, preco: Number(a.preco) || 0 }));
+  } else {
+    out.adicionaisExceto = [];
+    out.adicionaisPagos = parseAdicionaisInput(document.getElementById("form-adicionais").value);
+  }
+  return out;
+}
+
+// Duplicar: abre o produto como "novo", com tudo copiado, para só trocar nome/foto/preço
+function duplicarProduto(docId) {
+  abrirModalEditar(docId);
+  const p = todosProdutos.find(x => x.docId === docId);
+  document.getElementById("modal-titulo").innerHTML = '<i class="fa-solid fa-copy"></i> Duplicar Produto';
+  document.getElementById("form-id").value = "";
+  document.getElementById("form-nome").value = `${p?.nome || ""} (cópia)`;
+  document.getElementById("form-codigo").value = "";
+  const proximoId = todosProdutos.length ? Math.max(...todosProdutos.map(x => Number(x.id) || 0)) + 1 : 1;
+  document.getElementById("form-codigo").placeholder = `Ex: AC01 (em branco = código automático #${proximoId})`;
+  // A cópia nasce desligada para não aparecer na loja antes de ser revisada
+  document.getElementById("form-ativo").checked = false;
+  document.getElementById("form-destaque").checked = false;
+  document.getElementById("form-promo-ate").value = "";
+  definirBannerPromo("");
+  alternarAreaPromo();
+  toast("Cópia criada no formulário: troque o nome, a foto e o preço, e marque \"Produto ativo\" para aparecer na loja.", "ok");
+  setTimeout(() => { const n = document.getElementById("form-nome"); n.focus(); n.select(); }, 50);
+}
+
 function abrirModalCriar() {
   document.getElementById("modal-titulo").innerHTML = '<i class="fa-solid fa-plus"></i> Novo Produto';
   document.getElementById("form-id").value       = "";
@@ -1597,11 +1920,11 @@ function abrirModalCriar() {
   const proximoId = todosProdutos.length ? Math.max(...todosProdutos.map(p => Number(p.id)||0)) + 1 : 1;
   document.getElementById("form-codigo").placeholder = `Ex: AC01 (em branco = código automático #${proximoId})`;
   document.getElementById("form-categoria").value= "";
-  document.getElementById("form-tamanhos").value = "";
+  renderTamanhosLinhas([]);
   document.getElementById("form-opcao-inclusa-label").value  = "";
   document.getElementById("form-opcao-inclusa-opcoes").value = "";
-  document.getElementById("form-complementos").value = "";
-  document.getElementById("form-adicionais").value   = "";
+  // Produto novo já vem usando as listas da loja (quando existem) — é o caso do dia a dia
+  preencherListasProduto({ usaComplementosLoja: true, usaAdicionaisLoja: true });
   document.getElementById("form-disponibilidade").value = "pronta";
   document.getElementById("form-prazo").value    = "";
   alternarPrazoEncomenda();
@@ -1628,11 +1951,10 @@ function abrirModalEditar(docId) {
   document.getElementById("form-nome").value         = p.nome || "";
   document.getElementById("form-codigo").value       = p.codigo || "";
   document.getElementById("form-codigo").placeholder = `Ex: AC01 (em branco = código automático #${p.id})`;
-  document.getElementById("form-tamanhos").value      = formatTamanhosInput((Array.isArray(p.tamanhos) && p.tamanhos.length) ? p.tamanhos : [{ nome: "", preco: p.preco || 0, complementosGratis: 0 }]);
+  renderTamanhosLinhas((Array.isArray(p.tamanhos) && p.tamanhos.length) ? p.tamanhos : [{ nome: "", preco: p.preco || 0, complementosGratis: 0 }]);
   document.getElementById("form-opcao-inclusa-label").value  = (p.opcaoInclusa && p.opcaoInclusa.label) || "";
   document.getElementById("form-opcao-inclusa-opcoes").value = (p.opcaoInclusa && Array.isArray(p.opcaoInclusa.opcoes)) ? p.opcaoInclusa.opcoes.join("\n") : "";
-  document.getElementById("form-complementos").value  = Array.isArray(p.complementosLista) ? p.complementosLista.join("\n") : "";
-  document.getElementById("form-adicionais").value    = formatAdicionaisInput(p.adicionaisPagos);
+  preencherListasProduto(p);
   document.getElementById("form-disponibilidade").value = p.disponibilidade || "pronta";
   document.getElementById("form-prazo").value        = p.prazoDias || "";
   alternarPrazoEncomenda();
@@ -1657,12 +1979,12 @@ async function salvarProduto() {
   const nome      = document.getElementById("form-nome").value.trim();
   const codigo    = document.getElementById("form-codigo").value.trim();
   const categoria = document.getElementById("form-categoria").value;
-  const tamanhos  = parseTamanhosInput(document.getElementById("form-tamanhos").value);
+  const tamanhos  = lerTamanhosLinhas();
   const opcaoInclusaLabel  = document.getElementById("form-opcao-inclusa-label").value.trim();
   const opcaoInclusaOpcoes = parseListaLinhas(document.getElementById("form-opcao-inclusa-opcoes").value);
   const opcaoInclusa = (opcaoInclusaLabel && opcaoInclusaOpcoes.length) ? { label: opcaoInclusaLabel, opcoes: opcaoInclusaOpcoes } : null;
-  const complementosLista = parseListaLinhas(document.getElementById("form-complementos").value);
-  const adicionaisPagos   = parseAdicionaisInput(document.getElementById("form-adicionais").value);
+  const listas = lerListasProduto();
+  const { complementosLista, adicionaisPagos } = listas;
   const preco = tamanhos.length ? Math.min(...tamanhos.map(t => t.preco)) : NaN;
   const disponibilidade = document.getElementById("form-disponibilidade").value;
   const prazoDias = disponibilidade === "encomenda"
@@ -1698,7 +2020,9 @@ async function salvarProduto() {
     }
   }
 
-  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, estoque, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, promoAte, banner, copos };
+  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, estoque, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, promoAte, banner, copos,
+    usaComplementosLoja: listas.usaComplementosLoja, complementosExceto: listas.complementosExceto,
+    usaAdicionaisLoja: listas.usaAdicionaisLoja, adicionaisExceto: listas.adicionaisExceto };
   try {
     if (docId) {
       await db.collection("produtos").doc(docId).update(dados);
@@ -1896,9 +2220,12 @@ async function salvarCupom() {
 
 // ── EXCLUSÃO ──────────────────────────────────────────────────────────────
 function confirmarExclusao(tipo, docId, nome) {
-  document.getElementById("confirm-msg").textContent = `Excluir "${nome}"? Esta ação não pode ser desfeita.`;
+  document.getElementById("confirm-msg").textContent = tipo === "ingrediente"
+    ? `Excluir "${nome}" da lista de ingredientes? Ele some de todos os produtos que usam a lista da loja. (Se só acabou, é melhor desligar o interruptor.)`
+    : `Excluir "${nome}"? Esta ação não pode ser desfeita.`;
   document.getElementById("confirm-ok-btn").onclick = async () => {
     try {
+      if (tipo === "ingrediente") { fecharModal("confirm-modal"); await excluirIngredienteConfirmado(docId); return; }
       if (tipo === "produto") { await db.collection("produtos").doc(docId).delete(); await carregarProdutos(); }
       else if (tipo === "cupom") { await db.collection("cupons").doc(docId).delete(); await carregarCupons(); }
       else { await db.collection("categorias").doc(docId).delete(); await carregarCategorias(); popularSelectCategorias(); }
@@ -2670,6 +2997,8 @@ async function carregarConfiguracoes() {
     const doc = await db.collection("configuracoes").doc("geral").get();
     const cfg = doc.exists ? { ...CONFIG_PADRAO, ...doc.data() } : CONFIG_PADRAO;
     _indisponiveis = Array.isArray(cfg.indisponiveis) ? cfg.indisponiveis : [];
+    _complementosLoja = Array.isArray(cfg.complementosLoja) ? cfg.complementosLoja : [];
+    _adicionaisLoja = Array.isArray(cfg.adicionaisLoja) ? cfg.adicionaisLoja : [];
     if (document.getElementById("tab-disponivel").classList.contains("active")) renderDisponivel();
     document.getElementById("config-nome-loja").value  = cfg.nomeLoja;
     document.getElementById("config-whatsapp").value   = cfg.whatsapp;
@@ -2845,7 +3174,8 @@ async function salvarConfiguracoes() {
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
       taxasEntrega, aceitarOutrosBairros, tempoEntrega, precoComplementoExtra,
-      indisponiveis: _indisponiveis // mantém o que está em falta (aba "Disponível hoje")
+      // mantém o que é editado na aba "Ingredientes"
+      indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja
     });
     toast("Configurações salvas!", "ok");
     await carregarConfiguracoes();

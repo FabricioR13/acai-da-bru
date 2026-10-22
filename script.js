@@ -194,6 +194,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Erro ao carregar configurações da loja:", e);
     }
 
+    // --- LISTAS DA LOJA (aba "Ingredientes" no admin) ---
+    // Produto marcado com "usar os da loja" pega a lista central de complementos/adicionais
+    // (menos os itens que foram tirados só dele). Assim, cadastrar ou mudar o preço de um
+    // adicional uma vez já vale para todos os açaís.
+    const complementosLoja = Array.isArray(configLoja.complementosLoja) ? configLoja.complementosLoja : [];
+    const adicionaisLoja = Array.isArray(configLoja.adicionaisLoja) ? configLoja.adicionaisLoja : [];
+    const normalizaNome = (t) => String(t || "").trim().toLowerCase();
+    produtos = produtos.map((p) => {
+        const r = { ...p };
+        if (p.usaComplementosLoja && complementosLoja.length) {
+            const fora = new Set((p.complementosExceto || []).map(normalizaNome));
+            r.complementosLista = complementosLoja.filter((n) => !fora.has(normalizaNome(n)));
+        }
+        if (p.usaAdicionaisLoja && adicionaisLoja.length) {
+            const fora = new Set((p.adicionaisExceto || []).map(normalizaNome));
+            r.adicionaisPagos = adicionaisLoja
+                .filter((a) => !fora.has(normalizaNome(a.nome)))
+                .map((a) => ({ nome: a.nome, preco: Number(a.preco) || 0 }));
+        }
+        return r;
+    });
+
     // --- ITENS EM FALTA ("Disponível hoje" no admin) ---
     // Complementos/adicionais desligados somem de TODOS os produtos (comparando o nome,
     // sem diferenciar maiúscula/minúscula).
