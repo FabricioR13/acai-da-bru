@@ -104,6 +104,21 @@
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--gold); }
     .form-group select option { background: var(--card); }
     .toggle-row { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+    /* Disponível hoje: interruptores liga/desliga */
+    .disp-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .disp-topo p { color: var(--muted); font-size: .85rem; }
+    .disp-secao { font-size: .95rem; color: var(--gold); margin: 18px 0 10px; display: flex; align-items: center; gap: 8px; }
+    .disp-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+    .disp-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+    .disp-item.em-falta { opacity: .6; border-style: dashed; }
+    .disp-nome { display: flex; flex-direction: column; font-weight: 600; font-size: .9rem; }
+    .disp-nome small { font-weight: 400; color: var(--muted); font-size: .72rem; }
+    .disp-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .disp-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .disp-switch span { position: absolute; inset: 0; background: #555; border-radius: 999px; transition: .2s; }
+    .disp-switch span::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+    .disp-switch input:checked + span { background: var(--green, #4caf50); }
+    .disp-switch input:checked + span::before { transform: translateX(20px); }
     .toggle-row input[type=checkbox] { accent-color: var(--gold); width: 16px; height: 16px; cursor: pointer; }
     .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
     #confirm-modal .modal { width: 360px; }
@@ -247,6 +262,7 @@
   <div class="app-body">
   <div class="sidebar">
     <button class="side-btn active" onclick="mudarTab('produtos',this)"><i class="fa-solid fa-box"></i> Produtos</button>
+    <button class="side-btn" onclick="mudarTab('disponivel',this)"><i class="fa-solid fa-toggle-on"></i> Disponível hoje</button>
     <button class="side-btn" onclick="mudarTab('categorias',this)"><i class="fa-solid fa-tags"></i> Categorias</button>
     <button class="side-btn" onclick="mudarTab('cupons',this)"><i class="fa-solid fa-ticket"></i> Cupons</button>
     <button class="side-btn" onclick="mudarTab('pdv',this)"><i class="fa-solid fa-cash-register"></i> PDV</button>
@@ -279,6 +295,21 @@
           <tbody id="tabela-corpo"><tr><td colspan="7"><div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div></td></tr></tbody>
         </table>
       </div>
+    </div>
+
+    <div id="tab-disponivel" class="tab-panel">
+      <div class="disp-topo">
+        <div>
+          <h2 style="font-size:1.1rem;margin-bottom:4px">Disponível hoje</h2>
+          <p id="disp-resumo">Carregando…</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="reativarTudoDisponivel()"><i class="fa-solid fa-rotate-left"></i> Reativar tudo</button>
+      </div>
+      <p style="color:var(--muted);font-size:.8rem">Acabou algum ingrediente? Desligue aqui e ele some na hora de <strong>todos</strong> os açaís da loja (como complemento e como adicional). Ligue de novo quando chegar.</p>
+      <h3 class="disp-secao"><i class="fa-solid fa-ice-cream"></i> Complementos e adicionais</h3>
+      <div class="disp-lista" id="disp-ingredientes"></div>
+      <h3 class="disp-secao"><i class="fa-solid fa-box"></i> Produtos</h3>
+      <div class="disp-lista" id="disp-produtos"></div>
     </div>
 
     <div id="tab-categorias" class="tab-panel">
@@ -984,6 +1015,7 @@ function mudarTab(tab, btn) {
   btn.classList.add("active");
   document.getElementById("tab-" + tab).classList.add("active");
   if (tab === "pdv") renderPdvGrid();
+  if (tab === "disponivel") renderDisponivel();
   if (tab === "relatorio") {
     const mesInput = document.getElementById("relatorio-mes");
     if (!mesInput.value) mesInput.value = mesAtualStr();
@@ -996,11 +1028,106 @@ function mesAtualStr() {
   return hoje.getFullYear() + "-" + String(hoje.getMonth() + 1).padStart(2, "0");
 }
 
+
+// ── DISPONÍVEL HOJE ───────────────────────────────────────────────────────
+// Liga/desliga ingredientes (complementos e adicionais) e produtos num toque.
+// Os ingredientes em falta ficam em configuracoes/geral.indisponiveis — a loja
+// esconde esses nomes de TODOS os produtos (ex: "Morango" some como complemento e
+// como adicional). Produtos usam o campo "ativo" que já existe.
+let _indisponiveis = [];
+const _normNome = (t) => String(t || "").trim().toLowerCase();
+
+function ingredientesDaLoja() {
+  const mapa = new Map(); // nome normalizado -> { nome, tipos:Set }
+  todosProdutos.forEach(p => {
+    (p.complementosLista || []).forEach(n => {
+      const k = _normNome(n); if (!k) return;
+      if (!mapa.has(k)) mapa.set(k, { nome: String(n).trim(), tipos: new Set() });
+      mapa.get(k).tipos.add("complemento");
+    });
+    (p.adicionaisPagos || []).forEach(a => {
+      const k = _normNome(a.nome); if (!k) return;
+      if (!mapa.has(k)) mapa.set(k, { nome: String(a.nome).trim(), tipos: new Set() });
+      mapa.get(k).tipos.add("adicional");
+    });
+  });
+  return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+function renderDisponivel() {
+  const emFalta = new Set(_indisponiveis.map(_normNome));
+  const ingr = ingredientesDaLoja();
+  const qtdFalta = ingr.filter(i => emFalta.has(_normNome(i.nome))).length;
+  document.getElementById("disp-resumo").textContent = qtdFalta
+    ? `${qtdFalta} ${qtdFalta === 1 ? "item em falta" : "itens em falta"} — some${qtdFalta === 1 ? "" : "m"} da loja até você ligar de novo.`
+    : "Tudo disponível na loja.";
+  document.getElementById("disp-ingredientes").innerHTML = ingr.length ? ingr.map(i => {
+    const ligado = !emFalta.has(_normNome(i.nome));
+    const tipo = i.tipos.size > 1 ? "complemento e adicional" : [...i.tipos][0];
+    return `<label class="disp-item${ligado ? "" : " em-falta"}">
+      <span class="disp-nome">${i.nome}<small>${tipo}</small></span>
+      <span class="disp-switch"><input type="checkbox" ${ligado ? "checked" : ""} onchange="alternarIngrediente(this, ${JSON.stringify(i.nome).replace(/"/g, "&quot;")})"><span></span></span>
+    </label>`;
+  }).join("") : `<div class="empty-state"><p>Nenhum complemento ou adicional cadastrado.</p></div>`;
+
+  const prods = [...todosProdutos].sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+  document.getElementById("disp-produtos").innerHTML = prods.map(p => {
+    const ligado = p.ativo !== false;
+    return `<label class="disp-item${ligado ? "" : " em-falta"}">
+      <span class="disp-nome">${p.nome}<small>${ligado ? "aparece na loja" : "fora da loja"}</small></span>
+      <span class="disp-switch"><input type="checkbox" ${ligado ? "checked" : ""} onchange="alternarProdutoAtivo(this, '${p.docId}')"><span></span></span>
+    </label>`;
+  }).join("");
+}
+
+async function salvarIndisponiveis(lista, msg) {
+  const anterior = _indisponiveis;
+  _indisponiveis = lista;
+  renderDisponivel();
+  try {
+    await db.collection("configuracoes").doc("geral").set({ indisponiveis: lista }, { merge: true });
+    toast(msg, "ok");
+  } catch (e) {
+    _indisponiveis = anterior;
+    renderDisponivel();
+    toast("Erro ao salvar: " + e.message, "err");
+  }
+}
+
+function alternarIngrediente(input, nome) {
+  const k = _normNome(nome);
+  const semEle = _indisponiveis.filter(n => _normNome(n) !== k);
+  if (input.checked) salvarIndisponiveis(semEle, `${nome} voltou para a loja`);
+  else salvarIndisponiveis([...semEle, nome], `${nome} marcado como em falta`);
+}
+
+async function alternarProdutoAtivo(input, docId) {
+  const p = todosProdutos.find(x => x.docId === docId);
+  if (!p) return;
+  const ativo = input.checked;
+  try {
+    await db.collection("produtos").doc(docId).update({ ativo });
+    p.ativo = ativo;
+    renderDisponivel();
+    toast(ativo ? `${p.nome} voltou para a loja` : `${p.nome} saiu da loja`, "ok");
+    carregarProdutos();
+  } catch (e) {
+    input.checked = !ativo;
+    toast("Erro ao salvar: " + e.message, "err");
+  }
+}
+
+function reativarTudoDisponivel() {
+  if (!_indisponiveis.length) { toast("Todos os itens já estão disponíveis.", "ok"); return; }
+  salvarIndisponiveis([], "Todos os complementos e adicionais voltaram para a loja");
+}
+
 // ── PRODUTOS ──────────────────────────────────────────────────────────────
 async function carregarProdutos() {
   try {
     const snap = await db.collection("produtos").orderBy("id").get();
     todosProdutos = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
+    if (document.getElementById("tab-disponivel")?.classList.contains("active")) renderDisponivel();
     atualizarStats(); filtrar(); popularSelectCategorias(); renderPdvGrid();
   } catch(e) { toast("Erro ao carregar produtos: " + e.message, "err"); }
 }
@@ -2542,6 +2669,8 @@ async function carregarConfiguracoes() {
   try {
     const doc = await db.collection("configuracoes").doc("geral").get();
     const cfg = doc.exists ? { ...CONFIG_PADRAO, ...doc.data() } : CONFIG_PADRAO;
+    _indisponiveis = Array.isArray(cfg.indisponiveis) ? cfg.indisponiveis : [];
+    if (document.getElementById("tab-disponivel").classList.contains("active")) renderDisponivel();
     document.getElementById("config-nome-loja").value  = cfg.nomeLoja;
     document.getElementById("config-whatsapp").value   = cfg.whatsapp;
     document.getElementById("config-hero-tag").value       = cfg.heroTag || "";
@@ -2715,7 +2844,8 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, tempoEntrega, precoComplementoExtra
+      taxasEntrega, aceitarOutrosBairros, tempoEntrega, precoComplementoExtra,
+      indisponiveis: _indisponiveis // mantém o que está em falta (aba "Disponível hoje")
     });
     toast("Configurações salvas!", "ok");
     await carregarConfiguracoes();

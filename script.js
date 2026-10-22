@@ -194,6 +194,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Erro ao carregar configurações da loja:", e);
     }
 
+    // --- ITENS EM FALTA ("Disponível hoje" no admin) ---
+    // Complementos/adicionais desligados somem de TODOS os produtos (comparando o nome,
+    // sem diferenciar maiúscula/minúscula).
+    const emFalta = new Set((Array.isArray(configLoja.indisponiveis) ? configLoja.indisponiveis : [])
+        .map((n) => String(n || "").trim().toLowerCase()).filter(Boolean));
+    if (emFalta.size) {
+        const disponivel = (nome) => !emFalta.has(String(nome || "").trim().toLowerCase());
+        produtos = produtos.map((p) => ({
+            ...p,
+            complementosLista: Array.isArray(p.complementosLista) ? p.complementosLista.filter(disponivel) : p.complementosLista,
+            adicionaisPagos: Array.isArray(p.adicionaisPagos) ? p.adicionaisPagos.filter((a) => disponivel(a.nome)) : p.adicionaisPagos,
+        }));
+    }
+
     // --- ESTADO DA APLICAÇÃO ---
     // (declarado antes de aplicarConfiguracoesDaLoja porque ela pode ajustar tipoEntrega)
     let carrinho = [],
