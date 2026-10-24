@@ -211,6 +211,38 @@
     .pdv-troco-resultado.falta { color: var(--red); }
     .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 8px; margin-bottom: 20px; }
     .chart-card h3 { font-size: .95rem; color: var(--gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* Pedidos */
+    .menu-badge { margin-left: auto; background: var(--red, #e53935); color: #fff; font-size: .7rem; font-weight: 700; border-radius: 999px; padding: 1px 7px; }
+    .ped-ao-vivo { font-size: .7rem; color: var(--green, #4caf50); font-weight: 600; margin-left: 6px; vertical-align: middle; }
+    .ped-ao-vivo i { font-size: .5rem; animation: pisca 1.6s infinite; }
+    @keyframes pisca { 50% { opacity: .2; } }
+    .ped-controles { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .ped-controles input[type=date] { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--text); }
+    .ped-filtros { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 14px; }
+    .ped-filtro { background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 6px 12px; font-size: .8rem; cursor: pointer; }
+    .ped-filtro span { background: var(--surface); border-radius: 999px; padding: 0 6px; margin-left: 4px; color: var(--muted); }
+    .ped-filtro.ativo { border-color: var(--gold); color: var(--gold); }
+    .ped-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+    .ped-card { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--cor-etapa); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .ped-card.ped-novo { box-shadow: 0 0 0 2px var(--gold); animation: chegou 1s ease 2; }
+    @keyframes chegou { 50% { transform: scale(1.02); } }
+    .ped-card header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .ped-num { font-size: 1.05rem; color: var(--gold); }
+    .ped-hora { color: var(--muted); font-size: .8rem; margin-left: 4px; }
+    .ped-etapa { font-size: .75rem; font-weight: 700; color: var(--cor-etapa); background: var(--surface); border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+    .ped-cliente { font-size: .83rem; display: flex; flex-direction: column; gap: 3px; }
+    .ped-cliente i { color: var(--muted); width: 14px; }
+    .ped-cliente a { color: var(--gold); }
+    .ped-itens { list-style: none; display: flex; flex-direction: column; gap: 6px; border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border); padding: 8px 0; font-size: .83rem; }
+    .ped-itens li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; }
+    .ped-itens small { width: 100%; color: var(--muted); font-size: .75rem; line-height: 1.35; }
+    .ped-obs { font-size: .8rem; background: #2a2205; border-radius: 8px; padding: 6px 9px; }
+    .ped-valores { display: flex; justify-content: space-between; gap: 8px; font-size: .82rem; color: var(--muted); flex-wrap: wrap; }
+    .ped-valores strong { color: var(--text); font-size: .95rem; }
+    .ped-card footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ped-acoes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .ped-acoes a.btn { text-decoration: none; }
+    @media (max-width: 600px) { .ped-lista { grid-template-columns: 1fr; } }
     .hora-filtros { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
     .hora-filtros label { display: flex; flex-direction: column; gap: 4px; font-size: .75rem; color: var(--muted); }
     .hora-filtros select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--text); font-size: .85rem; }
@@ -296,7 +328,8 @@
 
   <div class="app-body">
   <div class="sidebar">
-    <button class="side-btn active" onclick="mudarTab('produtos',this)"><i class="fa-solid fa-box"></i> Produtos</button>
+    <button class="side-btn active" onclick="mudarTab('pedidos',this)"><i class="fa-solid fa-receipt"></i> Pedidos <span class="menu-badge" id="menu-ped-badge" hidden>0</span></button>
+    <button class="side-btn" onclick="mudarTab('produtos',this)"><i class="fa-solid fa-box"></i> Produtos</button>
     <button class="side-btn" onclick="mudarTab('disponivel',this)"><i class="fa-solid fa-toggle-on"></i> Ingredientes</button>
     <button class="side-btn" onclick="mudarTab('categorias',this)"><i class="fa-solid fa-tags"></i> Categorias</button>
     <button class="side-btn" onclick="mudarTab('cupons',this)"><i class="fa-solid fa-ticket"></i> Cupons</button>
@@ -306,7 +339,22 @@
   </div>
 
   <div class="content">
-    <div id="tab-produtos" class="tab-panel active">
+    <div id="tab-pedidos" class="tab-panel active">
+      <div class="disp-topo">
+        <div>
+          <h2 style="font-size:1.1rem;margin-bottom:4px">Pedidos <span class="ped-ao-vivo" title="Atualiza sozinho quando chega pedido"><i class="fa-solid fa-circle"></i> ao vivo</span></h2>
+          <p id="ped-resumo" style="color:var(--muted);font-size:.85rem">Carregando…</p>
+        </div>
+        <div class="ped-controles">
+          <input type="date" id="ped-dia" onchange="assinarPedidos()" aria-label="Dia dos pedidos">
+          <label class="toggle-row" title="Toca um som quando chega pedido novo"><input type="checkbox" id="ped-som" checked onchange="salvarPrefSom()"> <i class="fa-solid fa-bell"></i> Som</label>
+        </div>
+      </div>
+      <div class="ped-filtros" id="ped-filtros"></div>
+      <div class="ped-lista" id="ped-lista"><div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div></div>
+    </div>
+
+    <div id="tab-produtos" class="tab-panel">
       <div class="stats-row">
         <div class="stat-card"><div class="num" id="stat-total">–</div><div class="lbl">Total de produtos</div></div>
         <div class="stat-card"><div class="num" id="stat-ativos">–</div><div class="lbl">Ativos</div></div>
@@ -951,6 +999,27 @@
 </div>
 
 <!-- MODAL CONFIRMAR -->
+<!-- Detalhe do pedido: mudar etapa sem avisar, cancelar, excluir -->
+<div class="modal-overlay" id="ped-modal">
+  <div class="modal" style="max-width:420px">
+    <button class="modal-close" onclick="fecharModal('ped-modal')">&times;</button>
+    <h2 id="ped-modal-titulo">Pedido</h2>
+    <div class="form-group full">
+      <label>Etapa do pedido</label>
+      <select id="ped-modal-etapa"></select>
+      <label class="toggle-row" style="margin-top:10px"><input type="checkbox" id="ped-modal-avisar"> Avisar o cliente pelo WhatsApp</label>
+      <small style="color:var(--muted);display:block;margin-top:6px">Use para corrigir uma etapa ou cancelar. Para o dia a dia, os botões do próprio pedido já mudam a etapa e avisam o cliente.</small>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-danger" id="ped-modal-excluir"><i class="fa-solid fa-trash"></i> Excluir</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="fecharModal('ped-modal')">Fechar</button>
+        <button class="btn btn-primary" id="ped-modal-salvar"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="confirm-modal">
   <div class="modal">
     <button class="modal-close" onclick="fecharModal('confirm-modal')">&times;</button>
@@ -1106,8 +1175,248 @@ let _galeriaAtual = [];           // fotos extras do produto em edição (array 
 let _cropperInstance = null;
 let _cropCallback = null;
 
+// ── PEDIDOS (Fase 1 do plano Gestão) ───────────────────────────────────────
+// Os pedidos que a loja grava em "pedidos" aparecem aqui em tempo real. A Bruna avança
+// as etapas (Recebido → Em preparo → Saiu para entrega → Entregue) e, a cada etapa, o
+// painel abre o WhatsApp do cliente com a mensagem pronta.
+const ETAPAS = {
+  recebido:  { nome: "Recebido",          icone: "fa-bell",          cor: "#90caf9" },
+  preparo:   { nome: "Em preparo",        icone: "fa-blender",       cor: "#ffb74d" },
+  saiu:      { nome: "Saiu para entrega", icone: "fa-motorcycle",    cor: "#ce93d8" },
+  entregue:  { nome: "Entregue",          icone: "fa-circle-check",  cor: "#81c784" },
+  cancelado: { nome: "Cancelado",         icone: "fa-ban",           cor: "#e57373" },
+};
+const PROXIMA_ETAPA = { recebido: "preparo", preparo: "saiu", saiu: "entregue" };
+let _pedidos = [];
+let _pedidosVistos = null;          // ids já mostrados (para detectar pedido novo)
+let _cancelarAssinaturaPedidos = null;
+let _filtroPedidos = "abertos";
+let _cfgLoja = {};
+
+const _hojeISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const _horaDe = (p) => {
+  const dt = p.criadoEm?.toDate ? p.criadoEm.toDate() : null;
+  return dt ? dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+};
+const _nomePedido = (p) => p.numero ? `Nº ${p.numero}` : `#${p.codigo || p.docId.slice(0, 6)}`;
+const _ehEntrega = (p) => p.tipo !== "retirada";
+const _etapaDe = (p) => ETAPAS[p.status] ? p.status : "recebido";
+
+// Mensagem pronta para cada etapa (o cliente recebe pelo WhatsApp da loja)
+function mensagemEtapa(p, etapa) {
+  const nome = String(p.cliente || "").trim().split(/\s+/)[0] || "tudo bem";
+  const loja = _cfgLoja.nomeLoja || "Açaí da Bru";
+  const n = _nomePedido(p);
+  const tempo = _cfgLoja.tempoEntrega ? ` Previsão: ${_cfgLoja.tempoEntrega}.` : "";
+  return {
+    recebido: `Oi, ${nome}! 💜 Recebemos seu pedido ${n} aqui no ${loja}. Já já começamos a preparar!`,
+    preparo: `${nome}, seu pedido ${n} já está sendo preparado! 🍧${_ehEntrega(p) ? tempo : ""}`,
+    saiu: _ehEntrega(p)
+      ? `Seu pedido ${n} saiu para entrega! 🛵 Logo logo chega aí, ${nome}.`
+      : `${nome}, seu pedido ${n} está pronto para retirada! 🍧`,
+    entregue: `Pedido ${n} entregue! Obrigada pela preferência, ${nome} 💜 Bom açaí!`,
+    cancelado: `Oi, ${nome}. Seu pedido ${n} foi cancelado. Qualquer dúvida, é só chamar a gente por aqui.`,
+  }[etapa];
+}
+function linkWhatsCliente(p, etapa) {
+  let tel = String(p.telefone || "").replace(/\D/g, "");
+  if (!tel) return "";
+  if (tel.length <= 11) tel = "55" + tel;
+  return `https://wa.me/${tel}?text=${encodeURIComponent(mensagemEtapa(p, etapa))}`;
+}
+
+// Som de "pedido novo" (sem arquivo: gera 3 bipes com a Web Audio API)
+let _audioCtx = null;
+function tocarSomPedido() {
+  if (!document.getElementById("ped-som")?.checked) return;
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25, 0.5].forEach((t, i) => {
+      const o = _audioCtx.createOscillator(), g = _audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = i === 2 ? 1046 : 880;
+      g.gain.setValueAtTime(0.0001, _audioCtx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.35, _audioCtx.currentTime + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, _audioCtx.currentTime + t + 0.2);
+      o.connect(g).connect(_audioCtx.destination);
+      o.start(_audioCtx.currentTime + t); o.stop(_audioCtx.currentTime + t + 0.22);
+    });
+  } catch (e) { /* navegador sem áudio: segue só com o aviso visual */ }
+}
+function salvarPrefSom() {
+  try { localStorage.setItem("admin:somPedidos", document.getElementById("ped-som").checked ? "1" : "0"); } catch (e) {}
+}
+
+// Contador no menu e no título da aba (ex: "(2) Admin – Açaí da Bru")
+const _tituloOriginal = document.title;
+function atualizarAvisoNovos() {
+  const novos = _pedidos.filter(p => _etapaDe(p) === "recebido").length;
+  const badge = document.getElementById("menu-ped-badge");
+  if (badge) { badge.textContent = novos; badge.hidden = !novos; }
+  document.title = novos ? `(${novos}) ${_tituloOriginal}` : _tituloOriginal;
+}
+
+function assinarPedidos() {
+  const campo = document.getElementById("ped-dia");
+  if (!campo.value) campo.value = _hojeISO();
+  const [a, m, d] = campo.value.split("-").map(Number);
+  const inicio = new Date(a, m - 1, d, 0, 0, 0), fim = new Date(a, m - 1, d + 1, 0, 0, 0);
+  if (_cancelarAssinaturaPedidos) _cancelarAssinaturaPedidos();
+  _pedidosVistos = null;
+  document.getElementById("ped-lista").innerHTML = `<div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div>`;
+  _cancelarAssinaturaPedidos = db.collection("pedidos")
+    .where("criadoEm", ">=", inicio).where("criadoEm", "<", fim)
+    .orderBy("criadoEm", "desc")
+    .onSnapshot(snap => {
+      const lista = snap.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+      // Pedido novo (depois da primeira carga): som + aviso
+      if (_pedidosVistos) {
+        const novos = lista.filter(p => !_pedidosVistos.has(p.docId));
+        if (novos.length) {
+          tocarSomPedido();
+          toast(novos.length === 1 ? `Pedido novo! ${_nomePedido(novos[0])} — ${novos[0].cliente || ""}` : `${novos.length} pedidos novos!`, "ok");
+          novos.forEach(p => p._novo = true);
+        }
+      }
+      _pedidosVistos = new Set(lista.map(p => p.docId));
+      // mantém o destaque de "novo" de quem já estava destacado
+      const destacados = new Set(_pedidos.filter(p => p._novo).map(p => p.docId));
+      lista.forEach(p => { if (destacados.has(p.docId)) p._novo = true; });
+      _pedidos = lista;
+      renderPedidos();
+    }, e => {
+      document.getElementById("ped-lista").innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Não foi possível carregar os pedidos: ${_escAttr(e.message)}.<br>Confira se as regras novas do Firestore foram publicadas.</p></div>`;
+    });
+}
+
+function renderPedidos() {
+  const contagem = (fn) => _pedidos.filter(fn).length;
+  const abertos = (p) => ["recebido", "preparo", "saiu"].includes(_etapaDe(p));
+  const filtros = [
+    ["abertos", "Em aberto", abertos],
+    ["recebido", "Recebidos", p => _etapaDe(p) === "recebido"],
+    ["preparo", "Em preparo", p => _etapaDe(p) === "preparo"],
+    ["saiu", "Saiu", p => _etapaDe(p) === "saiu"],
+    ["entregue", "Entregues", p => _etapaDe(p) === "entregue"],
+    ["cancelado", "Cancelados", p => _etapaDe(p) === "cancelado"],
+    ["todos", "Todos", () => true],
+  ];
+  document.getElementById("ped-filtros").innerHTML = filtros.map(([id, nome, fn]) =>
+    `<button class="ped-filtro${_filtroPedidos === id ? " ativo" : ""}" onclick="_filtroPedidos='${id}';renderPedidos()">${nome} <span>${contagem(fn)}</span></button>`).join("");
+
+  const validos = _pedidos.filter(p => _etapaDe(p) !== "cancelado");
+  const totalDia = validos.reduce((s, p) => s + Number(p.total || 0), 0);
+  const pagos = validos.filter(p => p.pago).reduce((s, p) => s + Number(p.total || 0), 0);
+  document.getElementById("ped-resumo").innerHTML = `${validos.length} pedido${validos.length === 1 ? "" : "s"} no dia · ${_brl(totalDia)} · <span style="color:var(--green)">${_brl(pagos)} marcados como pagos</span>`;
+
+  const fn = (filtros.find(f => f[0] === _filtroPedidos) || filtros[0])[2];
+  const lista = _pedidos.filter(fn);
+  const cont = document.getElementById("ped-lista");
+  if (!lista.length) {
+    cont.innerHTML = `<div class="empty-state"><i class="fa-solid fa-mug-hot"></i><p>${_pedidos.length ? "Nenhum pedido neste filtro." : "Nenhum pedido neste dia ainda. Quando chegar, ele aparece aqui sozinho."}</p></div>`;
+    atualizarAvisoNovos();
+    return;
+  }
+  cont.innerHTML = lista.map(cardPedido).join("");
+  atualizarAvisoNovos();
+}
+
+function cardPedido(p) {
+  const etapa = _etapaDe(p), E = ETAPAS[etapa];
+  const prox = PROXIMA_ETAPA[etapa];
+  const temTel = !!String(p.telefone || "").replace(/\D/g, "");
+  const tel = String(p.telefone || "").replace(/\D/g, "");
+  const telFmt = tel.length === 11 ? `(${tel.slice(0, 2)}) ${tel.slice(2, 7)}-${tel.slice(7)}` : tel;
+  const end = p.endereco
+    ? `${_escAttr(p.endereco.rua || "")}${p.endereco.numero ? `, ${_escAttr(p.endereco.numero)}` : ""} — ${_escAttr(p.endereco.bairro || p.bairro || "")}`
+    : (_ehEntrega(p) ? _escAttr(p.bairro || "") : "Retirada no local");
+  const itens = (p.itens || []).map(it => `<li><strong>${it.quantidade}x ${_escAttr(it.nome)}${it.tamanho ? ` (${_escAttr(it.tamanho)})` : ""}</strong> <span>${_brl(it.preco * it.quantidade)}</span>${it.detalhes ? `<small>${_escAttr(it.detalhes)}</small>` : ""}</li>`).join("");
+  const botaoProx = prox ? `<button class="btn btn-primary btn-sm" onclick="avancarPedido('${p.docId}','${prox}',true)" title="Muda a etapa e abre o WhatsApp do cliente com o aviso"><i class="fa-solid ${ETAPAS[prox].icone}"></i> ${prox === "saiu" && !_ehEntrega(p) ? "Pronto p/ retirada" : ETAPAS[prox].nome}${temTel ? ` <i class="fa-brands fa-whatsapp"></i>` : ""}</button>` : "";
+  return `<article class="ped-card${p._novo ? " ped-novo" : ""}" style="--cor-etapa:${E.cor}">
+    <header>
+      <div><strong class="ped-num">${_nomePedido(p)}</strong> <span class="ped-hora">${_horaDe(p)}</span></div>
+      <span class="ped-etapa"><i class="fa-solid ${E.icone}"></i> ${E.nome}</span>
+    </header>
+    <div class="ped-cliente">
+      <div><i class="fa-solid fa-user"></i> ${_escAttr(p.cliente || "Cliente")}${telFmt ? ` · <a href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}" target="_blank" rel="noopener">${telFmt}</a>` : ""}</div>
+      <div><i class="fa-solid ${_ehEntrega(p) ? "fa-location-dot" : "fa-store"}"></i> ${end}${p.endereco?.cep ? ` · CEP ${_escAttr(p.endereco.cep)}` : ""}</div>
+    </div>
+    <ul class="ped-itens">${itens}</ul>
+    ${p.observacoes ? `<p class="ped-obs"><i class="fa-solid fa-comment"></i> ${_escAttr(p.observacoes)}</p>` : ""}
+    <div class="ped-valores">
+      <span>${_escAttr(p.pagamento || "")}${p.troco ? ` (troco p/ R$ ${_escAttr(p.troco)})` : ""}${p.talher ? " · colher/canudo" : ""}</span>
+      <span>${Number(p.taxaEntrega) ? `entrega ${_brl(p.taxaEntrega)} · ` : ""}<strong>${_brl(p.total)}</strong></span>
+    </div>
+    <footer>
+      <label class="toggle-row ped-pago"><input type="checkbox" ${p.pago ? "checked" : ""} onchange="marcarPago('${p.docId}', this.checked)"> Pago</label>
+      <div class="ped-acoes">
+        ${temTel && etapa !== "cancelado" ? `<a class="btn btn-ghost btn-sm" href="${linkWhatsCliente(p, etapa)}" target="_blank" rel="noopener" title="Reenviar o aviso desta etapa"><i class="fa-brands fa-whatsapp"></i> Avisar</a>` : ""}
+        <button class="btn btn-ghost btn-sm" onclick="abrirPedidoDetalhe('${p.docId}')" title="Mudar etapa sem avisar, cancelar ou excluir"><i class="fa-solid fa-ellipsis"></i></button>
+        ${botaoProx}
+      </div>
+    </footer>
+  </article>`;
+}
+
+async function avancarPedido(docId, etapa, avisar) {
+  const p = _pedidos.find(x => x.docId === docId);
+  if (!p) return;
+  // Abre o WhatsApp já no clique (antes de esperar o banco), senão o celular bloqueia a janela
+  if (avisar) {
+    const link = linkWhatsCliente(p, etapa);
+    if (link) window.open(link, "_blank");
+  }
+  p._novo = false;
+  try {
+    await db.collection("pedidos").doc(docId).update({
+      status: etapa,
+      [`etapas.${etapa}`]: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    toast(`${_nomePedido(p)}: ${ETAPAS[etapa].nome}`, "ok");
+  } catch (e) { toast("Erro ao mudar a etapa: " + e.message, "err"); }
+}
+
+async function marcarPago(docId, pago) {
+  const p = _pedidos.find(x => x.docId === docId);
+  try {
+    await db.collection("pedidos").doc(docId).update({ pago, pagoEm: pago ? firebase.firestore.FieldValue.serverTimestamp() : null });
+    toast(pago ? `${_nomePedido(p)} marcado como pago` : `${_nomePedido(p)} voltou para "não pago"`, "ok");
+  } catch (e) { toast("Erro: " + e.message, "err"); }
+}
+
+function abrirPedidoDetalhe(docId) {
+  const p = _pedidos.find(x => x.docId === docId);
+  if (!p) return;
+  document.getElementById("ped-modal-titulo").innerHTML = `<i class="fa-solid fa-receipt"></i> Pedido ${_nomePedido(p)} · ${_horaDe(p)}`;
+  document.getElementById("ped-modal-etapa").innerHTML = Object.entries(ETAPAS).map(([k, v]) =>
+    `<option value="${k}" ${k === _etapaDe(p) ? "selected" : ""}>${v.nome}</option>`).join("");
+  document.getElementById("ped-modal-avisar").checked = false;
+  document.getElementById("ped-modal-salvar").onclick = () => {
+    const etapa = document.getElementById("ped-modal-etapa").value;
+    const avisar = document.getElementById("ped-modal-avisar").checked;
+    fecharModal("ped-modal");
+    if (etapa !== _etapaDe(p) || avisar) avancarPedido(docId, etapa, avisar);
+  };
+  document.getElementById("ped-modal-excluir").onclick = () => {
+    fecharModal("ped-modal");
+    document.getElementById("confirm-msg").textContent = `Excluir o pedido ${_nomePedido(p)} de ${p.cliente || "cliente"}? Use só para pedidos de teste ou duplicados — ele some também dos relatórios.`;
+    document.getElementById("confirm-ok-btn").onclick = async () => {
+      try { await db.collection("pedidos").doc(docId).delete(); toast("Pedido excluído.", "ok"); fecharModal("confirm-modal"); }
+      catch (e) { toast("Erro: " + e.message, "err"); }
+    };
+    abrirModal("confirm-modal");
+  };
+  abrirModal("ped-modal");
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────
-async function inicializar() { await Promise.all([carregarCategorias(), carregarProdutos(), carregarCupons(), carregarConfiguracoes(), carregarVendasHoje()]); }
+async function inicializar() {
+  try { document.getElementById("ped-som").checked = localStorage.getItem("admin:somPedidos") !== "0"; } catch (e) {}
+  assinarPedidos();
+  await Promise.all([carregarCategorias(), carregarProdutos(), carregarCupons(), carregarConfiguracoes(), carregarVendasHoje()]);
+}
 
 // ── TABS ──────────────────────────────────────────────────────────────────
 function mudarTab(tab, btn) {
@@ -3191,6 +3500,7 @@ async function carregarConfiguracoes() {
   try {
     const doc = await db.collection("configuracoes").doc("geral").get();
     const cfg = doc.exists ? { ...CONFIG_PADRAO, ...doc.data() } : CONFIG_PADRAO;
+    _cfgLoja = cfg;
     _indisponiveis = Array.isArray(cfg.indisponiveis) ? cfg.indisponiveis : [];
     _complementosLoja = Array.isArray(cfg.complementosLoja) ? cfg.complementosLoja : [];
     _adicionaisLoja = Array.isArray(cfg.adicionaisLoja) ? cfg.adicionaisLoja : [];

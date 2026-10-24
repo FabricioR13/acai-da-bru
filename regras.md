@@ -36,8 +36,9 @@ service cloud.firestore {
     // Pedidos do site (para os relatórios do admin): o site só pode CRIAR,
     // com formato conferido; ver, editar e apagar é só para o admin logado.
     match /pedidos/{doc} {
-      allow create: if request.resource.data.keys().hasOnly(['numero', 'codigo', 'dia', 'criadoEm', 'origem', 'tipo', 'bairro', 'cliente', 'pagamento', 'itens', 'qtdItens', 'subtotal', 'desconto', 'taxaEntrega', 'total'])
+      allow create: if request.resource.data.keys().hasOnly(['numero', 'codigo', 'dia', 'criadoEm', 'origem', 'tipo', 'bairro', 'cliente', 'telefone', 'endereco', 'observacoes', 'talher', 'troco', 'pagamento', 'status', 'token', 'itens', 'qtdItens', 'subtotal', 'desconto', 'taxaEntrega', 'total'])
                     && request.resource.data.origem == 'site'
+                    && request.resource.data.status == 'recebido'
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.total is number
                     && request.resource.data.total >= 0 && request.resource.data.total < 5000
@@ -65,7 +66,7 @@ service cloud.firestore {
 
 - **produtos, categorias, cupons, configuracoes**: qualquer visitante da loja pode *ler* (necessário para o site funcionar sem login), mas só usuários logados no admin podem *escrever* (criar, editar, excluir).
 - **vendas**: dado sensível (faturamento) — só usuários logados podem ler ou escrever. Não é público.
-- **pedidos**: cada pedido enviado pelo site (horário, itens, valores, bairro, primeiro nome — sem telefone/endereço). O site só cria; só o admin vê.
+- **pedidos**: cada pedido enviado pelo site (horário, itens, valores, cliente, telefone e endereço para atender o pedido). O site só cria; só o admin logado vê, muda a etapa ou apaga.
 - **contadores**: numeração diária dos pedidos (`pedidos-AAAA-MM-DD`). O site só consegue somar +1; só o admin logado apaga.
 
 ## Pré-requisito

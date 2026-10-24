@@ -1584,9 +1584,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     // --- GRAVAÇÃO DO PEDIDO NO BANCO (coleção "pedidos") ---
-    // Só o necessário para os relatórios: horário, itens, valores, bairro e primeiro nome.
-    // Telefone e endereço NÃO são gravados (ficam só na mensagem do WhatsApp).
-    // As regras do Firestore deixam o site só CRIAR pedidos; ler/editar é só no admin logado.
+    // Usado pelo painel de Pedidos do admin (etapas + aviso ao cliente) e pelos relatórios.
+    // Inclui telefone e endereço para a loja atender o pedido; as regras do Firestore deixam
+    // o site só CRIAR pedidos — ver, editar e apagar é só no admin logado.
+    // "token" é um código aleatório que vai no link de avaliação (só quem recebeu o pedido avalia).
     const gravarPedido = async (d) => {
         try {
             const itens = carrinho.slice(0, 50).map((item) => ({
@@ -1594,7 +1595,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 tamanho: String(item.tamanhoSelecionado || item.nomeTamanhoBase || "").slice(0, 40),
                 quantidade: Number(item.quantidade) || 1,
                 preco: Math.round((Number(item.preco) || 0) * 100) / 100,
+                // Complementos, extras e adicionais escolhidos (mesmo texto do carrinho)
+                detalhes: detalhesDoItem(item).join(" · ").slice(0, 600),
             }));
+            const v = (id) => (document.getElementById(id)?.value || "").trim();
+            const token = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join("");
             const arred = (v) => Math.round((Number(v) || 0) * 100) / 100;
             await db.collection("pedidos").add({
                 numero: d.numeroDoDia || null,
@@ -1604,8 +1609,20 @@ document.addEventListener("DOMContentLoaded", async () => {
                 origem: "site",
                 tipo: tipoEntrega === "delivery" ? "entrega" : "retirada",
                 bairro: tipoEntrega === "delivery" ? String(bairroEscolhido() || "").slice(0, 60) : "",
-                cliente: String(d.nome || "").trim().split(/\s+/)[0].slice(0, 40),
+                cliente: String(d.nome || "").trim().slice(0, 80),
+                telefone: v("identificacao-telefone").replace(/\D/g, "").slice(0, 13),
+                endereco: tipoEntrega === "delivery" ? {
+                    rua: v("delivery-address").slice(0, 120),
+                    numero: v("delivery-numero").slice(0, 10),
+                    bairro: String(bairroEscolhido() || "").slice(0, 60),
+                    cep: v("delivery-cep").slice(0, 9),
+                } : null,
+                observacoes: v("observacoes-input").slice(0, 500),
+                talher: !!document.getElementById("talher-checkbox")?.checked,
+                troco: d.paymentMethod === "Dinheiro" ? v("troco-para").slice(0, 10) : "",
                 pagamento: String(d.paymentMethod || "").slice(0, 60),
+                status: "recebido",
+                token,
                 itens,
                 qtdItens: itens.reduce((a, i) => a + i.quantidade, 0),
                 subtotal: arred(d.subtotal),
