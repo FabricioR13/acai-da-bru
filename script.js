@@ -1583,6 +1583,41 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("delivery-address").focus();
     });
 
+    // --- GRAVAÇÃO DO PEDIDO NO BANCO (coleção "pedidos") ---
+    // Só o necessário para os relatórios: horário, itens, valores, bairro e primeiro nome.
+    // Telefone e endereço NÃO são gravados (ficam só na mensagem do WhatsApp).
+    // As regras do Firestore deixam o site só CRIAR pedidos; ler/editar é só no admin logado.
+    const gravarPedido = async (d) => {
+        try {
+            const itens = carrinho.slice(0, 50).map((item) => ({
+                nome: String(item.nome || "").slice(0, 80),
+                tamanho: String(item.tamanhoSelecionado || item.nomeTamanhoBase || "").slice(0, 40),
+                quantidade: Number(item.quantidade) || 1,
+                preco: Math.round((Number(item.preco) || 0) * 100) / 100,
+            }));
+            const arred = (v) => Math.round((Number(v) || 0) * 100) / 100;
+            await db.collection("pedidos").add({
+                numero: d.numeroDoDia || null,
+                codigo: d.numeroDoDia ? null : String(d.pedidoId || "").slice(0, 12),
+                dia: hojeEmSaoPaulo().iso,
+                criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+                origem: "site",
+                tipo: tipoEntrega === "delivery" ? "entrega" : "retirada",
+                bairro: tipoEntrega === "delivery" ? String(bairroEscolhido() || "").slice(0, 60) : "",
+                cliente: String(d.nome || "").trim().split(/\s+/)[0].slice(0, 40),
+                pagamento: String(d.paymentMethod || "").slice(0, 60),
+                itens,
+                qtdItens: itens.reduce((a, i) => a + i.quantidade, 0),
+                subtotal: arred(d.subtotal),
+                desconto: arred(d.discountAmount),
+                taxaEntrega: arred(d.taxaEntrega),
+                total: arred(d.total),
+            });
+        } catch (e) {
+            console.warn("Não foi possível gravar o pedido para o relatório:", e);
+        }
+    };
+
     const finalizarPedido = async () => {
         // Rede de segurança: os campos já foram validados etapa a etapa, mas confere
         // de novo aqui (ex: caso o cliente volte numa etapa pelos pontinhos e apague algo).
@@ -1677,8 +1712,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+        // Grava o pedido no banco (para o relatório de horários no admin). Não trava o envio:
+        // se a gravação falhar ou demorar, o pedido segue normalmente pelo WhatsApp.
+        const gravacao = gravarPedido({ numeroDoDia, pedidoId, subtotal, discountAmount, taxaEntrega, total, paymentMethod, nome });
         if (janelaWhats && !janelaWhats.closed) janelaWhats.location.href = url;
-        else window.location.href = url;
+        else {
+            // Sem aba nova, a página vai sair daqui: espera a gravação (no máximo 2,5s) antes
+            await Promise.race([gravacao, new Promise((r) => setTimeout(r, 2500))]);
+            window.location.href = url;
+        }
         salvarCliente();
         mostrarSucesso(numeroDoDia ? `Nº ${numeroDoDia}` : pedidoId);
     };

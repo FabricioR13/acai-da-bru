@@ -210,7 +210,19 @@
     .pdv-troco-resultado.ok { color: var(--green); }
     .pdv-troco-resultado.falta { color: var(--red); }
     .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 8px; margin-bottom: 20px; }
-    .chart-card h3 { font-size: .95rem; color: var(--gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .chart-card h3 { font-size: .95rem; color: var(--gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .hora-filtros { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .hora-filtros label { display: flex; flex-direction: column; gap: 4px; font-size: .75rem; color: var(--muted); }
+    .hora-filtros select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--text); font-size: .85rem; }
+    .hora-destaque { font-size: .85rem; margin-bottom: 8px; color: var(--text); }
+    .hora-destaque i { color: var(--gold); margin-right: 4px; }
+    .hora-destaque strong { color: var(--gold); }
+    .mapa-wrap { overflow-x: auto; padding-bottom: 8px; }
+    .mapa { border-collapse: separate; border-spacing: 3px; font-size: .75rem; min-width: 100%; }
+    .mapa th { color: var(--muted); font-weight: 600; padding: 2px 4px; text-align: center; white-space: nowrap; }
+    .mapa tbody th { text-align: left; }
+    .mapa td { background: var(--surface); border-radius: 5px; text-align: center; min-width: 30px; height: 28px; font-weight: 700; }
+    .mapa td.mapa-total { background: transparent; color: var(--gold); }
     .chart-wrap { position: relative; width: 100%; }
     .chart-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
     .chart-gridline { stroke: var(--border); stroke-width: 1; shape-rendering: crispEdges; }
@@ -468,13 +480,41 @@
         <div class="stat-card"><div class="num" id="relatorio-stat-qtd">–</div><div class="lbl">Vendas no mês</div></div>
         <div class="stat-card"><div class="num" id="relatorio-stat-total">–</div><div class="lbl">Faturamento no mês</div></div>
         <div class="stat-card"><div class="num" id="relatorio-stat-ticket">–</div><div class="lbl">Ticket médio</div></div>
+        <div class="stat-card"><div class="num" id="relatorio-stat-site">–</div><div class="lbl">Pedidos pelo site</div></div>
+        <div class="stat-card"><div class="num" id="relatorio-stat-site-total">–</div><div class="lbl">Valor pedido pelo site</div></div>
       </div>
+      <p style="color:var(--muted);font-size:.75rem;margin:-6px 0 14px">"Vendas" e "Faturamento" contam o balcão (PDV). "Pedidos pelo site" são os pedidos enviados para o WhatsApp — confira no WhatsApp quais foram confirmados.</p>
       <div class="chart-card">
         <h3><i class="fa-solid fa-chart-column"></i> Vendas por dia do mês</h3>
         <div class="chart-wrap" id="relatorio-grafico-wrap">
           <svg id="relatorio-grafico" viewBox="0 0 800 220" role="img" aria-label="Gráfico de faturamento por dia do mês"></svg>
           <div class="chart-tooltip" id="relatorio-grafico-tooltip" hidden></div>
         </div>
+      </div>
+      <div class="chart-card">
+        <h3><i class="fa-solid fa-clock"></i> Pedidos por horário</h3>
+        <div class="hora-filtros">
+          <label>Dia
+            <select id="horario-dia" onchange="renderRelatorioHorarios()"><option value="">Todos os dias do mês</option></select>
+          </label>
+          <label>Origem
+            <select id="horario-origem" onchange="renderRelatorioHorarios()">
+              <option value="todos">Site + balcão</option>
+              <option value="site">Só pedidos do site</option>
+              <option value="balcao">Só balcão (PDV)</option>
+            </select>
+          </label>
+        </div>
+        <p class="hora-destaque" id="horario-destaque"></p>
+        <div class="chart-wrap" id="relatorio-horario-wrap">
+          <svg id="relatorio-horario" viewBox="0 0 800 220" role="img" aria-label="Gráfico de pedidos por horário"></svg>
+          <div class="chart-tooltip" id="relatorio-horario-tooltip" hidden></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3><i class="fa-solid fa-table-cells"></i> Dia da semana × horário <small style="color:var(--muted);font-weight:400">(quantidade de pedidos no mês — quanto mais forte a cor, mais movimento)</small></h3>
+        <p class="hora-destaque" id="semana-destaque"></p>
+        <div class="mapa-wrap" id="relatorio-mapa"></div>
       </div>
       <div class="chart-card">
         <h3><i class="fa-solid fa-credit-card"></i> Vendas por forma de pagamento</h3>
@@ -2714,6 +2754,18 @@ async function carregarRelatorio() {
       .orderBy("criadoEm", "desc")
       .get();
     vendasRelatorio = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
+    // Pedidos do site do mesmo mês (se a coleção ainda não existir ou as regras não
+    // estiverem publicadas, o relatório continua funcionando só com o balcão)
+    try {
+      const snapSite = await db.collection("pedidos")
+        .where("criadoEm", ">=", inicio)
+        .where("criadoEm", "<", fim)
+        .get();
+      pedidosSiteRelatorio = snapSite.docs.map(d => ({ docId: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Pedidos do site indisponíveis no relatório:", e);
+      pedidosSiteRelatorio = [];
+    }
     renderRelatorio();
   } catch(e) {
     document.getElementById("relatorio-tabela").innerHTML =
@@ -2727,7 +2779,12 @@ function renderRelatorio() {
   document.getElementById("relatorio-stat-total").textContent = "R$ " + totalMes.toFixed(2).replace('.',',');
   document.getElementById("relatorio-stat-ticket").textContent= "R$ " + (vendasRelatorio.length ? totalMes / vendasRelatorio.length : 0).toFixed(2).replace('.',',');
 
+  const totalSite = pedidosSiteRelatorio.reduce((s, p) => s + Number(p.total || 0), 0);
+  document.getElementById("relatorio-stat-site").textContent = pedidosSiteRelatorio.length;
+  document.getElementById("relatorio-stat-site-total").textContent = _brl(totalSite);
+
   renderRelatorioGrafico();
+  renderRelatorioHorarios();
   renderRelatorioGraficoPagamento();
 
   const tbody = document.getElementById("relatorio-tabela");
@@ -2859,6 +2916,144 @@ function renderRelatorioGrafico() {
     hitEl.addEventListener("focus", () => mostrarTooltip(hitEl));
     hitEl.addEventListener("blur", () => esconderTooltip(hitEl));
   });
+}
+
+// ── RELATÓRIO POR HORÁRIO (pedidos do site + vendas do balcão) ─────────────
+// Pedidos do site ficam na coleção "pedidos" (gravados pela loja ao enviar o pedido);
+// vendas do balcão ficam em "vendas" (PDV). Aqui os dois viram uma lista só de eventos.
+let pedidosSiteRelatorio = [];
+const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DIAS_SEMANA_LONGO = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+function eventosRelatorio(origem) {
+  const lista = [];
+  if (origem !== "balcao") pedidosSiteRelatorio.forEach(p => {
+    const dt = p.criadoEm?.toDate ? p.criadoEm.toDate() : null;
+    if (dt) lista.push({ dt, total: Number(p.total || 0), origem: "site" });
+  });
+  if (origem !== "site") vendasRelatorio.forEach(v => {
+    const dt = v.criadoEm?.toDate ? v.criadoEm.toDate() : null;
+    if (dt) lista.push({ dt, total: Number(v.total || 0), origem: "balcao" });
+  });
+  return lista;
+}
+
+const _brl = (v) => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const _faixaHora = (h) => `${String(h).padStart(2, "0")}h–${String((h + 1) % 24).padStart(2, "0")}h`;
+
+function renderRelatorioHorarios() {
+  const svg = document.getElementById("relatorio-horario");
+  if (!svg) return;
+  const tooltip = document.getElementById("relatorio-horario-tooltip");
+  const wrap = document.getElementById("relatorio-horario-wrap");
+  const origem = document.getElementById("horario-origem").value;
+  const selDia = document.getElementById("horario-dia");
+  const todos = eventosRelatorio(origem);
+
+  // Preenche o filtro de dias com os dias que tiveram movimento (mantém a escolha atual)
+  const diaEscolhido = selDia.value;
+  const diasComMov = [...new Set(eventosRelatorio("todos").map(e => e.dt.getDate()))].sort((a, b) => a - b);
+  const mesStr = document.getElementById("relatorio-mes").value || mesAtualStr();
+  const [ano, mes] = mesStr.split("-").map(Number);
+  selDia.innerHTML = `<option value="">Todos os dias do mês</option>` + diasComMov.map(d => {
+    const ds = DIAS_SEMANA[new Date(ano, mes - 1, d).getDay()];
+    return `<option value="${d}" ${String(d) === diaEscolhido ? "selected" : ""}>${String(d).padStart(2, "0")}/${String(mes).padStart(2, "0")} (${ds})</option>`;
+  }).join("");
+  if (diaEscolhido && !diasComMov.includes(Number(diaEscolhido))) selDia.value = "";
+
+  const eventos = selDia.value ? todos.filter(e => e.dt.getDate() === Number(selDia.value)) : todos;
+  const porHora = Array.from({ length: 24 }, () => ({ qtd: 0, total: 0 }));
+  eventos.forEach(e => { const h = e.dt.getHours(); porHora[h].qtd++; porHora[h].total += e.total; });
+
+  // Mostra só a faixa de horas com movimento (com folga de 1h), mínimo 10h–22h para não ficar estreito
+  const horasCom = porHora.map((x, h) => x.qtd ? h : null).filter(h => h !== null);
+  let hIni = horasCom.length ? Math.max(0, Math.min(...horasCom) - 1) : 10;
+  let hFim = horasCom.length ? Math.min(23, Math.max(...horasCom) + 1) : 22;
+  if (hFim - hIni < 8) { hIni = Math.max(0, Math.min(hIni, 10)); hFim = Math.min(23, Math.max(hFim, hIni + 12)); }
+  const dados = [];
+  for (let h = hIni; h <= hFim; h++) dados.push({ h, ...porHora[h] });
+
+  // Destaque do pico
+  const destaque = document.getElementById("horario-destaque");
+  const totalQtd = eventos.length;
+  if (!totalQtd) {
+    destaque.innerHTML = "Nenhum pedido neste período ainda. Os pedidos do site passam a ser contados a partir desta atualização.";
+  } else {
+    const pico = dados.reduce((a, b) => b.qtd > a.qtd ? b : a);
+    const pct = Math.round(pico.qtd / totalQtd * 100);
+    const quando = selDia.value ? `no dia ${String(selDia.value).padStart(2, "0")}` : "no mês";
+    destaque.innerHTML = `<i class="fa-solid fa-fire"></i> Horário de pico ${quando}: <strong>${_faixaHora(pico.h)}</strong> — ${pico.qtd} pedido${pico.qtd > 1 ? "s" : ""} (${pct}% do total de ${totalQtd}), ${_brl(pico.total)}`;
+  }
+
+  // Gráfico de barras (quantidade de pedidos por hora)
+  const W = 800, H = 220, padL = 40, padR = 10, padT = 22, padB = 30;
+  const plotW = W - padL - padR, plotH = H - padT - padB, baseline = padT + plotH;
+  const maior = Math.max(1, ...dados.map(d => d.qtd));
+  const eixoMax = maior <= 5 ? maior : arredondarNice(maior);
+  const slot = plotW / dados.length;
+  const barW = Math.max(6, Math.min(34, slot - 8));
+  let parts = "";
+  [0, 0.5, 1].forEach(frac => {
+    const y = baseline - plotH * frac;
+    parts += `<line class="chart-gridline" x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}"></line>`;
+    parts += `<text class="chart-axis-label" x="${padL - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end">${Math.round(eixoMax * frac)}</text>`;
+  });
+  dados.forEach((d, i) => {
+    const x = padL + i * slot + (slot - barW) / 2;
+    const alt = (d.qtd / eixoMax) * plotH;
+    const y = baseline - alt;
+    if (d.qtd > 0) {
+      const rr = Math.min(4, barW / 2, alt);
+      parts += `<path class="chart-bar" id="hora-bar-${d.h}" d="M${x},${(y + rr).toFixed(1)} Q${x},${y.toFixed(1)} ${(x + rr).toFixed(1)},${y.toFixed(1)} L${(x + barW - rr).toFixed(1)},${y.toFixed(1)} Q${(x + barW).toFixed(1)},${y.toFixed(1)} ${(x + barW).toFixed(1)},${(y + rr).toFixed(1)} L${(x + barW).toFixed(1)},${baseline} L${x.toFixed(1)},${baseline} Z"></path>`;
+      parts += `<text class="chart-axis-label" x="${(x + barW / 2).toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="middle" style="fill:var(--text);font-weight:700">${d.qtd}</text>`;
+    }
+    parts += `<rect class="chart-bar-hit" data-h="${d.h}" data-qtd="${d.qtd}" data-total="${d.total}" x="${(padL + i * slot).toFixed(1)}" y="${padT}" width="${slot.toFixed(1)}" height="${plotH}" tabindex="0" role="img" aria-label="${_faixaHora(d.h)}: ${d.qtd} pedidos"></rect>`;
+    parts += `<text class="chart-axis-label" x="${(padL + i * slot + slot / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">${d.h}h</text>`;
+  });
+  svg.innerHTML = parts;
+  svg.querySelectorAll(".chart-bar-hit").forEach(hit => {
+    const mostrar = () => {
+      const qtd = Number(hit.dataset.qtd), total = Number(hit.dataset.total);
+      tooltip.innerHTML = `<strong>${_faixaHora(Number(hit.dataset.h))}</strong> — ${qtd} pedido${qtd === 1 ? "" : "s"} · ${_brl(total)}`;
+      tooltip.hidden = false;
+      const rs = svg.getBoundingClientRect(), rw = wrap.getBoundingClientRect(), esc = rs.width / W;
+      tooltip.style.left = ((Number(hit.getAttribute("x")) + Number(hit.getAttribute("width")) / 2) * esc + (rs.left - rw.left)) + "px";
+      tooltip.style.top = (padT * esc + (rs.top - rw.top) - 6) + "px";
+      document.getElementById("hora-bar-" + hit.dataset.h)?.classList.add("is-hover");
+    };
+    const esconder = () => { tooltip.hidden = true; document.getElementById("hora-bar-" + hit.dataset.h)?.classList.remove("is-hover"); };
+    hit.addEventListener("mouseenter", mostrar); hit.addEventListener("mouseleave", esconder);
+    hit.addEventListener("focus", mostrar); hit.addEventListener("blur", esconder);
+  });
+
+  renderMapaSemanaHorario(todos, hIni, hFim);
+}
+
+// Mapa de calor: linhas = dias da semana, colunas = horas (mês inteiro, mesma origem escolhida)
+function renderMapaSemanaHorario(eventos, hIni, hFim) {
+  const cont = document.getElementById("relatorio-mapa");
+  const destaque = document.getElementById("semana-destaque");
+  const grade = Array.from({ length: 7 }, () => Array(24).fill(0));
+  const porDia = Array(7).fill(0);
+  eventos.forEach(e => { grade[e.dt.getDay()][e.dt.getHours()]++; porDia[e.dt.getDay()]++; });
+  const maior = Math.max(0, ...grade.flat());
+  if (!eventos.length) { cont.innerHTML = ""; destaque.textContent = ""; return; }
+  const ordem = [1, 2, 3, 4, 5, 6, 0]; // segunda primeiro
+  const horas = []; for (let h = hIni; h <= hFim; h++) horas.push(h);
+  let html = `<table class="mapa"><thead><tr><th></th>${horas.map(h => `<th>${h}h</th>`).join("")}<th>Total</th></tr></thead><tbody>`;
+  ordem.forEach(d => {
+    html += `<tr><th>${DIAS_SEMANA[d]}</th>` + horas.map(h => {
+      const q = grade[d][h];
+      const a = q ? (0.18 + 0.82 * q / maior).toFixed(2) : 0;
+      return `<td title="${DIAS_SEMANA_LONGO[d]}, ${_faixaHora(h)}: ${q} pedido${q === 1 ? "" : "s"}" style="${q ? `background:rgba(212,162,76,${a});color:${a > 0.55 ? "#1a1205" : "var(--text)"}` : ""}">${q || ""}</td>`;
+    }).join("") + `<td class="mapa-total">${porDia[d] || ""}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+  cont.innerHTML = html;
+  const melhor = porDia.indexOf(Math.max(...porDia));
+  let picoD = 0, picoH = 0;
+  grade.forEach((linha, d) => linha.forEach((q, h) => { if (q > grade[picoD][picoH]) { picoD = d; picoH = h; } }));
+  destaque.innerHTML = `<i class="fa-solid fa-calendar-week"></i> Dia com mais pedidos: <strong>${DIAS_SEMANA_LONGO[melhor]}</strong> (${porDia[melhor]}) · Momento mais forte: <strong>${DIAS_SEMANA_LONGO[picoD]}, ${_faixaHora(picoH)}</strong> (${grade[picoD][picoH]} pedidos)`;
 }
 
 function renderRelatorioGraficoPagamento() {
