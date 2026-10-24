@@ -11,6 +11,17 @@ Catálogo online com pedido pelo WhatsApp para o **Açaí da Bru** — desenvolv
 - `regras.md` — regras de segurança do Firestore
 - `assets/` — fotos dos produtos (recortes das artes da loja) e logo da TF Solutions
 
+## Plano Gestão (admin)
+
+- **Pedidos** — pedidos do site ao vivo (som + contador), etapas Recebido → Em preparo → Saiu para entrega → Entregue, aviso ao cliente pelo WhatsApp em cada etapa, marcar como pago.
+- **Painel** — vendas, despesas, lucro do mês (caixa), lucro nas vendas (custo × preço), ticket médio, comparação com o mês anterior, mais vendidos e margem do cardápio. Botão **Relatório do mês (PDF)** com comentários automáticos.
+- **Entradas e saídas** — despesas e outras entradas lançadas à mão; vendas do PDV e pedidos pagos entram sozinhos; exportação para planilha (CSV).
+- **Avaliações** — link de avaliação vai na mensagem de "Entregue" (`avaliar.html`, uma avaliação por pedido); a dona aprova quais aparecem na loja.
+- **Ingredientes** — lista única de complementos e adicionais (preço, custo, liga/desliga).
+- **Relatório** — vendas por dia, pedidos por horário e mapa dia da semana × horário.
+
+Coleções do Firestore: `produtos`, `categorias`, `cupons`, `configuracoes`, `vendas` (PDV), `pedidos` (site), `caixa`, `avaliacoes`, `contadores`. Regras em `regras.md`.
+
 ## Colocar no ar
 
 1. Criar o projeto no Firebase, ativar Firestore e Authentication (e-mail/senha) e criar o usuário admin.

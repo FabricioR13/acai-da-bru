@@ -47,6 +47,29 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null;
     }
 
+    // Lançamentos de entradas e saídas (caixa) — só o admin
+    match /caixa/{doc} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Avaliações: o cliente cria UMA por pedido, e só com o código secreto (token)
+    // que veio no link do WhatsApp. A loja mostra só as que a dona aprovou.
+    match /avaliacoes/{pedidoId} {
+      allow create: if request.resource.data.keys().hasOnly(['pedidoId', 'token', 'nota', 'comentario', 'nome', 'permitirPublicar', 'aprovada', 'criadoEm'])
+                    && request.resource.data.pedidoId == pedidoId
+                    && exists(/databases/$(database)/documents/pedidos/$(pedidoId))
+                    && get(/databases/$(database)/documents/pedidos/$(pedidoId)).data.token == request.resource.data.token
+                    && request.resource.data.nota is int
+                    && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
+                    && request.resource.data.comentario is string && request.resource.data.comentario.size() <= 500
+                    && request.resource.data.nome is string && request.resource.data.nome.size() <= 40
+                    && request.resource.data.permitirPublicar is bool
+                    && request.resource.data.aprovada == false
+                    && request.resource.data.criadoEm == request.time;
+      allow read: if resource.data.aprovada == true || request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
     // Numeração diária dos pedidos: o site só pode criar o contador do dia
     // começando em 1, ou somar exatamente +1. Visitante não consegue apagar nem
     // pular números.
@@ -67,6 +90,8 @@ service cloud.firestore {
 - **produtos, categorias, cupons, configuracoes**: qualquer visitante da loja pode *ler* (necessário para o site funcionar sem login), mas só usuários logados no admin podem *escrever* (criar, editar, excluir).
 - **vendas**: dado sensível (faturamento) — só usuários logados podem ler ou escrever. Não é público.
 - **pedidos**: cada pedido enviado pelo site (horário, itens, valores, cliente, telefone e endereço para atender o pedido). O site só cria; só o admin logado vê, muda a etapa ou apaga.
+- **caixa**: despesas e entradas lançadas à mão no admin (aba Entradas e saídas). Só o admin.
+- **avaliacoes**: uma avaliação por pedido (nota, comentário, primeiro nome). Só quem tem o link do pedido avalia; a loja mostra só as aprovadas pela dona.
 - **contadores**: numeração diária dos pedidos (`pedidos-AAAA-MM-DD`). O site só consegue somar +1; só o admin logado apaga.
 
 ## Pré-requisito

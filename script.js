@@ -1597,6 +1597,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 preco: Math.round((Number(item.preco) || 0) * 100) / 100,
                 // Complementos, extras e adicionais escolhidos (mesmo texto do carrinho)
                 detalhes: detalhesDoItem(item).join(" · ").slice(0, 600),
+                // Estrutura usada no cálculo de custo/lucro do admin
+                produtoId: Number(item.id) || null,
+                extras: Number(item.complementosExtras) || 0,
+                adicionais: (item.adicionaisSelecionados || []).slice(0, 30).map((ad) => String(ad.nome || "").slice(0, 40)),
             }));
             const v = (id) => (document.getElementById(id)?.value || "").trim();
             const token = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -1968,7 +1972,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         couponFeedback.hidden = true;
     }
 
+    // --- AVALIAÇÕES APROVADAS (seção "O que nossos clientes dizem") ---
+    // Só lê as que a dona marcou "Mostrar na loja" no admin (as regras do banco exigem o filtro).
+    const carregarAvaliacoesLoja = async () => {
+        const secao = document.getElementById("avaliacoes"), track = document.getElementById("reviews-track");
+        if (!secao) return;
+        try {
+            const snap = await db.collection("avaliacoes").where("aprovada", "==", true).limit(30).get();
+            const lista = snap.docs.map((d) => d.data())
+                .filter((a) => a.aprovada === true && a.comentario)
+                .sort((a, b) => ((b.criadoEm?.toMillis?.() || 0) - (a.criadoEm?.toMillis?.() || 0)))
+                .slice(0, 9);
+            if (!lista.length) return;
+            const esc = (t) => String(t || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+            track.innerHTML = lista.map((a) => `
+                <figure class="review-card">
+                    <div class="review-stars" aria-label="${a.nota} de 5 estrelas">${"★".repeat(a.nota)}<span>${"★".repeat(5 - a.nota)}</span></div>
+                    <blockquote>“${esc(a.comentario)}”</blockquote>
+                    <figcaption>— ${esc(a.nome || "Cliente")}</figcaption>
+                </figure>`).join("");
+            secao.hidden = false;
+        } catch (e) {
+            console.warn("Avaliações indisponíveis:", e);
+        }
+    };
+
     // --- INICIALIZAÇÃO ---
+    carregarAvaliacoesLoja();
     renderPromocoes();
     filtrarEMostrarProdutos();
     atualizarCarrinho();

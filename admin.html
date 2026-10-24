@@ -132,11 +132,15 @@
     .ingr-preco { display: flex; align-items: center; gap: 3px; color: var(--muted); font-size: .8rem; }
     .ingr-preco input { width: 62px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px; color: var(--gold); font-weight: 700; text-align: right; }
     .ingr-vazio { color: var(--muted); font-size: .85rem; }
+    .ingr-custo input { color: var(--muted) !important; font-weight: 500 !important; }
+    .ingr-lista { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important; }
+    @media (max-width: 600px) { .ingr-lista { grid-template-columns: 1fr !important; } }
     .ingr-checklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px; max-height: 220px; overflow-y: auto; }
     .ingr-check { display: flex; align-items: center; gap: 6px; font-size: .85rem; cursor: pointer; }
     .ingr-check input { accent-color: var(--gold); width: 15px; height: 15px; }
     .ingr-check small { color: var(--muted); margin-left: auto; }
-    .tam-cabecalho, .tam-linha { display: grid; grid-template-columns: 1fr 110px 64px 36px; gap: 6px; align-items: center; }
+    .tam-cabecalho, .tam-linha { display: grid; grid-template-columns: 1fr 100px 100px 58px 36px; gap: 6px; align-items: center; }
+    @media (max-width: 600px) { .tam-cabecalho, .tam-linha { grid-template-columns: 1fr 84px 84px 50px 32px; } }
     .tam-cabecalho { font-size: .72rem; color: var(--muted); padding: 0 2px 4px; }
     .tam-linha { margin-bottom: 6px; }
     .tam-linha input { width: 100%; }
@@ -243,6 +247,51 @@
     .ped-acoes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
     .ped-acoes a.btn { text-decoration: none; }
     @media (max-width: 600px) { .ped-lista { grid-template-columns: 1fr; } }
+    /* Avaliações */
+    .aval-resumo { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 12px; }
+    .aval-media { display: flex; flex-direction: column; align-items: center; min-width: 120px; }
+    .aval-media strong { font-size: 2.2rem; color: var(--gold); line-height: 1; }
+    .aval-media small { color: var(--muted); font-size: .75rem; }
+    .aval-estrelas { color: var(--gold); letter-spacing: 2px; }
+    .aval-dist { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 4px; }
+    .aval-linha { display: grid; grid-template-columns: 36px 1fr 30px; gap: 8px; align-items: center; font-size: .78rem; color: var(--muted); }
+    .aval-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+    .aval-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .aval-card.aval-baixa { border-left: 4px solid var(--red); }
+    .aval-card header, .aval-card footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .aval-card header small, .aval-card footer small { color: var(--muted); font-size: .75rem; }
+    .aval-texto { font-size: .88rem; line-height: 1.45; }
+    /* Painel */
+    .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+    .kpi-titulo { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .kpi strong { font-size: 1.5rem; color: var(--gold); }
+    .kpi small { color: var(--muted); font-size: .75rem; }
+    .var { font-size: .72rem; font-weight: 600; }
+    .var-boa { color: var(--green); } .var-ruim { color: var(--red); } .var-neutra { color: var(--muted); font-weight: 400; }
+    .painel-aviso { background: #2a2205; border: 1px solid var(--gold); border-radius: 10px; padding: 10px 14px; font-size: .83rem; margin-bottom: 14px; }
+    .painel-aviso i { color: var(--gold); margin-right: 4px; }
+    #tab-painel td[style*="text-align:right"], #tab-caixa td[style*="text-align:right"] { white-space: nowrap; }
+    .painel-duplo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 1000px) { .painel-duplo { grid-template-columns: 1fr; } }
+    .legenda { font-size: .75rem; color: var(--muted); display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .leg { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-left: 8px; }
+    .leg-ent { background: var(--green); } .leg-sai { background: var(--red); }
+    /* Entradas e saídas */
+    .caixa-tipo { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .caixa-tipo-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 8px 14px; cursor: pointer; font-size: .85rem; }
+    .caixa-tipo-btn[data-tipo=saida].ativo { border-color: var(--red); color: var(--red); background: rgba(244,67,54,.1); }
+    .caixa-tipo-btn[data-tipo=entrada].ativo { border-color: var(--green); color: var(--green); background: rgba(76,175,80,.1); }
+    .caixa-campos { display: grid; grid-template-columns: 1.2fr 2fr .8fr 1fr .9fr auto; gap: 8px; align-items: end; }
+    .caixa-campos label { display: flex; flex-direction: column; gap: 4px; font-size: .75rem; color: var(--muted); }
+    .caixa-campos input, .caixa-campos select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; color: var(--text); font-size: .88rem; width: 100%; }
+    @media (max-width: 900px) { .caixa-campos { grid-template-columns: 1fr 1fr; } .caixa-campos .caixa-desc { grid-column: 1 / -1; } }
+    .barra-h { display: grid; grid-template-columns: 190px 1fr 130px; gap: 10px; align-items: center; font-size: .82rem; margin-bottom: 8px; }
+    .barra-h-trilho { background: var(--surface); border-radius: 999px; height: 12px; overflow: hidden; }
+    .barra-h-trilho span { display: block; height: 100%; background: var(--red); border-radius: 999px; opacity: .8; }
+    .barra-h-valor { text-align: right; font-weight: 700; }
+    .barra-h-valor small { color: var(--muted); font-weight: 400; margin-left: 4px; }
+    @media (max-width: 600px) { .barra-h { grid-template-columns: 1fr; gap: 3px; } .barra-h-valor { text-align: left; } }
     .hora-filtros { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
     .hora-filtros label { display: flex; flex-direction: column; gap: 4px; font-size: .75rem; color: var(--muted); }
     .hora-filtros select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--text); font-size: .85rem; }
@@ -329,6 +378,9 @@
   <div class="app-body">
   <div class="sidebar">
     <button class="side-btn active" onclick="mudarTab('pedidos',this)"><i class="fa-solid fa-receipt"></i> Pedidos <span class="menu-badge" id="menu-ped-badge" hidden>0</span></button>
+    <button class="side-btn" onclick="mudarTab('painel',this)"><i class="fa-solid fa-gauge-high"></i> Painel</button>
+    <button class="side-btn" onclick="mudarTab('caixa',this)"><i class="fa-solid fa-wallet"></i> Entradas e saídas</button>
+    <button class="side-btn" onclick="mudarTab('avaliacoes',this)"><i class="fa-solid fa-star"></i> Avaliações</button>
     <button class="side-btn" onclick="mudarTab('produtos',this)"><i class="fa-solid fa-box"></i> Produtos</button>
     <button class="side-btn" onclick="mudarTab('disponivel',this)"><i class="fa-solid fa-toggle-on"></i> Ingredientes</button>
     <button class="side-btn" onclick="mudarTab('categorias',this)"><i class="fa-solid fa-tags"></i> Categorias</button>
@@ -352,6 +404,99 @@
       </div>
       <div class="ped-filtros" id="ped-filtros"></div>
       <div class="ped-lista" id="ped-lista"><div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div></div>
+    </div>
+
+    <div id="tab-painel" class="tab-panel">
+      <div class="disp-topo">
+        <div>
+          <h2 style="font-size:1.1rem;margin-bottom:4px">Painel do mês</h2>
+          <p style="color:var(--muted);font-size:.8rem">Vendas = pedidos do site <strong>pagos</strong> + balcão (PDV). Lucro usa os custos cadastrados nos produtos e adicionais.</p>
+        </div>
+        <div class="ped-controles">
+          <input type="month" id="painel-mes" onchange="carregarPainel()" aria-label="Mês do painel">
+          <button class="btn btn-primary btn-sm" onclick="gerarRelatorioMensal()"><i class="fa-solid fa-file-lines"></i> Relatório do mês (PDF)</button>
+        </div>
+      </div>
+      <div class="painel-aviso" id="painel-aviso-custo" hidden></div>
+      <div class="kpis" id="painel-kpis"></div>
+      <div class="chart-card">
+        <h3><i class="fa-solid fa-chart-column"></i> Entradas × saídas por dia</h3>
+        <div class="legenda"><span class="leg leg-ent"></span> Entradas <span class="leg leg-sai"></span> Saídas</div>
+        <div class="chart-wrap" id="painel-dias-wrap">
+          <svg id="painel-dias" viewBox="0 0 800 220" role="img" aria-label="Entradas e saídas por dia"></svg>
+          <div class="chart-tooltip" id="painel-dias-tooltip" hidden></div>
+        </div>
+      </div>
+      <div class="painel-duplo">
+        <div class="chart-card">
+          <h3><i class="fa-solid fa-trophy"></i> Mais vendidos no mês</h3>
+          <div class="table-wrap"><table><thead><tr><th>Produto</th><th style="text-align:right">Qtd</th><th style="text-align:right">Vendido</th><th style="text-align:right">Lucro</th></tr></thead><tbody id="painel-top"></tbody></table></div>
+        </div>
+        <div class="chart-card">
+          <h3><i class="fa-solid fa-scale-balanced"></i> Margem do cardápio <small style="color:var(--muted);font-weight:400">(preço × custo de hoje)</small></h3>
+          <div class="table-wrap"><table><thead><tr><th>Produto</th><th style="text-align:right">Preço</th><th style="text-align:right">Custo</th><th style="text-align:right">Margem</th></tr></thead><tbody id="painel-margem"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-caixa" class="tab-panel">
+      <div class="disp-topo">
+        <div>
+          <h2 style="font-size:1.1rem;margin-bottom:4px">Entradas e saídas</h2>
+          <p style="color:var(--muted);font-size:.8rem">Vendas do balcão (PDV) e pedidos do site <strong>marcados como pagos</strong> entram sozinhos. Aqui você lança as despesas e outras entradas.</p>
+        </div>
+        <div class="ped-controles">
+          <input type="month" id="caixa-mes" onchange="carregarCaixa()" aria-label="Mês do caixa">
+          <button class="btn btn-ghost btn-sm" onclick="exportarCaixaCSV()"><i class="fa-solid fa-file-csv"></i> Exportar planilha</button>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="num" id="caixa-entradas" style="color:var(--green)">–</div><div class="lbl">Entradas no mês</div></div>
+        <div class="stat-card"><div class="num" id="caixa-saidas" style="color:var(--red)">–</div><div class="lbl">Saídas no mês</div></div>
+        <div class="stat-card"><div class="num" id="caixa-saldo">–</div><div class="lbl">Saldo do mês</div></div>
+        <div class="stat-card"><div class="num" id="caixa-hoje">–</div><div class="lbl">Saldo de hoje</div></div>
+      </div>
+
+      <div class="chart-card caixa-form">
+        <h3><i class="fa-solid fa-plus"></i> Novo lançamento</h3>
+        <div class="caixa-tipo">
+          <button type="button" class="caixa-tipo-btn ativo" data-tipo="saida" onclick="escolherTipoLanc('saida')"><i class="fa-solid fa-arrow-down"></i> Saída (despesa)</button>
+          <button type="button" class="caixa-tipo-btn" data-tipo="entrada" onclick="escolherTipoLanc('entrada')"><i class="fa-solid fa-arrow-up"></i> Entrada</button>
+        </div>
+        <div class="caixa-campos">
+          <label>Categoria<select id="lanc-categoria"></select></label>
+          <label class="caixa-desc">Descrição<input type="text" id="lanc-descricao" maxlength="80" placeholder="Ex: 10 kg de polpa — Fornecedor X"></label>
+          <label>Valor (R$)<input type="text" id="lanc-valor" inputmode="decimal" placeholder="0,00"></label>
+          <label>Forma<select id="lanc-forma"><option>PIX</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option><option>Boleto</option><option>Transferência</option></select></label>
+          <label>Data<input type="date" id="lanc-data"></label>
+          <button class="btn btn-primary" onclick="salvarLancamento()"><i class="fa-solid fa-floppy-disk"></i> Lançar</button>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3><i class="fa-solid fa-chart-pie"></i> Para onde foi o dinheiro <small style="color:var(--muted);font-weight:400">(saídas por categoria no mês)</small></h3>
+        <div id="caixa-despesas-cat"></div>
+      </div>
+
+      <div class="ped-filtros" id="caixa-filtros"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Forma</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+          <tbody id="caixa-tabela"><tr><td colspan="7"><div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-avaliacoes" class="tab-panel">
+      <div class="disp-topo">
+        <div>
+          <h2 style="font-size:1.1rem;margin-bottom:4px">Avaliações dos clientes</h2>
+          <p style="color:var(--muted);font-size:.8rem">O link de avaliação vai junto da mensagem de "Entregue". Marque <strong>Mostrar na loja</strong> nas que quiser exibir no site (só aparecem as que o cliente autorizou).</p>
+        </div>
+      </div>
+      <div class="aval-resumo" id="aval-resumo"></div>
+      <div class="ped-filtros" id="aval-filtros"></div>
+      <div class="aval-lista" id="aval-lista"><div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div></div>
     </div>
 
     <div id="tab-produtos" class="tab-panel">
@@ -624,12 +769,16 @@
           <label class="toggle-row" style="margin-top:6px"><input type="checkbox" id="config-aceitar-outros-bairros" checked> Aceitar pedido de bairro fora da lista (taxa combinada pelo WhatsApp)</label>
         </div>
         <div class="form-group">
+          <label>Link de avaliação no Google <small style="color:var(--muted)">(opcional — do Perfil de Empresa no Google; vai na mensagem de "Entregue")</small></label>
+          <input type="url" id="config-google-review" placeholder="https://g.page/r/.../review" style="margin-bottom:12px">
           <label>Tempo estimado de entrega</label>
           <input type="text" id="config-tempo-entrega" placeholder="Ex: 40 a 45 minutos">
         </div>
         <div class="form-group">
           <label>Complemento extra <small style="color:var(--muted)">(valor de cada complemento além dos grátis, em qualquer açaí — 0 = não deixa passar do limite)</small></label>
           <input type="number" id="config-complemento-extra" min="0" step="0.5" placeholder="2,00">
+          <label style="margin-top:8px">Custo de cada complemento extra <small style="color:var(--muted)">(quanto custa para você — opcional, usado no cálculo de lucro)</small></label>
+          <input type="number" id="config-custo-complemento-extra" min="0" step="0.1" placeholder="0,50">
         </div>
         <div class="form-group full">
           <label>Dias disponíveis para retirada</label>
@@ -805,7 +954,7 @@
       <div class="form-group"><label>Categoria *</label><select id="form-categoria"><option value="">Selecione...</option></select></div>
       <div class="form-group full">
         <label>Tamanhos e preços * <small style="color:var(--muted)">(produto com um preço só: deixe uma linha, com o nome em branco ou "Unidade")</small></label>
-        <div class="tam-cabecalho"><span>Tamanho</span><span>Preço</span><span title="Complementos grátis">Grátis</span><span></span></div>
+        <div class="tam-cabecalho"><span>Tamanho</span><span>Preço</span><span title="Quanto custa para você fazer (opcional) — usado no cálculo de lucro">Custo</span><span title="Complementos grátis">Grátis</span><span></span></div>
         <div id="form-tamanhos-linhas"></div>
         <button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px;align-self:flex-start" onclick="adicionarTamanhoLinha()"><i class="fa-solid fa-plus"></i> Adicionar tamanho</button>
       </div>
@@ -1217,7 +1366,9 @@ function mensagemEtapa(p, etapa) {
     saiu: _ehEntrega(p)
       ? `Seu pedido ${n} saiu para entrega! 🛵 Logo logo chega aí, ${nome}.`
       : `${nome}, seu pedido ${n} está pronto para retirada! 🍧`,
-    entregue: `Pedido ${n} entregue! Obrigada pela preferência, ${nome} 💜 Bom açaí!`,
+    entregue: `Pedido ${n} entregue! Obrigada pela preferência, ${nome} 💜 Bom açaí!`
+      + (linkAvaliacao(p) ? `\n\nConta pra gente como foi? Leva 10 segundinhos ⭐\n${linkAvaliacao(p)}` : "")
+      + (_cfgLoja.googleReviewUrl ? `\n\nSe puder, deixa também sua opinião no Google — ajuda muito a gente: ${_cfgLoja.googleReviewUrl}` : ""),
     cancelado: `Oi, ${nome}. Seu pedido ${n} foi cancelado. Qualquer dúvida, é só chamar a gente por aqui.`,
   }[etapa];
 }
@@ -1411,6 +1562,522 @@ function abrirPedidoDetalhe(docId) {
   abrirModal("ped-modal");
 }
 
+// ── ENTRADAS E SAÍDAS (Fase 2) ──────────────────────────────────────────────
+// Fonte única da verdade, sem lançamento duplicado:
+//  • vendas do PDV (coleção "vendas")           → entrada "Venda no balcão" (automática)
+//  • pedidos do site marcados como pagos         → entrada "Venda pelo site" (automática)
+//  • lançamentos manuais (coleção "caixa")       → despesas e outras entradas
+const CAIXA_CAT_ENTRADA = ["Outras entradas", "Aporte / dinheiro colocado", "Venda por fora (iFood, encomenda...)"];
+const CAIXA_CAT_SAIDA = [
+  "Açaí / polpa", "Frutas e complementos", "Coberturas e cremes", "Embalagens e descartáveis",
+  "Entregador / combustível", "Aluguel", "Energia, água e gás", "Funcionários",
+  "Impostos e taxas", "Taxas de cartão / maquininha", "Marketing", "Manutenção e equipamentos", "Retirada da dona (pró-labore)", "Outras saídas",
+];
+let _caixaManual = [], _caixaVendas = [], _caixaPedidos = [], _lancamentosCaixa = [];
+let _filtroCaixa = "todos";
+let _tipoLanc = "saida";
+
+const _dataDe = (x) => x?.toDate ? x.toDate() : (x ? new Date(x) : null);
+const _chaveDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+function escolherTipoLanc(tipo) {
+  _tipoLanc = tipo;
+  document.querySelectorAll(".caixa-tipo-btn").forEach(b => b.classList.toggle("ativo", b.dataset.tipo === tipo));
+  document.getElementById("lanc-categoria").innerHTML = (tipo === "saida" ? CAIXA_CAT_SAIDA : CAIXA_CAT_ENTRADA).map(c => `<option>${c}</option>`).join("");
+  document.getElementById("lanc-descricao").placeholder = tipo === "saida" ? "Ex: 10 kg de polpa — Fornecedor X" : "Ex: Encomenda para festa";
+}
+
+// Carrega o mês: lançamentos manuais + vendas do PDV + pedidos pagos do site
+async function carregarCaixaMes(mesStr) {
+  const [ano, mes] = mesStr.split("-").map(Number);
+  const inicio = new Date(ano, mes - 1, 1), fim = new Date(ano, mes, 1);
+  const faixa = (c) => db.collection(c).where(c === "caixa" ? "data" : "criadoEm", ">=", inicio).where(c === "caixa" ? "data" : "criadoEm", "<", fim).get();
+  const [m, v, p] = await Promise.all([
+    faixa("caixa").catch(e => { console.warn(e); return { docs: [] }; }),
+    faixa("vendas").catch(e => { console.warn(e); return { docs: [] }; }),
+    faixa("pedidos").catch(e => { console.warn(e); return { docs: [] }; }),
+  ]);
+  const manual = m.docs.map(d => ({ docId: d.id, ...d.data() }));
+  const vendas = v.docs.map(d => ({ docId: d.id, ...d.data() }));
+  const pedidos = p.docs.map(d => ({ docId: d.id, ...d.data() }));
+  const lanc = [];
+  manual.forEach(l => lanc.push({ id: "m:" + l.docId, docId: l.docId, origem: "manual", tipo: l.tipo, categoria: l.categoria, descricao: l.descricao || "", forma: l.forma || "", valor: Number(l.valor || 0), data: _dataDe(l.data) }));
+  vendas.forEach(vd => lanc.push({ id: "v:" + vd.docId, origem: "pdv", tipo: "entrada", categoria: "Venda no balcão", descricao: `Balcão${vd.cliente ? " — " + vd.cliente : ""} (${(vd.itens || []).reduce((s, i) => s + (i.qtd || 0), 0)} itens)`, forma: vd.pagamento || "", valor: Number(vd.total || 0), data: _dataDe(vd.criadoEm) }));
+  pedidos.filter(pd => pd.pago && pd.status !== "cancelado").forEach(pd => lanc.push({ id: "p:" + pd.docId, origem: "site", tipo: "entrada", categoria: "Venda pelo site", descricao: `Pedido ${pd.numero ? "Nº " + pd.numero : "#" + (pd.codigo || pd.docId.slice(0, 6))} — ${pd.cliente || ""}`, forma: pd.pagamento || "", valor: Number(pd.total || 0), data: _dataDe(pd.pagoEm) || _dataDe(pd.criadoEm) }));
+  return { manual, vendas, pedidos, lanc: lanc.filter(l => l.data).sort((a, b) => b.data - a.data) };
+}
+
+async function carregarCaixa() {
+  const campo = document.getElementById("caixa-mes");
+  if (!campo.value) campo.value = mesAtualStr();
+  if (!document.getElementById("lanc-data").value) document.getElementById("lanc-data").value = _hojeISO();
+  if (!document.getElementById("lanc-categoria").options.length) escolherTipoLanc(_tipoLanc);
+  try {
+    const r = await carregarCaixaMes(campo.value);
+    _caixaManual = r.manual; _caixaVendas = r.vendas; _caixaPedidos = r.pedidos; _lancamentosCaixa = r.lanc;
+    renderCaixa();
+  } catch (e) {
+    document.getElementById("caixa-tabela").innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>Erro ao carregar o caixa: ${_escAttr(e.message)}</p></div></td></tr>`;
+  }
+}
+
+function renderCaixa() {
+  const L = _lancamentosCaixa;
+  const soma = (arr) => arr.reduce((s, l) => s + l.valor, 0);
+  const ent = soma(L.filter(l => l.tipo === "entrada")), sai = soma(L.filter(l => l.tipo === "saida"));
+  const hojeK = _hojeISO();
+  const hoje = L.filter(l => _chaveDia(l.data) === hojeK);
+  const saldoHoje = soma(hoje.filter(l => l.tipo === "entrada")) - soma(hoje.filter(l => l.tipo === "saida"));
+  document.getElementById("caixa-entradas").textContent = _brl(ent);
+  document.getElementById("caixa-saidas").textContent = _brl(sai);
+  const saldoEl = document.getElementById("caixa-saldo");
+  saldoEl.textContent = _brl(ent - sai); saldoEl.style.color = ent - sai >= 0 ? "var(--green)" : "var(--red)";
+  document.getElementById("caixa-hoje").textContent = _brl(saldoHoje);
+
+  // Saídas por categoria (barras horizontais)
+  const porCat = {};
+  L.filter(l => l.tipo === "saida").forEach(l => { porCat[l.categoria] = (porCat[l.categoria] || 0) + l.valor; });
+  const cats = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
+  const maior = cats.length ? cats[0][1] : 0;
+  document.getElementById("caixa-despesas-cat").innerHTML = cats.length ? cats.map(([c, v]) => `
+    <div class="barra-h"><span class="barra-h-nome">${_escAttr(c)}</span>
+      <span class="barra-h-trilho"><span style="width:${Math.max(2, v / maior * 100).toFixed(1)}%"></span></span>
+      <span class="barra-h-valor">${_brl(v)} <small>${Math.round(v / sai * 100)}%</small></span></div>`).join("")
+    : `<p class="ingr-vazio">Nenhuma saída lançada neste mês.</p>`;
+
+  const filtros = [["todos", "Tudo"], ["entrada", "Entradas"], ["saida", "Saídas"], ["manual", "Lançados à mão"]];
+  const conta = { todos: L.length, entrada: L.filter(l => l.tipo === "entrada").length, saida: L.filter(l => l.tipo === "saida").length, manual: L.filter(l => l.origem === "manual").length };
+  document.getElementById("caixa-filtros").innerHTML = filtros.map(([id, nome]) => `<button class="ped-filtro${_filtroCaixa === id ? " ativo" : ""}" onclick="_filtroCaixa='${id}';renderCaixa()">${nome} <span>${conta[id]}</span></button>`).join("");
+
+  const lista = L.filter(l => _filtroCaixa === "todos" || (_filtroCaixa === "manual" ? l.origem === "manual" : l.tipo === _filtroCaixa));
+  const tbody = document.getElementById("caixa-tabela");
+  if (!lista.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-wallet"></i><p>Nenhum lançamento neste mês.</p></div></td></tr>`; return; }
+  const origemTag = { pdv: "automático (PDV)", site: "automático (pedido pago)", manual: "" };
+  tbody.innerHTML = lista.map(l => `<tr>
+    <td>${l.data.toLocaleDateString("pt-BR")} <small style="color:var(--muted)">${l.data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small></td>
+    <td>${l.tipo === "entrada" ? '<span class="badge badge-ativo">Entrada</span>' : '<span class="badge badge-inativo">Saída</span>'}</td>
+    <td>${_escAttr(l.categoria)}${origemTag[l.origem] ? `<br><small style="color:var(--muted)">${origemTag[l.origem]}</small>` : ""}</td>
+    <td>${_escAttr(l.descricao)}</td>
+    <td>${_escAttr(l.forma)}</td>
+    <td style="text-align:right;font-weight:700;color:${l.tipo === "entrada" ? "var(--green)" : "var(--red)"}">${l.tipo === "entrada" ? "+" : "−"} ${_brl(l.valor)}</td>
+    <td>${l.origem === "manual" ? `<button class="btn btn-danger btn-sm" title="Excluir lançamento" onclick="excluirLancamento('${l.docId}')"><i class="fa-solid fa-trash"></i></button>` : ""}</td>
+  </tr>`).join("");
+}
+
+async function salvarLancamento() {
+  const valor = _lerPreco(document.getElementById("lanc-valor").value);
+  const descricao = document.getElementById("lanc-descricao").value.trim();
+  const dataStr = document.getElementById("lanc-data").value || _hojeISO();
+  if (!valor) { toast("Digite o valor do lançamento.", "err"); document.getElementById("lanc-valor").focus(); return; }
+  const [a, m, d] = dataStr.split("-").map(Number);
+  const agora = new Date();
+  // Hoje: guarda a hora atual; outro dia: meio-dia (para não "pular" de dia por fuso)
+  const data = dataStr === _hojeISO() ? agora : new Date(a, m - 1, d, 12, 0, 0);
+  try {
+    await db.collection("caixa").add({
+      tipo: _tipoLanc,
+      categoria: document.getElementById("lanc-categoria").value,
+      descricao, valor,
+      forma: document.getElementById("lanc-forma").value,
+      data: firebase.firestore.Timestamp.fromDate(data),
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    toast(`${_tipoLanc === "saida" ? "Saída" : "Entrada"} de ${_brl(valor)} lançada`, "ok");
+    document.getElementById("lanc-valor").value = "";
+    document.getElementById("lanc-descricao").value = "";
+    const mesLanc = dataStr.slice(0, 7);
+    if (document.getElementById("caixa-mes").value !== mesLanc) document.getElementById("caixa-mes").value = mesLanc;
+    await carregarCaixa();
+  } catch (e) { toast("Erro ao lançar: " + e.message, "err"); }
+}
+
+function excluirLancamento(docId) {
+  const l = _caixaManual.find(x => x.docId === docId);
+  document.getElementById("confirm-msg").textContent = `Excluir o lançamento "${l?.descricao || l?.categoria || ""}" de ${_brl(l?.valor)}?`;
+  document.getElementById("confirm-ok-btn").onclick = async () => {
+    try { await db.collection("caixa").doc(docId).delete(); toast("Lançamento excluído.", "ok"); fecharModal("confirm-modal"); await carregarCaixa(); }
+    catch (e) { toast("Erro: " + e.message, "err"); }
+  };
+  abrirModal("confirm-modal");
+}
+
+// Planilha (abre no Excel / Google Planilhas): separador ";" e vírgula decimal, padrão Brasil
+function exportarCaixaCSV() {
+  const linhas = [["Data", "Hora", "Tipo", "Categoria", "Descrição", "Forma", "Valor"]];
+  [..._lancamentosCaixa].sort((a, b) => a.data - b.data).forEach(l => linhas.push([
+    l.data.toLocaleDateString("pt-BR"), l.data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+    l.tipo === "entrada" ? "Entrada" : "Saída", l.categoria, l.descricao, l.forma,
+    (l.tipo === "saida" ? -l.valor : l.valor).toFixed(2).replace(".", ","),
+  ]));
+  const csv = "﻿" + linhas.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `caixa-${document.getElementById("caixa-mes").value || mesAtualStr()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+// ── PAINEL: CUSTO, MARGEM E LUCRO (Fase 3) ──────────────────────────────────
+let _painel = null; // último cálculo (reaproveitado pelo relatório mensal)
+
+function _tamanhoDoProduto(prod, nomeTam, preco) {
+  const tams = Array.isArray(prod?.tamanhos) ? prod.tamanhos : [];
+  return tams.find(t => _normNome(t.nome) === _normNome(nomeTam) && nomeTam)
+    || tams.find(t => Math.abs(Number(t.preco) - Number(preco)) < 0.005)
+    || tams[0] || null;
+}
+function _custoAdicional(nome) {
+  const a = _adicionaisLoja.find(x => _normNome(x.nome) === _normNome(nome));
+  return a ? Number(a.custo) || 0 : 0;
+}
+// Custo de UMA unidade vendida. "temCusto" diz se o custo do tamanho foi cadastrado.
+function custoItemPedido(it) {
+  const prod = todosProdutos.find(p => Number(p.id) === Number(it.produtoId)) || todosProdutos.find(p => _normNome(p.nome) === _normNome(it.nome));
+  const tam = _tamanhoDoProduto(prod, it.tamanho, null);
+  const base = Number(tam?.custo) || 0;
+  const extras = (Number(it.extras) || 0) * (Number(_cfgLoja.custoComplementoExtra) || 0);
+  const adic = (it.adicionais || []).reduce((s, n) => s + _custoAdicional(n), 0);
+  return { custo: base + extras + adic, temCusto: base > 0, nome: prod?.nome || it.nome, tamanho: tam?.nome || it.tamanho || "" };
+}
+function custoItemPdv(it) {
+  const prod = todosProdutos.find(p => p.docId === it.docId) || todosProdutos.find(p => _normNome(p.nome) === _normNome(it.nome));
+  const tam = _tamanhoDoProduto(prod, null, it.preco);
+  const base = Number(tam?.custo) || 0;
+  return { custo: base, temCusto: base > 0, nome: prod?.nome || it.nome, tamanho: (prod?.tamanhos || []).length > 1 ? (tam?.nome || "") : "" };
+}
+
+function calcularPainel(r) {
+  const L = r.lanc;
+  const soma = (arr) => arr.reduce((s, l) => s + l.valor, 0);
+  const vendas = soma(L.filter(l => l.origem === "site" || l.origem === "pdv"));
+  const outrasEnt = soma(L.filter(l => l.origem === "manual" && l.tipo === "entrada"));
+  const despesas = soma(L.filter(l => l.tipo === "saida"));
+  const porCat = {};
+  L.filter(l => l.tipo === "saida").forEach(l => { porCat[l.categoria] = (porCat[l.categoria] || 0) + l.valor; });
+
+  // Itens vendidos (pedidos pagos + PDV) com receita e custo
+  const top = {};
+  let cpv = 0, receitaItens = 0, receitaComCusto = 0;
+  const somar = (chave, nome, qtd, receita, custoUnit, temCusto) => {
+    const t = top[chave] = top[chave] || { nome, qtd: 0, receita: 0, custo: 0, semCusto: 0 };
+    t.qtd += qtd; t.receita += receita; t.custo += custoUnit * qtd;
+    if (!temCusto) t.semCusto += qtd;
+    cpv += custoUnit * qtd; receitaItens += receita; if (temCusto) receitaComCusto += receita;
+  };
+  r.pedidos.filter(p => p.pago && p.status !== "cancelado").forEach(p => (p.itens || []).forEach(it => {
+    const c = custoItemPedido(it), q = Number(it.quantidade) || 1;
+    somar(`${c.nome}|${c.tamanho}`, c.tamanho ? `${c.nome} (${c.tamanho})` : c.nome, q, (Number(it.preco) || 0) * q, c.custo, c.temCusto);
+  }));
+  r.vendas.forEach(v => (v.itens || []).forEach(it => {
+    const c = custoItemPdv(it), q = Number(it.qtd) || 1;
+    somar(`${c.nome}|${c.tamanho}`, c.tamanho ? `${c.nome} (${c.tamanho})` : c.nome, q, (Number(it.preco) || 0) * q, c.custo, c.temCusto);
+  }));
+  const qtdVendas = r.pedidos.filter(p => p.pago && p.status !== "cancelado").length + r.vendas.length;
+  const lucroBruto = receitaItens - cpv;
+  return {
+    vendas, outrasEnt, despesas, entradas: vendas + outrasEnt,
+    lucroLiquido: vendas + outrasEnt - despesas,
+    cpv, receitaItens, lucroBruto, margemBruta: receitaItens ? lucroBruto / receitaItens : 0,
+    coberturaCusto: receitaItens ? receitaComCusto / receitaItens : 0,
+    qtdVendas, ticket: qtdVendas ? vendas / qtdVendas : 0,
+    pedidosSite: r.pedidos.filter(p => p.status !== "cancelado").length,
+    porCat: Object.entries(porCat).sort((a, b) => b[1] - a[1]),
+    top: Object.values(top).sort((a, b) => b.qtd - a.qtd),
+    lanc: L, pedidos: r.pedidos, vendasDocs: r.vendas,
+  };
+}
+
+function _mesAnterior(mesStr) {
+  const [a, m] = mesStr.split("-").map(Number);
+  const d = new Date(a, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+const _variacao = (atual, ant) => (!ant ? null : (atual - ant) / Math.abs(ant));
+function _chipVar(v, inverso = false) {
+  if (v === null || !isFinite(v)) return `<span class="var var-neutra">sem mês anterior</span>`;
+  const bom = inverso ? v <= 0 : v >= 0;
+  return `<span class="var ${bom ? "var-boa" : "var-ruim"}">${v >= 0 ? "▲" : "▼"} ${Math.abs(v * 100).toFixed(0)}% vs mês anterior</span>`;
+}
+
+async function carregarPainel() {
+  const campo = document.getElementById("painel-mes");
+  if (!campo.value) campo.value = mesAtualStr();
+  document.getElementById("painel-kpis").innerHTML = `<div class="loader"><i class="fa-solid fa-spinner"></i> Calculando...</div>`;
+  try {
+    const [atual, ant] = await Promise.all([carregarCaixaMes(campo.value), carregarCaixaMes(_mesAnterior(campo.value))]);
+    const P = calcularPainel(atual), A = calcularPainel(ant);
+    _painel = { mes: campo.value, P, A };
+    renderPainel(P, A, campo.value);
+  } catch (e) {
+    document.getElementById("painel-kpis").innerHTML = `<div class="empty-state"><p>Erro ao calcular o painel: ${_escAttr(e.message)}</p></div>`;
+  }
+}
+
+function renderPainel(P, A, mesStr) {
+  const kpi = (titulo, valor, extra = "", cor = "") => `<div class="kpi"><span class="kpi-titulo">${titulo}</span><strong style="${cor ? `color:${cor}` : ""}">${valor}</strong>${extra}</div>`;
+  const pct = (v) => `${(v * 100).toFixed(0)}%`;
+  document.getElementById("painel-kpis").innerHTML = [
+    kpi("Vendas", _brl(P.vendas), _chipVar(_variacao(P.vendas, A.vendas))),
+    kpi("Despesas", _brl(P.despesas), _chipVar(_variacao(P.despesas, A.despesas), true), "var(--red)"),
+    kpi("Lucro do mês (caixa)", _brl(P.lucroLiquido), `<small>entradas − saídas</small>${_chipVar(_variacao(P.lucroLiquido, A.lucroLiquido))}`, P.lucroLiquido >= 0 ? "var(--green)" : "var(--red)"),
+    kpi("Lucro nas vendas", P.cpv ? _brl(P.lucroBruto) : "—", P.cpv ? `<small>margem de ${pct(P.margemBruta)} · custo dos produtos ${_brl(P.cpv)}</small>` : `<small>cadastre os custos para ver</small>`),
+    kpi("Vendas no mês", String(P.qtdVendas), `<small>${P.pedidosSite} pedido${P.pedidosSite === 1 ? "" : "s"} pelo site</small>`),
+    kpi("Ticket médio", _brl(P.ticket), _chipVar(_variacao(P.ticket, A.ticket))),
+  ].join("");
+
+  const aviso = document.getElementById("painel-aviso-custo");
+  if (P.receitaItens && P.coberturaCusto < 0.95) {
+    aviso.hidden = false;
+    aviso.innerHTML = `<i class="fa-solid fa-circle-info"></i> Só ${pct(P.coberturaCusto)} do que foi vendido tem custo cadastrado — o "Lucro nas vendas" ainda está incompleto. Preencha o <strong>Custo</strong> em cada tamanho (Produtos → Editar) e nos adicionais (Ingredientes).`;
+  } else aviso.hidden = true;
+
+  // Entradas × saídas por dia
+  const [ano, mes] = mesStr.split("-").map(Number);
+  const nd = new Date(ano, mes, 0).getDate();
+  const ent = Array(nd + 1).fill(0), sai = Array(nd + 1).fill(0);
+  P.lanc.forEach(l => { const d = l.data.getDate(); (l.tipo === "entrada" ? ent : sai)[d] += l.valor; });
+  const svg = document.getElementById("painel-dias"), tip = document.getElementById("painel-dias-tooltip"), wrap = document.getElementById("painel-dias-wrap");
+  const W = 800, H = 220, pl = 54, pr = 10, pt = 14, pb = 30, plotW = W - pl - pr, plotH = H - pt - pb, base = pt + plotH;
+  const eixo = arredondarNice(Math.max(1, ...ent, ...sai));
+  const slot = plotW / nd, bw = Math.max(2, Math.min(10, slot / 2 - 2));
+  let partes = "";
+  [0, .5, 1].forEach(f => { const y = base - plotH * f; partes += `<line class="chart-gridline" x1="${pl}" y1="${y}" x2="${W - pr}" y2="${y}"></line><text class="chart-axis-label" x="${pl - 8}" y="${y + 3}" text-anchor="end">${formatarMoedaCompacta(eixo * f)}</text>`; });
+  for (let d = 1; d <= nd; d++) {
+    const x = pl + (d - 1) * slot + slot / 2;
+    const he = ent[d] / eixo * plotH, hs = sai[d] / eixo * plotH;
+    if (he > 0) partes += `<rect x="${(x - bw - 1).toFixed(1)}" y="${(base - he).toFixed(1)}" width="${bw}" height="${he.toFixed(1)}" rx="2" fill="var(--green)"></rect>`;
+    if (hs > 0) partes += `<rect x="${(x + 1).toFixed(1)}" y="${(base - hs).toFixed(1)}" width="${bw}" height="${hs.toFixed(1)}" rx="2" fill="var(--red)" opacity=".85"></rect>`;
+    partes += `<rect class="chart-bar-hit" data-d="${d}" x="${(pl + (d - 1) * slot).toFixed(1)}" y="${pt}" width="${slot.toFixed(1)}" height="${plotH}" tabindex="0"></rect>`;
+    if (d === 1 || d === nd || d % 5 === 0) partes += `<text class="chart-axis-label" x="${x.toFixed(1)}" y="${H - 8}" text-anchor="middle">${d}</text>`;
+  }
+  svg.innerHTML = partes;
+  svg.querySelectorAll(".chart-bar-hit").forEach(h => {
+    const mostra = () => {
+      const d = Number(h.dataset.d);
+      tip.innerHTML = `<strong>Dia ${d}</strong><br>Entradas ${_brl(ent[d])}<br>Saídas ${_brl(sai[d])}`;
+      tip.hidden = false;
+      const rs = svg.getBoundingClientRect(), rw = wrap.getBoundingClientRect(), e = rs.width / W;
+      tip.style.left = ((Number(h.getAttribute("x")) + slot / 2) * e + rs.left - rw.left) + "px";
+      tip.style.top = (pt * e + rs.top - rw.top - 6) + "px";
+    };
+    h.addEventListener("mouseenter", mostra); h.addEventListener("focus", mostra);
+    h.addEventListener("mouseleave", () => tip.hidden = true); h.addEventListener("blur", () => tip.hidden = true);
+  });
+
+  // Mais vendidos
+  document.getElementById("painel-top").innerHTML = P.top.length ? P.top.slice(0, 10).map(t => `<tr>
+    <td>${_escAttr(t.nome)}</td><td style="text-align:right">${t.qtd}</td><td style="text-align:right">${_brl(t.receita)}</td>
+    <td style="text-align:right">${t.semCusto === t.qtd ? '<small style="color:var(--muted)">sem custo</small>' : _brl(t.receita - t.custo)}</td></tr>`).join("")
+    : `<tr><td colspan="4"><div class="empty-state"><p>Nenhuma venda paga neste mês ainda.</p></div></td></tr>`;
+
+  // Margem do cardápio (todos os tamanhos dos produtos ativos)
+  const linhas = [];
+  todosProdutos.filter(p => p.ativo !== false).forEach(p => (p.tamanhos || []).forEach(t => linhas.push({ nome: (p.tamanhos.length > 1 || t.nome) ? `${p.nome}${t.nome ? ` (${t.nome})` : ""}` : p.nome, preco: Number(t.preco) || 0, custo: Number(t.custo) || 0 })));
+  linhas.sort((a, b) => (a.custo ? (a.preco - a.custo) / a.preco : 2) - (b.custo ? (b.preco - b.custo) / b.preco : 2));
+  document.getElementById("painel-margem").innerHTML = linhas.map(l => {
+    if (!l.custo) return `<tr><td>${_escAttr(l.nome)}</td><td style="text-align:right">${_brl(l.preco)}</td><td style="text-align:right" colspan="2"><small style="color:var(--muted)">cadastre o custo</small></td></tr>`;
+    const m = (l.preco - l.custo) / l.preco;
+    const cor = m < 0.3 ? "var(--red)" : m < 0.5 ? "var(--gold)" : "var(--green)";
+    return `<tr><td>${_escAttr(l.nome)}</td><td style="text-align:right">${_brl(l.preco)}</td><td style="text-align:right">${_brl(l.custo)}</td><td style="text-align:right;color:${cor};font-weight:700">${(m * 100).toFixed(0)}% <small style="color:var(--muted);font-weight:400">${_brl(l.preco - l.custo)}</small></td></tr>`;
+  }).join("") || `<tr><td colspan="4"><p class="ingr-vazio">Sem produtos.</p></td></tr>`;
+}
+
+// ── AVALIAÇÕES (Fase 4) ─────────────────────────────────────────────────────
+let _avaliacoes = [];
+let _filtroAval = "todas";
+const _estrelas = (n) => "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(0, 5 - n);
+
+async function carregarAvaliacoes() {
+  try {
+    const snap = await db.collection("avaliacoes").get();
+    _avaliacoes = snap.docs.map(d => ({ docId: d.id, ...d.data() }))
+      .sort((a, b) => (_dataDe(b.criadoEm) || 0) - (_dataDe(a.criadoEm) || 0));
+    renderAvaliacoes();
+  } catch (e) {
+    document.getElementById("aval-lista").innerHTML = `<div class="empty-state"><p>Não foi possível carregar as avaliações: ${_escAttr(e.message)}.<br>Confira se as regras novas do Firestore foram publicadas.</p></div>`;
+  }
+}
+
+function renderAvaliacoes() {
+  const A = _avaliacoes;
+  const media = A.length ? A.reduce((s, a) => s + Number(a.nota || 0), 0) / A.length : 0;
+  const dist = [5, 4, 3, 2, 1].map(n => ({ n, q: A.filter(a => Number(a.nota) === n).length }));
+  const maior = Math.max(1, ...dist.map(d => d.q));
+  document.getElementById("aval-resumo").innerHTML = A.length ? `
+    <div class="aval-media"><strong>${media.toFixed(1).replace(".", ",")}</strong><span class="aval-estrelas">${_estrelas(Math.round(media))}</span><small>${A.length} avaliaç${A.length === 1 ? "ão" : "ões"}</small></div>
+    <div class="aval-dist">${dist.map(d => `<div class="aval-linha"><span>${d.n} ★</span><span class="barra-h-trilho"><span style="width:${(d.q / maior * 100).toFixed(0)}%;background:var(--gold)"></span></span><span>${d.q}</span></div>`).join("")}</div>`
+    : `<p class="ingr-vazio">Nenhuma avaliação ainda. Elas chegam quando você marca um pedido como <strong>Entregue</strong> e o cliente abre o link da mensagem.</p>`;
+
+  const filtros = [["todas", "Todas", () => true], ["boas", "4 e 5 ★", a => a.nota >= 4], ["ruins", "1 a 3 ★", a => a.nota <= 3], ["loja", "Na loja", a => a.aprovada]];
+  document.getElementById("aval-filtros").innerHTML = A.length ? filtros.map(([id, nome, fn]) => `<button class="ped-filtro${_filtroAval === id ? " ativo" : ""}" onclick="_filtroAval='${id}';renderAvaliacoes()">${nome} <span>${A.filter(fn).length}</span></button>`).join("") : "";
+  const lista = A.filter((filtros.find(f => f[0] === _filtroAval) || filtros[0])[2]);
+  document.getElementById("aval-lista").innerHTML = lista.map(a => {
+    const dt = _dataDe(a.criadoEm);
+    const ped = _pedidos.find(p => p.docId === a.pedidoId);
+    return `<article class="aval-card${a.nota <= 3 ? " aval-baixa" : ""}">
+      <header><span class="aval-estrelas">${_estrelas(Number(a.nota) || 0)}</span><small>${dt ? dt.toLocaleDateString("pt-BR") + " " + dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : ""}</small></header>
+      <p class="aval-texto">${a.comentario ? _escAttr(a.comentario) : '<em style="color:var(--muted)">Sem comentário</em>'}</p>
+      <footer>
+        <small>${_escAttr(a.nome || "Cliente")}${ped ? ` · pedido ${_nomePedido(ped)}` : ""}</small>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${a.permitirPublicar ? `<label class="toggle-row" title="Exibe esta avaliação na seção 'O que nossos clientes dizem' da loja"><input type="checkbox" ${a.aprovada ? "checked" : ""} onchange="aprovarAvaliacao('${a.docId}', this.checked)"> Mostrar na loja</label>` : `<small style="color:var(--muted)" title="O cliente pediu para não exibir no site">privada</small>`}
+          <button class="btn btn-danger btn-sm" title="Excluir avaliação" onclick="excluirAvaliacao('${a.docId}')"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </footer>
+    </article>`;
+  }).join("");
+}
+
+async function aprovarAvaliacao(docId, aprovada) {
+  try {
+    await db.collection("avaliacoes").doc(docId).update({ aprovada });
+    const a = _avaliacoes.find(x => x.docId === docId); if (a) a.aprovada = aprovada;
+    toast(aprovada ? "Avaliação vai aparecer na loja" : "Avaliação saiu da loja", "ok");
+    renderAvaliacoes();
+  } catch (e) { toast("Erro: " + e.message, "err"); }
+}
+function excluirAvaliacao(docId) {
+  document.getElementById("confirm-msg").textContent = "Excluir esta avaliação? Ela some do admin e da loja.";
+  document.getElementById("confirm-ok-btn").onclick = async () => {
+    try { await db.collection("avaliacoes").doc(docId).delete(); toast("Avaliação excluída.", "ok"); fecharModal("confirm-modal"); await carregarAvaliacoes(); }
+    catch (e) { toast("Erro: " + e.message, "err"); }
+  };
+  abrirModal("confirm-modal");
+}
+
+// Link de avaliação do pedido (vai na mensagem de "Entregue")
+function linkAvaliacao(p) {
+  if (!p.token) return "";
+  const base = location.href.split("#")[0].split("?")[0].replace(/[^/]*$/, "");
+  return `${base}avaliar.html?id=${encodeURIComponent(p.docId)}&t=${p.token}${p.numero ? `&n=${p.numero}` : ""}`;
+}
+
+// ── RELATÓRIO MENSAL COMENTADO (Fase 5) ─────────────────────────────────────
+// Abre uma página pronta para imprimir / "Salvar como PDF", com os números do mês e
+// frases automáticas (comparação com o mês anterior, picos, produtos, despesas, avaliações).
+const NOMES_MES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+function _comentariosDoMes(P, A, extras) {
+  const c = [];
+  const pc = (v) => `${Math.abs(v * 100).toFixed(0)}%`;
+  const vV = _variacao(P.vendas, A.vendas);
+  if (P.vendas === 0) c.push("Ainda não há vendas pagas registradas neste mês. Lembre de marcar os pedidos do site como <strong>Pago</strong> e de usar o PDV no balcão.");
+  else if (vV === null) c.push(`As vendas somaram <strong>${_brl(P.vendas)}</strong> em ${P.qtdVendas} venda${P.qtdVendas === 1 ? "" : "s"}.`);
+  else c.push(`As vendas somaram <strong>${_brl(P.vendas)}</strong>, ${vV >= 0 ? `<span class="bom">${pc(vV)} a mais</span>` : `<span class="ruim">${pc(vV)} a menos</span>`} que no mês anterior (${_brl(A.vendas)}).`);
+
+  if (P.despesas > 0 || P.entradas > 0) {
+    c.push(`Depois das despesas (${_brl(P.despesas)}), o caixa do mês fechou em <strong class="${P.lucroLiquido >= 0 ? "bom" : "ruim"}">${_brl(P.lucroLiquido)}</strong>${P.lucroLiquido < 0 ? " — saiu mais dinheiro do que entrou; vale olhar as maiores despesas abaixo" : ""}.`);
+  }
+  if (P.cpv > 0) c.push(`Nas vendas com custo cadastrado, a margem média foi de <strong>${pc(P.margemBruta)}</strong>${P.margemBruta < 0.4 ? " — abaixo do ideal para açaí (o comum é 50% ou mais); revise preços ou custos" : ""}.`);
+  else if (P.vendas > 0) c.push("Cadastre o <strong>custo</strong> de cada tamanho e dos adicionais para o relatório mostrar o lucro real de cada venda.");
+
+  const vT = _variacao(P.ticket, A.ticket);
+  if (P.ticket > 0) c.push(`Cada cliente gastou em média <strong>${_brl(P.ticket)}</strong>${vT !== null ? ` (${vT >= 0 ? "subiu" : "caiu"} ${pc(vT)})` : ""}.${P.ticket < 25 ? " Oferecer adicionais e o Combo Casal ajuda a aumentar esse valor." : ""}`);
+
+  if (P.top.length) {
+    const t = P.top[0];
+    c.push(`O campeão de vendas foi <strong>${_escAttr(t.nome)}</strong> (${t.qtd} unidade${t.qtd === 1 ? "" : "s"}, ${_brl(t.receita)}).`);
+    const lucrativos = P.top.filter(x => x.semCusto < x.qtd).sort((a, b) => (b.receita - b.custo) - (a.receita - a.custo));
+    if (lucrativos.length && lucrativos[0].nome !== t.nome) c.push(`O que mais deu lucro foi <strong>${_escAttr(lucrativos[0].nome)}</strong> (${_brl(lucrativos[0].receita - lucrativos[0].custo)}).`);
+  }
+  if (extras.pico) c.push(`O horário de mais movimento foi <strong>${extras.pico}</strong>, e o melhor dia da semana foi <strong>${extras.melhorDia}</strong> — bom momento para reforçar a equipe e postar stories antes.`);
+  if (extras.bairro) c.push(`O bairro que mais pediu foi <strong>${_escAttr(extras.bairro)}</strong>.`);
+
+  if (P.porCat.length) {
+    const [cat, val] = P.porCat[0];
+    c.push(`A maior despesa foi <strong>${_escAttr(cat)}</strong>: ${_brl(val)} (${Math.round(val / P.despesas * 100)}% das saídas).`);
+    const antCat = Object.fromEntries(A.porCat);
+    P.porCat.forEach(([k, v]) => { const va = _variacao(v, antCat[k]); if (va !== null && va > 0.25 && v > 50) c.push(`Atenção: os gastos com <strong>${_escAttr(k)}</strong> subiram ${pc(va)} em relação ao mês anterior.`); });
+  }
+  const baixa = extras.margensBaixas;
+  if (baixa.length) c.push(`Margem baixa no cardápio (menos de 30%): ${baixa.map(x => `<strong>${_escAttr(x)}</strong>`).join(", ")}. Vale revisar o preço ou a porção.`);
+  if (extras.aval.qtd) c.push(`Os clientes deram nota média <strong>${extras.aval.media.toFixed(1).replace(".", ",")} de 5</strong> em ${extras.aval.qtd} avaliaç${extras.aval.qtd === 1 ? "ão" : "ões"}${extras.aval.baixas ? ` — ${extras.aval.baixas} com nota até 3; leia os comentários para entender o que melhorar` : " 💜"}.`);
+  return c;
+}
+
+async function gerarRelatorioMensal() {
+  // Abre a janela já no clique (senão o navegador bloqueia) e preenche depois
+  const jan = window.open("", "_blank");
+  if (!jan) { toast("O navegador bloqueou a janela do relatório. Permita pop-ups para este site.", "err"); return; }
+  jan.document.write("<p style='font-family:sans-serif;padding:24px'>Gerando relatório…</p>");
+  const mes = document.getElementById("painel-mes").value || mesAtualStr();
+  if (!_painel || _painel.mes !== mes) await carregarPainel();
+  const { P, A } = _painel;
+  const [ano, m] = mes.split("-").map(Number);
+
+  // Horários (site + balcão) e bairros
+  const ev = [];
+  P.pedidos.filter(p => p.status !== "cancelado").forEach(p => { const d = _dataDe(p.criadoEm); if (d) ev.push(d); });
+  P.vendasDocs.forEach(v => { const d = _dataDe(v.criadoEm); if (d) ev.push(d); });
+  const porHora = Array(24).fill(0), porDia = Array(7).fill(0);
+  ev.forEach(d => { porHora[d.getHours()]++; porDia[d.getDay()]++; });
+  const hPico = porHora.indexOf(Math.max(...porHora));
+  const bairros = {};
+  P.pedidos.filter(p => p.status !== "cancelado" && p.bairro).forEach(p => { bairros[p.bairro] = (bairros[p.bairro] || 0) + 1; });
+  const bairroTop = Object.entries(bairros).sort((a, b) => b[1] - a[1])[0];
+
+  // Avaliações do mês
+  let aval = { qtd: 0, media: 0, baixas: 0 };
+  try {
+    const snap = await db.collection("avaliacoes").get();
+    const doMes = snap.docs.map(d => d.data()).filter(a => { const d = _dataDe(a.criadoEm); return d && d.getFullYear() === ano && d.getMonth() === m - 1; });
+    if (doMes.length) aval = { qtd: doMes.length, media: doMes.reduce((s, a) => s + Number(a.nota || 0), 0) / doMes.length, baixas: doMes.filter(a => a.nota <= 3).length };
+  } catch (e) { /* sem avaliações */ }
+
+  const margensBaixas = [];
+  todosProdutos.filter(p => p.ativo !== false).forEach(p => (p.tamanhos || []).forEach(t => {
+    if (Number(t.custo) > 0 && (t.preco - t.custo) / t.preco < 0.3) margensBaixas.push(`${p.nome}${t.nome ? ` (${t.nome})` : ""}`);
+  }));
+  const comentarios = _comentariosDoMes(P, A, {
+    pico: ev.length ? _faixaHora(hPico) : "", melhorDia: ev.length ? DIAS_SEMANA_LONGO[porDia.indexOf(Math.max(...porDia))] : "",
+    bairro: bairroTop ? `${bairroTop[0]} (${bairroTop[1]} pedidos)` : "", margensBaixas, aval,
+  });
+
+  const loja = _cfgLoja.nomeLoja || "Açaí da Bru";
+  const linhaKpi = (t, v, s = "") => `<div class="k"><span>${t}</span><strong>${v}</strong>${s ? `<small>${s}</small>` : ""}</div>`;
+  const varTxt = (v, inv) => v === null || !isFinite(v) ? "" : `${v >= 0 ? "▲" : "▼"} ${Math.abs(v * 100).toFixed(0)}% vs mês anterior`;
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório ${NOMES_MES[m - 1]} ${ano} – ${_escAttr(loja)}</title>
+  <style>
+    *{box-sizing:border-box} body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#2B1420;margin:0;padding:28px;max-width:860px;margin:auto}
+    header{display:flex;align-items:center;gap:16px;border-bottom:3px solid #7A1F4B;padding-bottom:12px;margin-bottom:18px}
+    header img{height:64px} h1{margin:0;font-size:1.4rem;color:#2B0D1E} header p{margin:2px 0 0;color:#6b7280;font-size:.85rem}
+    h2{font-size:1rem;color:#7A1F4B;margin:22px 0 8px;border-bottom:1px solid #EEDDE3;padding-bottom:4px}
+    .ks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px} .k{border:1px solid #EEDDE3;border-radius:10px;padding:10px 12px}
+    .k span{font-size:.7rem;text-transform:uppercase;color:#6b7280;letter-spacing:.04em;display:block} .k strong{font-size:1.25rem;color:#2B0D1E} .k small{display:block;font-size:.72rem;color:#6b7280}
+    ul.com{padding-left:18px;line-height:1.6;font-size:.92rem} ul.com li{margin-bottom:6px} .bom{color:#16a34a} .ruim{color:#dc2626}
+    table{width:100%;border-collapse:collapse;font-size:.85rem} th,td{padding:6px 8px;border-bottom:1px solid #f1e7ea;text-align:left} th{color:#6b7280;font-weight:600;font-size:.75rem;text-transform:uppercase}
+    td.n,th.n{text-align:right} .rod{margin-top:26px;font-size:.72rem;color:#9ca3af;text-align:center}
+    .bt{position:fixed;top:14px;right:14px;background:#7A1F4B;color:#fff;border:0;border-radius:999px;padding:10px 18px;font-weight:700;cursor:pointer}
+    @media print{.bt{display:none} body{padding:0}}
+  </style></head><body>
+  <button class="bt" onclick="window.print()">Imprimir / Salvar PDF</button>
+  <header><img src="${location.href.replace(/[^/]*$/, "")}assets/logo.jpg" alt=""><div><h1>Relatório de ${NOMES_MES[m - 1]} de ${ano}</h1><p>${_escAttr(loja)} · gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p></div></header>
+  <h2>Resumo do mês</h2>
+  <div class="ks">
+    ${linhaKpi("Vendas", _brl(P.vendas), varTxt(_variacao(P.vendas, A.vendas)))}
+    ${linhaKpi("Despesas", _brl(P.despesas), varTxt(_variacao(P.despesas, A.despesas)))}
+    ${linhaKpi("Caixa do mês", _brl(P.lucroLiquido), "entradas − saídas")}
+    ${linhaKpi("Lucro nas vendas", P.cpv ? _brl(P.lucroBruto) : "—", P.cpv ? `margem ${(P.margemBruta * 100).toFixed(0)}%` : "custos não cadastrados")}
+    ${linhaKpi("Nº de vendas", String(P.qtdVendas), `${P.pedidosSite} pedidos pelo site`)}
+    ${linhaKpi("Ticket médio", _brl(P.ticket), varTxt(_variacao(P.ticket, A.ticket)))}
+  </div>
+  <h2>O que os números dizem</h2>
+  <ul class="com">${comentarios.map(t => `<li>${t}</li>`).join("")}</ul>
+  <h2>Mais vendidos</h2>
+  <table><thead><tr><th>Produto</th><th class="n">Qtd</th><th class="n">Vendido</th><th class="n">Lucro</th></tr></thead><tbody>
+  ${P.top.slice(0, 10).map(t => `<tr><td>${_escAttr(t.nome)}</td><td class="n">${t.qtd}</td><td class="n">${_brl(t.receita)}</td><td class="n">${t.semCusto === t.qtd ? "—" : _brl(t.receita - t.custo)}</td></tr>`).join("") || `<tr><td colspan="4">Sem vendas pagas no mês.</td></tr>`}
+  </tbody></table>
+  <h2>Despesas por categoria</h2>
+  <table><thead><tr><th>Categoria</th><th class="n">Valor</th><th class="n">% das saídas</th></tr></thead><tbody>
+  ${P.porCat.map(([k, v]) => `<tr><td>${_escAttr(k)}</td><td class="n">${_brl(v)}</td><td class="n">${Math.round(v / P.despesas * 100)}%</td></tr>`).join("") || `<tr><td colspan="3">Nenhuma despesa lançada.</td></tr>`}
+  </tbody></table>
+  <h2>Movimento por horário</h2>
+  <table><thead><tr>${porHora.map((q, h) => q ? `<th class="n">${h}h</th>` : "").join("")}</tr></thead><tbody><tr>${porHora.map(q => q ? `<td class="n">${q}</td>` : "").join("")}</tr></tbody></table>
+  <p class="rod">Relatório gerado automaticamente pelo painel do ${_escAttr(loja)} · Site e sistema por TF Solutions</p>
+  </body></html>`;
+  jan.document.open(); jan.document.write(html); jan.document.close();
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────
 async function inicializar() {
   try { document.getElementById("ped-som").checked = localStorage.getItem("admin:somPedidos") !== "0"; } catch (e) {}
@@ -1426,6 +2093,9 @@ function mudarTab(tab, btn) {
   document.getElementById("tab-" + tab).classList.add("active");
   if (tab === "pdv") renderPdvGrid();
   if (tab === "disponivel") renderDisponivel();
+  if (tab === "caixa") carregarCaixa();
+  if (tab === "painel") carregarPainel();
+  if (tab === "avaliacoes") carregarAvaliacoes();
   if (tab === "relatorio") {
     const mesInput = document.getElementById("relatorio-mes");
     if (!mesInput.value) mesInput.value = mesAtualStr();
@@ -1502,7 +2172,8 @@ function renderDisponivel() {
     const ligado = !emFalta.has(_normNome(a.nome));
     return `<div class="ingr-item${ligado ? "" : " em-falta"}">
       <input class="ingr-nome" value="${_escAttr(a.nome)}" maxlength="40" aria-label="Nome do adicional" onchange="renomearIngrediente('adic', ${i}, this)">
-      <span class="ingr-preco"><span>R$</span><input value="${_fmtPreco(a.preco)}" inputmode="decimal" aria-label="Preço de ${_escAttr(a.nome)}" onchange="mudarPrecoAdicional(${i}, this)"></span>
+      <span class="ingr-preco" title="Preço para o cliente"><span>R$</span><input value="${_fmtPreco(a.preco)}" inputmode="decimal" aria-label="Preço de ${_escAttr(a.nome)}" onchange="mudarPrecoAdicional(${i}, this)"></span>
+      <span class="ingr-preco ingr-custo" title="Quanto custa para você (opcional, para o cálculo de lucro)"><span>custo</span><input value="${a.custo ? _fmtPreco(a.custo) : ""}" placeholder="—" inputmode="decimal" aria-label="Custo de ${_escAttr(a.nome)}" onchange="mudarCustoAdicional(${i}, this)"></span>
       ${_switchHtml(ligado, `alternarIngredientePorIndice('adic', ${i}, this)`)}
       <button class="btn btn-danger btn-sm" title="Excluir" onclick="excluirIngrediente('adic', ${i})"><i class="fa-solid fa-trash"></i></button>
     </div>`;
@@ -1605,6 +2276,14 @@ function mudarPrecoAdicional(i, input) {
   if (preco === Number(a.preco)) { input.value = _fmtPreco(preco); return; }
   _adicionaisLoja = _adicionaisLoja.map((x, j) => j === i ? { ...x, preco } : x);
   salvarIngredientesLoja(`${a.nome} agora custa R$ ${_fmtPreco(preco)} em todos os produtos`);
+}
+
+function mudarCustoAdicional(i, input) {
+  const a = _adicionaisLoja[i];
+  if (!a) return;
+  const custo = _lerPreco(input.value);
+  _adicionaisLoja = _adicionaisLoja.map((x, j) => j === i ? { ...x, custo } : x);
+  salvarIngredientesLoja(`Custo de ${a.nome}: R$ ${_fmtPreco(custo)}`);
 }
 
 function excluirIngrediente(tipo, i) {
@@ -2164,6 +2843,7 @@ function tamanhoLinhaHtml(t) {
   return `<div class="tam-linha">
     <input class="tam-nome" placeholder="Ex: 500ml" value="${_escAttr(t.nome || "")}" maxlength="30" aria-label="Nome do tamanho">
     <span class="tam-preco"><span>R$</span><input class="tam-valor" placeholder="0,00" inputmode="decimal" value="${preco}" aria-label="Preço"></span>
+    <span class="tam-preco"><span>R$</span><input class="tam-custo" placeholder="custo" inputmode="decimal" value="${t.custo ? _fmtPreco(t.custo) : ""}" aria-label="Custo" title="Quanto custa para você fazer este tamanho (copo, açaí e complementos grátis)"></span>
     <input class="tam-gratis" type="number" min="0" max="20" value="${Number(t.complementosGratis) || 0}" aria-label="Complementos grátis" title="Complementos grátis neste tamanho">
     <button type="button" class="btn btn-danger btn-sm" title="Remover tamanho" onclick="removerTamanhoLinha(this)"><i class="fa-solid fa-xmark"></i></button>
   </div>`;
@@ -2183,6 +2863,7 @@ function lerTamanhosLinhas() {
     nome: l.querySelector(".tam-nome").value.trim(),
     preco: _lerPreco(l.querySelector(".tam-valor").value),
     complementosGratis: Math.max(0, parseInt(l.querySelector(".tam-gratis").value, 10) || 0),
+    custo: _lerPreco(l.querySelector(".tam-custo").value),
     _vazio: !l.querySelector(".tam-valor").value.trim(),
   })).filter(t => !(t._vazio && !t.nome)).map(({ _vazio, ...t }) => t);
 }
@@ -3547,7 +4228,9 @@ async function carregarConfiguracoes() {
       .map(t => `${t.bairro} | ${Number(t.taxa || 0).toFixed(2).replace(".", ",")}`).join("\n");
     document.getElementById("config-aceitar-outros-bairros").checked = cfg.aceitarOutrosBairros !== false;
     document.getElementById("config-tempo-entrega").value = cfg.tempoEntrega || "";
+    document.getElementById("config-google-review").value = cfg.googleReviewUrl || "";
     document.getElementById("config-complemento-extra").value = cfg.precoComplementoExtra ?? "";
+    document.getElementById("config-custo-complemento-extra").value = cfg.custoComplementoExtra ?? "";
     document.getElementById("config-sobre-nome").value  = cfg.sobreNome  || "";
     document.getElementById("config-sobre-texto").value = cfg.sobreTexto || "";
     document.getElementById("config-sobre-link").value  = cfg.sobreLink  || "";
@@ -3614,7 +4297,9 @@ async function salvarConfiguracoes() {
     });
   const aceitarOutrosBairros = document.getElementById("config-aceitar-outros-bairros").checked;
   const tempoEntrega = document.getElementById("config-tempo-entrega").value.trim();
+  const googleReviewUrl = document.getElementById("config-google-review").value.trim();
   const precoComplementoExtra = Math.max(0, Number(String(document.getElementById("config-complemento-extra").value).replace(",", ".")) || 0);
+  const custoComplementoExtra = Math.max(0, Number(String(document.getElementById("config-custo-complemento-extra").value).replace(",", ".")) || 0);
   const retiradaDisponivel = document.getElementById("config-retirada-disponivel").checked;
   const sobreNome  = document.getElementById("config-sobre-nome").value.trim();
   const sobreTexto = document.getElementById("config-sobre-texto").value.trim();
@@ -3678,7 +4363,7 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, tempoEntrega, precoComplementoExtra,
+      taxasEntrega, aceitarOutrosBairros, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja
     });
