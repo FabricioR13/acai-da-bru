@@ -75,6 +75,14 @@ service cloud.firestore {
     // Numeração diária dos pedidos: o site só pode criar o contador do dia
     // começando em 1, ou somar exatamente +1. Visitante não consegue apagar nem
     // pular números.
+    // Estoque e histórico de movimentações: só o admin logado
+    match /estoque/{doc} {
+      allow read, write: if request.auth != null;
+    }
+    match /estoqueMov/{doc} {
+      allow read, write: if request.auth != null;
+    }
+
     match /contadores/{doc} {
       allow read: if true;
       allow create: if request.resource.data.keys().hasOnly(['total'])

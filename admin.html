@@ -251,6 +251,30 @@
     .pdv-troco-resultado.falta { color: var(--red); }
     .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 8px; margin-bottom: 20px; }
     .chart-card h3 { font-size: .95rem; color: var(--gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* Estoque */
+    .est-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+    .est-item { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .est-item.est-zerado { border-color: var(--red); }
+    .est-item.est-baixo { border-color: var(--gold); }
+    .est-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .est-qtd { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; color: var(--muted); font-size: .85rem; }
+    .est-qtd > span { font-size: 1.6rem; font-weight: 800; color: var(--text); }
+    .est-zerado .est-qtd > span { color: var(--red); }
+    .est-baixo .est-qtd > span { color: var(--gold); }
+    .est-qtd small { margin-left: auto; }
+    .est-vinc { font-size: .72rem; color: var(--muted); line-height: 1.35; }
+    .est-acoes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+    .est-pill { font-size: .68rem; font-weight: 700; border-radius: 999px; padding: 2px 8px; background: var(--surface); color: var(--muted); white-space: nowrap; }
+    .est-pill-zerado { background: rgba(229,57,53,.15); color: var(--red); }
+    .est-pill-baixo { background: rgba(212,162,76,.18); color: var(--gold); }
+    .est-vinculos { max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); padding: 4px; }
+    .est-vinc-linha { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font-size: .85rem; cursor: pointer; flex-wrap: wrap; }
+    .est-vinc-linha.on { background: var(--card); }
+    .est-vinc-linha > span:first-of-type { flex: 1; min-width: 160px; }
+    .est-vinc-qtd { font-size: .75rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+    .est-vinc-qtd input { width: 64px; padding: 4px 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
+    #est-vinc-busca { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: .85rem; }
+    #painel-estoque { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     /* Taxas por bairro */
     .bairro-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
     .bairro-add > input { flex: 1; min-width: 180px; }
@@ -460,6 +484,7 @@
     <button class="side-btn" onclick="mudarTab('avaliacoes',this)"><i class="fa-solid fa-star"></i> Avaliações</button>
     <button class="side-btn" onclick="mudarTab('produtos',this)"><i class="fa-solid fa-box"></i> Produtos</button>
     <button class="side-btn" onclick="mudarTab('disponivel',this)"><i class="fa-solid fa-toggle-on"></i> Ingredientes</button>
+    <button class="side-btn" id="side-estoque" onclick="mudarTab('estoque',this)"><i class="fa-solid fa-boxes-stacked"></i> Estoque <span class="menu-badge" id="menu-est-badge" hidden>0</span></button>
     <button class="side-btn" onclick="mudarTab('categorias',this)"><i class="fa-solid fa-tags"></i> Categorias</button>
     <button class="side-btn" onclick="mudarTab('cupons',this)"><i class="fa-solid fa-ticket"></i> Cupons</button>
     <button class="side-btn" onclick="mudarTab('pdv',this)"><i class="fa-solid fa-cash-register"></i> PDV</button>
@@ -496,6 +521,7 @@
         </div>
       </div>
       <div class="painel-aviso" id="painel-aviso-custo" hidden></div>
+      <div class="painel-aviso" id="painel-estoque" hidden></div>
       <div class="kpis" id="painel-kpis"></div>
       <div class="chart-card">
         <h3><i class="fa-solid fa-chart-column"></i> Entradas × saídas por dia</h3>
@@ -601,6 +627,28 @@
           <tbody id="tabela-corpo"><tr><td colspan="7"><div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div></td></tr></tbody>
         </table>
       </div>
+    </div>
+
+    <div id="tab-estoque" class="tab-panel">
+      <div class="disp-topo">
+        <div>
+          <h2 style="font-size:1.1rem;margin-bottom:4px">Estoque</h2>
+          <p id="est-resumo" style="color:var(--muted);font-size:.85rem">Carregando…</p>
+        </div>
+        <div class="ped-controles">
+          <button class="btn btn-ghost btn-sm" onclick="abrirListaCompras()"><i class="fa-solid fa-cart-shopping"></i> Lista de compras</button>
+          <button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEstoque()"><i class="fa-solid fa-file-excel"></i> Baixar planilha</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirItemEstoque()"><i class="fa-solid fa-plus"></i> Novo item</button>
+        </div>
+      </div>
+      <p style="color:var(--muted);font-size:.8rem;margin:-4px 0 12px">O estoque <strong>baixa sozinho</strong> quando o pedido vai para "Em preparo" e numa venda do PDV, e volta se o pedido for cancelado. Quando a mercadoria chegar, toque em <strong>Repor</strong>. Item zerado aparece como esgotado na loja.</p>
+      <div class="ped-filtros" id="est-filtros">
+        <button class="ped-filtro ativo" data-est-filtro="todos" onclick="filtrarEstoque('todos')">Todos <span id="est-c-todos">0</span></button>
+        <button class="ped-filtro" data-est-filtro="baixo" onclick="filtrarEstoque('baixo')">Acabando <span id="est-c-baixo">0</span></button>
+        <button class="ped-filtro" data-est-filtro="zerado" onclick="filtrarEstoque('zerado')">Esgotados <span id="est-c-zerado">0</span></button>
+        <button class="ped-filtro" data-est-filtro="semqtd" onclick="filtrarEstoque('semqtd')">Sem quantidade <span id="est-c-semqtd">0</span></button>
+      </div>
+      <div id="est-lista" class="est-lista"><div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div></div>
     </div>
 
     <div id="tab-disponivel" class="tab-panel">
@@ -1080,8 +1128,8 @@
         <input type="number" id="form-prazo" placeholder="Ex: 7" min="0">
       </div>
       <div class="form-group">
-        <label>Estoque (quantidade) <small style="color:var(--muted)">(opcional — deixe em branco se não quiser controlar)</small></label>
-        <input type="number" id="form-estoque" placeholder="Ex: 3" min="0" step="1">
+        <label>Estoque</label>
+        <p style="color:var(--muted);font-size:.8rem">Controlado na aba <strong>Estoque</strong> — ligue os itens (copos, potes, bebidas) a este produto e ele esgota sozinho.</p>
       </div>
 
       <!-- CAMPO DE IMAGEM COM UPLOAD -->
@@ -1302,6 +1350,65 @@
         <button class="btn btn-ghost" onclick="fecharModal('np-modal')">Cancelar</button>
         <button class="btn btn-primary" id="np-salvar" onclick="npSalvar()"><i class="fa-solid fa-floppy-disk"></i> Registrar pedido</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Estoque: item -->
+<div class="modal-overlay" id="est-modal">
+  <div class="modal np-modal">
+    <button class="modal-close" onclick="fecharModal('est-modal')">&times;</button>
+    <h2 id="est-modal-titulo"><i class="fa-solid fa-box"></i> Item do estoque</h2>
+    <input type="hidden" id="est-id">
+    <div class="np-grid">
+      <label class="np-largo">Nome do item<input type="text" id="est-nome" maxlength="60" placeholder="Ex: Copo 500ml, Polpa de açaí, Sorvete Flocos"></label>
+      <label>Unidade<select id="est-unidade"><option>unidade</option><option>copo</option><option>pote</option><option>caixa</option><option>pacote</option><option>fardo</option><option>kit</option><option>kg</option><option>litro</option></select></label>
+      <label>Quantidade agora<input type="number" id="est-qtd" min="0" step="1" placeholder="Quanto tem hoje"></label>
+      <label>Avisar quando chegar a<input type="number" id="est-min" min="0" step="1" placeholder="Ex: 20"></label>
+    </div>
+    <h3 class="np-sec">Baixa sozinho quando vender <small style="color:var(--muted);font-weight:400">(opcional — marque o que gasta este item)</small></h3>
+    <input type="text" id="est-vinc-busca" placeholder="Procurar produto…" oninput="renderVinculosEstoque()" style="width:100%;margin-bottom:6px">
+    <div id="est-vinculos" class="est-vinculos"></div>
+    <div class="modal-footer np-rodape">
+      <button class="btn btn-danger btn-sm" id="est-excluir" onclick="excluirItemEstoque()"><i class="fa-solid fa-trash"></i> Excluir</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="fecharModal('est-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarItemEstoque()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Estoque: repor -->
+<div class="modal-overlay" id="rep-modal">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="fecharModal('rep-modal')">&times;</button>
+    <h2><i class="fa-solid fa-truck-ramp-box"></i> Repor estoque</h2>
+    <p id="rep-info" style="color:var(--muted);font-size:.85rem;margin-bottom:10px"></p>
+    <input type="hidden" id="rep-id">
+    <div class="np-grid" style="grid-template-columns:1fr">
+      <label>Quantos chegaram?<input type="number" id="rep-qtd" min="1" step="1" placeholder="Ex: 100" onkeydown="if(event.key==='Enter')salvarReposicao()"></label>
+      <label>Quanto pagou? <small>(opcional — lança a despesa em Entradas e saídas)</small><input type="text" id="rep-valor" inputmode="decimal" placeholder="R$ 0,00"></label>
+      <label>Tipo da despesa<select id="rep-categoria"></select></label>
+      <label>Pagou com<select id="rep-forma"><option>PIX</option><option>Dinheiro</option><option>Cartão</option><option>Boleto</option></select></label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModal('rep-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarReposicao()"><i class="fa-solid fa-plus"></i> Dar entrada</button>
+    </div>
+  </div>
+</div>
+
+<!-- Estoque: lista de compras -->
+<div class="modal-overlay" id="compras-modal">
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" onclick="fecharModal('compras-modal')">&times;</button>
+    <h2><i class="fa-solid fa-cart-shopping"></i> Lista de compras</h2>
+    <p style="color:var(--muted);font-size:.8rem;margin-bottom:8px">Itens esgotados ou que chegaram no mínimo. Pode editar antes de mandar.</p>
+    <textarea id="compras-texto" rows="12" style="width:100%"></textarea>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="copiarListaCompras()"><i class="fa-solid fa-copy"></i> Copiar</button>
+      <button class="btn btn-primary" onclick="enviarListaCompras()"><i class="fa-brands fa-whatsapp"></i> Mandar no WhatsApp</button>
     </div>
   </div>
 </div>
@@ -1663,6 +1770,7 @@ async function avancarPedido(docId, etapa, avisar) {
       [`etapas.${etapa}`]: firebase.firestore.FieldValue.serverTimestamp(),
     });
     toast(`${_nomePedido(p)}: ${ETAPAS[etapa].nome}`, "ok");
+    estoqueAoMudarEtapa(p, etapa);
   } catch (e) { toast("Erro ao mudar a etapa: " + e.message, "err"); }
 }
 
@@ -1691,7 +1799,7 @@ function abrirPedidoDetalhe(docId) {
     fecharModal("ped-modal");
     document.getElementById("confirm-msg").textContent = `Excluir o pedido ${_nomePedido(p)} de ${p.cliente || "cliente"}? Use só para pedidos de teste ou duplicados — ele some também dos relatórios.`;
     document.getElementById("confirm-ok-btn").onclick = async () => {
-      try { await db.collection("pedidos").doc(docId).delete(); toast("Pedido excluído.", "ok"); fecharModal("confirm-modal"); }
+      try { await movimentarEstoqueDoc("pedidos", docId, +1, "Cancelado: pedido excluído"); await db.collection("pedidos").doc(docId).delete(); toast("Pedido excluído.", "ok"); fecharModal("confirm-modal"); }
       catch (e) { toast("Erro: " + e.message, "err"); }
     };
     abrirModal("confirm-modal");
@@ -2231,6 +2339,387 @@ function alternarTema() {
 }
 aplicarIconeTema();
 
+// ── ESTOQUE ───────────────────────────────────────────────────────────────
+// Coleção "estoque": { nome, unidade, quantidade (null = ainda não contado), minimo,
+//   vinculos: [{ produto: docId, tamanho: nome | "*", opcao: valor | "*", qtd }] }
+// Coleção "estoqueMov": histórico { itemId, nome, qtd (+/-), motivo, criadoEm }.
+// A baixa é feita uma única vez por pedido (campo estoqueBaixado), dentro de uma transação.
+let _estoque = [];
+let _filtroEst = "todos";
+let _estVinc = {};        // chave "docId|tamanho|opcao" → qtd (no modal)
+
+const _estTemQtd = (e) => e.quantidade !== null && e.quantidade !== undefined && e.quantidade !== "";
+const _estZerado = (e) => _estTemQtd(e) && Number(e.quantidade) <= 0;
+const _estBaixo  = (e) => _estTemQtd(e) && Number(e.quantidade) > 0 && Number(e.quantidade) <= Number(e.minimo || 0);
+const _fmtQtd = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+const _plUn = (n, u) => !u || Number(n) === 1 || u === "kg" ? (u || "") : u === "unidade" ? "unidades" : u + "s";
+const _qtdUn = (n, u) => `${_fmtQtd(n)} ${_plUn(n, u)}`.trim();
+
+function assinarEstoque() {
+  db.collection("estoque").onSnapshot(snap => {
+    _estoque = snap.docs.map(d => ({ docId: d.id, ...d.data() })).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+    renderEstoque();
+    renderAvisoEstoquePainel();
+    sincronizarEsgotados();
+  }, e => console.warn("estoque:", e.message));
+}
+
+// Combinações vendáveis de um produto (tamanho × opção)
+function _combosProduto(p) {
+  const tams = (Array.isArray(p.tamanhos) && p.tamanhos.length) ? p.tamanhos : [{ nome: "" }];
+  const ops = (p.opcaoInclusa && Array.isArray(p.opcaoInclusa.opcoes) && p.opcaoInclusa.opcoes.length) ? p.opcaoInclusa.opcoes : [""];
+  const lista = [];
+  tams.forEach(t => ops.forEach(o => lista.push({
+    tamanho: tams.length > 1 ? (t.nome || "") : "*", opcao: o || "*",
+    rotulo: [p.nome, tams.length > 1 ? t.nome : "", o].filter(Boolean).join(" — "),
+  })));
+  return lista;
+}
+const _chaveVinc = (docId, tam, op) => `${docId}|${tam}|${op}`;
+
+// O vínculo vale para este item vendido? (tam === null → venda do PDV, sem tamanho escolhido)
+function _vincBate(v, prod, tam, op, detalhes) {
+  if (v.produto !== prod.docId) return false;
+  if (v.tamanho !== "*") {
+    if (tam === null) return false;
+    if (_normNome(v.tamanho) !== _normNome(tam)) return false;
+  }
+  if (v.opcao !== "*") {
+    if (op) return _normNome(op) === _normNome(v.opcao);
+    return _normNome(detalhes || "").includes(_normNome(v.opcao));
+  }
+  return true;
+}
+function _produtoDoItem(it) {
+  if (it.docId) return todosProdutos.find(p => p.docId === it.docId);
+  return todosProdutos.find(p => String(p.id) === String(it.produtoId));
+}
+// Quanto cada item do estoque gasta com esta lista de itens vendidos → { itemId: qtd }
+function _consumoDeItens(itens, ehPdv) {
+  const consumo = {};
+  (itens || []).forEach(it => {
+    const prod = _produtoDoItem(it);
+    if (!prod) return;
+    const q = Number(it.quantidade ?? it.qtd ?? 1) || 1;
+    const tam = ehPdv ? null : (it.tamanho || "");
+    _estoque.forEach(e => {
+      if (!_estTemQtd(e)) return;
+      (e.vinculos || []).forEach(v => {
+        if (_vincBate(v, prod, tam, it.opcao || "", it.detalhes)) consumo[e.docId] = (consumo[e.docId] || 0) + (Number(v.qtd) || 1) * q;
+      });
+    });
+  });
+  return consumo;
+}
+function _textoConsumo(consumo) {
+  return Object.entries(consumo).map(([id, q]) => { const e = _estoque.find(x => x.docId === id); return e ? `${_fmtQtd(q)} ${e.nome}` : ""; }).filter(Boolean).join(", ");
+}
+
+// Baixa (sinal -1) ou devolve (+1) o estoque de um pedido/venda — uma vez só, pela marca estoqueBaixado
+async function movimentarEstoqueDoc(colecao, docId, sinal, motivo) {
+  const ref = db.collection(colecao).doc(docId);
+  try {
+    const consumo = await db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) return null;
+      const d = snap.data();
+      const baixado = !!d.estoqueBaixado;
+      if ((sinal < 0 && baixado) || (sinal > 0 && !baixado)) return null;
+      const c = sinal < 0 ? _consumoDeItens(d.itens, colecao === "vendas") : (d.estoqueConsumo || {});
+      Object.entries(c).forEach(([id, q]) => {
+        tx.update(db.collection("estoque").doc(id), { quantidade: firebase.firestore.FieldValue.increment(sinal * q) });
+        tx.set(db.collection("estoqueMov").doc(), { itemId: id, nome: (_estoque.find(e => e.docId === id) || {}).nome || "", qtd: sinal * q, motivo, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+      });
+      tx.update(ref, sinal < 0 ? { estoqueBaixado: true, estoqueConsumo: c } : { estoqueBaixado: false });
+      return c;
+    });
+    if (consumo && Object.keys(consumo).length) toast(`Estoque ${sinal < 0 ? "baixado" : "devolvido"}: ${_textoConsumo(consumo)}`, "ok");
+  } catch (e) { toast("Não consegui atualizar o estoque: " + e.message, "err"); }
+}
+const ETAPAS_QUE_BAIXAM = ["preparo", "saiu", "entregue"];
+function estoqueAoMudarEtapa(p, etapa) {
+  if (ETAPAS_QUE_BAIXAM.includes(etapa)) return movimentarEstoqueDoc("pedidos", p.docId, -1, `Pedido ${_nomePedido(p)}`);
+  if (etapa === "cancelado") return movimentarEstoqueDoc("pedidos", p.docId, +1, `Cancelado: pedido ${_nomePedido(p)}`);
+}
+
+// Marca na loja o que está esgotado (produto, tamanho ou sabor), a partir do estoque
+let _syncEsgTimer = null;
+function sincronizarEsgotados() {
+  clearTimeout(_syncEsgTimer);
+  _syncEsgTimer = setTimeout(async () => {
+    if (!todosProdutos.length) return;
+    for (const p of todosProdutos) {
+      const ligados = _estoque.filter(e => _estTemQtd(e) && (e.vinculos || []).some(v => v.produto === p.docId));
+      const combos = _combosProduto(p);
+      const esg = combos.map(c => ligados.some(e => (e.vinculos || []).some(v =>
+        v.produto === p.docId && (v.tamanho === "*" || c.tamanho === "*" || _normNome(v.tamanho) === _normNome(c.tamanho)) &&
+        (v.opcao === "*" || c.opcao === "*" || _normNome(v.opcao) === _normNome(c.opcao)) &&
+        Number(e.quantidade) < (Number(v.qtd) || 1))));
+      const tams = [...new Set(combos.map(c => c.tamanho))], ops = [...new Set(combos.map(c => c.opcao))];
+      const tamanhosEsgotados = tams.length > 1 ? tams.filter(t => combos.every((c, i) => c.tamanho !== t || esg[i])) : [];
+      const opcoesEsgotadas = ops[0] !== "*" ? ops.filter(o => combos.every((c, i) => c.opcao !== o || esg[i])) : [];
+      const tudo = esg.length && esg.every(Boolean);
+      const novo = { tamanhosEsgotados, opcoesEsgotadas };
+      if (tudo) { novo.estoque = 0; novo.esgotadoAuto = true; }
+      else if (p.esgotadoAuto) { novo.estoque = null; novo.esgotadoAuto = false; }
+      const igual = JSON.stringify(p.tamanhosEsgotados || []) === JSON.stringify(tamanhosEsgotados) &&
+        JSON.stringify(p.opcoesEsgotadas || []) === JSON.stringify(opcoesEsgotadas) &&
+        (novo.estoque === undefined || p.estoque === novo.estoque);
+      if (igual) continue;
+      try { await db.collection("produtos").doc(p.docId).update(novo); Object.assign(p, novo); }
+      catch (e) { console.warn("esgotados", p.nome, e.message); }
+    }
+    renderPdvGrid();
+  }, 500);
+}
+
+// ---- tela
+function filtrarEstoque(f) {
+  _filtroEst = f;
+  document.querySelectorAll("[data-est-filtro]").forEach(b => b.classList.toggle("ativo", b.dataset.estFiltro === f));
+  renderEstoque();
+}
+function _resumoVinculos(e) {
+  const vs = e.vinculos || [];
+  if (!vs.length) return "Baixa manual (sem venda ligada)";
+  const nomes = vs.map(v => {
+    const p = todosProdutos.find(x => x.docId === v.produto);
+    if (!p) return null;
+    const r = [p.nome, v.tamanho !== "*" ? v.tamanho : "", v.opcao !== "*" ? v.opcao : ""].filter(Boolean).join(" ");
+    return (Number(v.qtd) || 1) !== 1 ? `${r} (×${_fmtQtd(v.qtd)})` : r;
+  }).filter(Boolean);
+  return "Baixa sozinho com: " + (nomes.length > 3 ? nomes.slice(0, 3).join(", ") + ` e mais ${nomes.length - 3}` : nomes.join(", "));
+}
+function renderEstoque() {
+  const el = document.getElementById("est-lista");
+  if (!el) return;
+  const c = { todos: _estoque.length, baixo: _estoque.filter(_estBaixo).length, zerado: _estoque.filter(_estZerado).length, semqtd: _estoque.filter(e => !_estTemQtd(e)).length };
+  Object.entries(c).forEach(([k, v]) => { const s = document.getElementById("est-c-" + k); if (s) s.textContent = v; });
+  document.getElementById("est-resumo").textContent = _estoque.length
+    ? `${c.todos} ${c.todos === 1 ? "item" : "itens"} · ${c.baixo} acabando · ${c.zerado} esgotado${c.zerado === 1 ? "" : "s"}${c.semqtd ? ` · ${c.semqtd} sem quantidade` : ""}`
+    : "Nenhum item ainda.";
+  // Terminou de contar tudo → volta para "Todos"
+  if (_filtroEst !== "todos" && !c[_filtroEst]) { _filtroEst = "todos"; document.querySelectorAll("[data-est-filtro]").forEach(x => x.classList.toggle("ativo", x.dataset.estFiltro === "todos")); }
+  const b = document.getElementById("menu-est-badge");
+  if (b) { const n = c.baixo + c.zerado; b.hidden = !n; b.textContent = n; }
+  if (!_estoque.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-boxes-stacked"></i>
+      <p>Para começar rápido, eu monto a lista com os copos de cada tamanho, os potes de sorvete por sabor e as bebidas — já ligados às vendas. Depois é só colocar quanto tem de cada um.</p>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="criarItensSugeridos()"><i class="fa-solid fa-wand-magic-sparkles"></i> Criar itens sugeridos</button>
+      <button class="btn btn-ghost" style="margin-top:12px" onclick="abrirItemEstoque()">Cadastrar do zero</button></div>`;
+    return;
+  }
+  const lista = _estoque.filter(e => _filtroEst === "todos" || (_filtroEst === "baixo" && _estBaixo(e)) || (_filtroEst === "zerado" && _estZerado(e)) || (_filtroEst === "semqtd" && !_estTemQtd(e)));
+  // Esgotados e acabando primeiro
+  const peso = (e) => _estZerado(e) ? 0 : _estBaixo(e) ? 1 : !_estTemQtd(e) ? 2 : 3;
+  lista.sort((a, b) => peso(a) - peso(b) || (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+  el.innerHTML = lista.length ? lista.map(e => {
+    const st = _estZerado(e) ? "zerado" : _estBaixo(e) ? "baixo" : !_estTemQtd(e) ? "semqtd" : "ok";
+    const pill = { zerado: `<span class="est-pill est-pill-zerado">Esgotado</span>`, baixo: `<span class="est-pill est-pill-baixo">Acabando</span>`, semqtd: `<span class="est-pill">Falta contar</span>`, ok: "" }[st];
+    return `<div class="est-item est-${st}">
+      <div class="est-topo"><strong>${_escAttr(e.nome)}</strong>${pill}</div>
+      <div class="est-qtd">${_estTemQtd(e) ? `<span>${_fmtQtd(e.quantidade)}</span> ${_escAttr(_plUn(e.quantidade, e.unidade))}` : `<button class="btn btn-ghost btn-sm" onclick="abrirItemEstoque('${e.docId}', true)">Informar quantidade</button>`}
+        ${Number(e.minimo) ? `<small>mínimo ${_fmtQtd(e.minimo)}</small>` : ""}</div>
+      <p class="est-vinc">${_escAttr(_resumoVinculos(e))}</p>
+      <div class="est-acoes">
+        <button class="btn btn-primary btn-sm" onclick="abrirReposicao('${e.docId}')"><i class="fa-solid fa-truck-ramp-box"></i> Repor</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirItemEstoque('${e.docId}')"><i class="fa-solid fa-pen"></i> Editar / contar</button>
+      </div></div>`;
+  }).join("") : `<p class="ingr-vazio">Nada aqui.</p>`;
+}
+function renderAvisoEstoquePainel() {
+  const el = document.getElementById("painel-estoque");
+  if (!el) return;
+  const z = _estoque.filter(_estZerado), b = _estoque.filter(_estBaixo);
+  if (!z.length && !b.length) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = `<i class="fa-solid fa-boxes-stacked"></i> <strong>Estoque:</strong> ${[
+    z.length ? `esgotado — ${z.map(e => _escAttr(e.nome)).join(", ")}` : "",
+    b.length ? `acabando — ${b.map(e => `${_escAttr(e.nome)} (${_fmtQtd(e.quantidade)})`).join(", ")}` : ""].filter(Boolean).join(" · ")}
+    <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="mudarTab('estoque', document.getElementById('side-estoque')); abrirListaCompras()">Lista de compras</button>`;
+}
+
+// ---- cadastro / contagem
+function abrirItemEstoque(docId, focarQtd) {
+  const e = docId ? _estoque.find(x => x.docId === docId) : null;
+  document.getElementById("est-modal-titulo").innerHTML = e ? `<i class="fa-solid fa-pen"></i> ${_escAttr(e.nome)}` : `<i class="fa-solid fa-plus"></i> Novo item do estoque`;
+  document.getElementById("est-id").value = e ? e.docId : "";
+  document.getElementById("est-nome").value = e ? e.nome : "";
+  document.getElementById("est-unidade").value = e ? (e.unidade || "unidade") : "unidade";
+  document.getElementById("est-qtd").value = e && _estTemQtd(e) ? e.quantidade : "";
+  document.getElementById("est-min").value = e && Number(e.minimo) ? e.minimo : "";
+  document.getElementById("est-excluir").hidden = !e;
+  document.getElementById("est-vinc-busca").value = "";
+  _estVinc = {};
+  (e ? e.vinculos || [] : []).forEach(v => _estVinc[_chaveVinc(v.produto, v.tamanho, v.opcao)] = Number(v.qtd) || 1);
+  renderVinculosEstoque();
+  abrirModal("est-modal");
+  setTimeout(() => document.getElementById(focarQtd ? "est-qtd" : "est-nome").focus(), 50);
+}
+function renderVinculosEstoque() {
+  const busca = _normNome(document.getElementById("est-vinc-busca").value || "");
+  const linhas = [];
+  todosProdutos.forEach(p => _combosProduto(p).forEach(c => {
+    if (busca && !_normNome(c.rotulo).includes(busca)) return;
+    const k = _chaveVinc(p.docId, c.tamanho, c.opcao), on = k in _estVinc;
+    linhas.push(`<label class="est-vinc-linha${on ? " on" : ""}"><input type="checkbox" ${on ? "checked" : ""} onchange="alternarVinculo('${_escAttr(k)}', this.checked, ${Number(p.copos) || 1})">
+      <span>${_escAttr(c.rotulo)}${p.ativo === false ? ' <small>(fora da loja)</small>' : ""}</span>
+      ${on ? `<span class="est-vinc-qtd">gasta <input type="number" min="0.01" step="any" value="${_estVinc[k]}" onclick="event.stopPropagation()" onchange="_estVinc['${_escAttr(k)}']=Math.max(0.01, Number(this.value)||1)"> por venda</span>` : ""}</label>`);
+  }));
+  document.getElementById("est-vinculos").innerHTML = linhas.join("") || `<p class="ingr-vazio">Nenhum produto encontrado.</p>`;
+}
+function alternarVinculo(k, on, padrao) {
+  if (on) _estVinc[k] = _estVinc[k] || padrao; else delete _estVinc[k];
+  renderVinculosEstoque();
+}
+async function salvarItemEstoque() {
+  const docId = document.getElementById("est-id").value;
+  const nome = document.getElementById("est-nome").value.trim();
+  if (!nome) { toast("Digite o nome do item.", "err"); return; }
+  if (_estoque.some(e => e.docId !== docId && _normNome(e.nome) === _normNome(nome))) { toast(`Já existe "${nome}" no estoque.`, "err"); return; }
+  const qtdTxt = document.getElementById("est-qtd").value;
+  const quantidade = qtdTxt === "" ? null : Math.max(0, Number(qtdTxt) || 0);
+  const vinculos = Object.entries(_estVinc).map(([k, qtd]) => { const [produto, tamanho, opcao] = k.split("|"); return { produto, tamanho, opcao, qtd: Number(qtd) || 1 }; });
+  const dados = { nome, unidade: document.getElementById("est-unidade").value, quantidade, minimo: Math.max(0, Number(document.getElementById("est-min").value) || 0), vinculos };
+  try {
+    const ant = docId ? _estoque.find(e => e.docId === docId) : null;
+    const ref = docId ? db.collection("estoque").doc(docId) : db.collection("estoque").doc();
+    if (docId) await ref.update(dados); else await ref.set({ ...dados, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+    const antes = ant && _estTemQtd(ant) ? Number(ant.quantidade) : null;
+    if (quantidade !== null && quantidade !== antes)
+      await db.collection("estoqueMov").add({ itemId: ref.id, nome, qtd: antes === null ? quantidade : quantidade - antes, motivo: antes === null ? "Primeira contagem" : "Contagem / ajuste", criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+    fecharModal("est-modal");
+    toast(docId ? "Item atualizado" : "Item criado", "ok");
+  } catch (e) { toast("Erro ao salvar: " + e.message, "err"); }
+}
+function excluirItemEstoque() {
+  const docId = document.getElementById("est-id").value;
+  const e = _estoque.find(x => x.docId === docId);
+  if (!e) return;
+  document.getElementById("confirm-msg").textContent = `Excluir "${e.nome}" do estoque? As vendas param de baixar este item.`;
+  document.getElementById("confirm-ok-btn").onclick = async () => {
+    try { await db.collection("estoque").doc(docId).delete(); fecharModal("confirm-modal"); fecharModal("est-modal"); toast("Item excluído", "ok"); }
+    catch (er) { toast("Erro: " + er.message, "err"); }
+  };
+  abrirModal("confirm-modal");
+}
+
+// ---- repor
+function _categoriaPadrao(nome) {
+  const n = _normNome(nome);
+  if (/copo|colher|tampa|embalag|sacol|guardanap|canudo|pote vazio/.test(n)) return "Embalagens e descartáveis";
+  if (/acai|polpa/.test(n)) return "Açaí / polpa";
+  if (/creme|cobertura|nutella|leite condensado/.test(n)) return "Coberturas e cremes";
+  if (/fruta|morango|banana|kiwi|granola|leite em po|pacoca|amendoim/.test(n)) return "Frutas e complementos";
+  return "Outras saídas";
+}
+function abrirReposicao(docId) {
+  const e = _estoque.find(x => x.docId === docId);
+  if (!e) return;
+  document.getElementById("rep-id").value = docId;
+  document.getElementById("rep-info").innerHTML = `<strong>${_escAttr(e.nome)}</strong> — tem ${_estTemQtd(e) ? _escAttr(_qtdUn(e.quantidade, e.unidade)) : "quantidade ainda não informada"}`;
+  document.getElementById("rep-qtd").value = "";
+  document.getElementById("rep-valor").value = "";
+  const sel = document.getElementById("rep-categoria");
+  sel.innerHTML = CAIXA_CAT_SAIDA.map(c => `<option>${c}</option>`).join("");
+  sel.value = _categoriaPadrao(e.nome);
+  abrirModal("rep-modal");
+  setTimeout(() => document.getElementById("rep-qtd").focus(), 50);
+}
+async function salvarReposicao() {
+  const docId = document.getElementById("rep-id").value;
+  const e = _estoque.find(x => x.docId === docId);
+  const qtd = Number(document.getElementById("rep-qtd").value) || 0;
+  if (!e || qtd <= 0) { toast("Digite quantos chegaram.", "err"); return; }
+  const valor = _lerPreco(document.getElementById("rep-valor").value);
+  try {
+    await db.collection("estoque").doc(docId).update({ quantidade: _estTemQtd(e) ? firebase.firestore.FieldValue.increment(qtd) : qtd });
+    await db.collection("estoqueMov").add({ itemId: docId, nome: e.nome, qtd, motivo: "Reposição", criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+    if (valor > 0) await db.collection("caixa").add({
+      tipo: "saida", categoria: document.getElementById("rep-categoria").value,
+      descricao: `Compra para o estoque: ${e.nome} — ${_fmtQtd(qtd)}`, valor,
+      forma: document.getElementById("rep-forma").value,
+      data: firebase.firestore.Timestamp.fromDate(new Date()), criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    fecharModal("rep-modal");
+    toast(`+${_fmtQtd(qtd)} ${e.nome}${valor > 0 ? ` · despesa de ${_brl(valor)} lançada` : ""}`, "ok");
+  } catch (er) { toast("Erro ao repor: " + er.message, "err"); }
+}
+
+// ---- lista de compras e planilha
+function abrirListaCompras() {
+  const itens = _estoque.filter(e => _estZerado(e) || _estBaixo(e));
+  document.getElementById("compras-texto").value = itens.length
+    ? `🛒 Lista de compras — ${_cfgLoja.nomeLoja || "Açaí da Bru"} (${new Date().toLocaleDateString("pt-BR")})\n\n` +
+      itens.map(e => `• ${e.nome} — ${_estZerado(e) ? "acabou" : `tem ${_qtdUn(e.quantidade, e.unidade)}`}`).join("\n")
+    : "Nada acabando por enquanto 🎉";
+  abrirModal("compras-modal");
+}
+function copiarListaCompras() {
+  const t = document.getElementById("compras-texto");
+  (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(() => toast("Lista copiada", "ok"))
+    .catch(() => { t.select(); document.execCommand("copy"); toast("Lista copiada", "ok"); });
+}
+function enviarListaCompras() {
+  window.open(`https://wa.me/?text=${encodeURIComponent(document.getElementById("compras-texto").value)}`, "_blank");
+}
+async function baixarPlanilhaEstoque() {
+  const agora = new Date(), inicio = new Date(agora.getFullYear(), agora.getMonth(), 1);
+  let movs = [];
+  try {
+    const snap = await db.collection("estoqueMov").where("criadoEm", ">=", firebase.firestore.Timestamp.fromDate(inicio)).get();
+    movs = snap.docs.map(d => d.data());
+  } catch (e) { console.warn(e); }
+  const soma = (id, f) => movs.filter(m => m.itemId === id && f(m)).reduce((s, m) => s + Number(m.qtd || 0), 0);
+  const cel = (v) => { const s = String(v ?? ""); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const num = (v) => v === "" || v === null || v === undefined ? "" : String(Math.round(Number(v) * 100) / 100).replace(".", ",");
+  const linhas = [["Item", "Unidade", "Quantidade agora", "Mínimo", "Situação", "Entrou no mês (reposição)", "Saiu no mês (vendas)", "Baixa automática"]];
+  _estoque.forEach(e => linhas.push([e.nome, e.unidade || "", _estTemQtd(e) ? num(e.quantidade) : "", num(e.minimo || 0),
+    _estZerado(e) ? "Esgotado" : _estBaixo(e) ? "Acabando" : !_estTemQtd(e) ? "Falta contar" : "OK",
+    num(soma(e.docId, m => m.motivo === "Reposição")), num(-soma(e.docId, m => /^(Pedido|Venda|Cancelado)/.test(m.motivo || ""))),
+    _resumoVinculos(e).replace(/^Baixa sozinho com: /, "")]));
+  const csv = "﻿" + linhas.map(l => l.map(cel).join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `estoque-acai-da-bru-${_hojeISO()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  toast("Planilha baixada (abre no Excel)", "ok");
+}
+
+// ---- itens sugeridos (primeira vez)
+async function criarItensSugeridos() {
+  const itens = [];
+  const copos = {};
+  const tamCopo = (nome) => { const m = String(nome || "").match(/(\d+)\s*ml/i); if (m) return m[1] + "ml"; return /\b1\s*l(itro)?\b/i.test(nome || "") ? "1L" : null; };
+  const ehPronto = (p) => /bebida|sorvete/i.test(p.categoria || "") || /kit|coca|refri|sorvete/i.test(p.nome || "");
+  todosProdutos.forEach(p => {
+    if (ehPronto(p)) {
+      _combosProduto(p).forEach(c => itens.push({
+        nome: c.opcao !== "*" ? `${p.nome.replace(/\s*1\s*litro/i, "")} ${c.opcao}`.trim() : p.nome,
+        unidade: /sorvete/i.test(p.nome) ? "pote" : /kit/i.test(p.nome) ? "kit" : "unidade", minimo: 2,
+        vinculos: [{ produto: p.docId, tamanho: c.tamanho, opcao: c.opcao, qtd: 1 }] }));
+      return;
+    }
+    const tams = (Array.isArray(p.tamanhos) && p.tamanhos.length) ? p.tamanhos : [];
+    tams.forEach(t => {
+      const tc = tamCopo(t.nome) || (tams.length === 1 ? tamCopo(p.nome) : null);
+      if (!tc) return;
+      (copos[tc] = copos[tc] || []).push({ produto: p.docId, tamanho: tams.length > 1 ? t.nome : "*", opcao: "*", qtd: Number(p.copos) || 1 });
+    });
+  });
+  Object.keys(copos).sort((a, b) => (parseInt(a) * (a.endsWith("L") ? 1000 : 1)) - (parseInt(b) * (b.endsWith("L") ? 1000 : 1)))
+    .forEach(tc => itens.unshift({ nome: `Copo ${tc}`, unidade: "copo", minimo: 20, vinculos: copos[tc] }));
+  itens.push({ nome: "Polpa de açaí", unidade: "kg", minimo: 5, vinculos: [] });
+  itens.push({ nome: "Colheres", unidade: "pacote", minimo: 1, vinculos: [] });
+  try {
+    const lote = db.batch();
+    itens.forEach(it => lote.set(db.collection("estoque").doc(), { ...it, quantidade: null, criadoEm: firebase.firestore.FieldValue.serverTimestamp() }));
+    await lote.commit();
+    toast(`${itens.length} itens criados — agora coloque quanto tem de cada um`, "ok");
+    filtrarEstoque("semqtd");
+  } catch (e) { toast("Erro ao criar: " + e.message, "err"); }
+}
+
 // ── TAXAS DE ENTREGA POR BAIRRO (lista com campos; salva sozinho) ─────────
 let _bairros = [];
 let _bairrosTimer = null;
@@ -2375,8 +2864,8 @@ function npRenderConfig() {
   };
   const cont = document.getElementById("np-config");
   cont.innerHTML = `
-    ${tams.length > 1 ? `<label class="np-campo">Tamanho<select onchange="_np.tamIdx=Number(this.value);npRenderConfig()">${tams.map((t, i) => `<option value="${i}" ${i === _np.tamIdx ? "selected" : ""}>${_escAttr(t.nome)} — ${_brl(t.preco)}${Number(t.complementosGratis) ? ` (${t.complementosGratis} grátis)` : ""}</option>`).join("")}</select></label>` : ""}
-    ${p.opcaoInclusa && (p.opcaoInclusa.opcoes || []).length ? `<label class="np-campo">${_escAttr(p.opcaoInclusa.label || "Opção")}<select onchange="_np.opcao=this.value"><option value="">Escolha…</option>${p.opcaoInclusa.opcoes.map(o => `<option ${o === _np.opcao ? "selected" : ""}>${_escAttr(o)}</option>`).join("")}</select></label>` : ""}
+    ${tams.length > 1 ? `<label class="np-campo">Tamanho<select onchange="_np.tamIdx=Number(this.value);npRenderConfig()">${tams.map((t, i) => { const esg = (p.tamanhosEsgotados || []).includes(t.nome); return `<option value="${i}" ${i === _np.tamIdx ? "selected" : ""} ${esg ? "disabled" : ""}>${_escAttr(t.nome)} — ${_brl(t.preco)}${Number(t.complementosGratis) ? ` (${t.complementosGratis} grátis)` : ""}${esg ? " — esgotado" : ""}</option>`; }).join("")}</select></label>` : ""}
+    ${p.opcaoInclusa && (p.opcaoInclusa.opcoes || []).length ? `<label class="np-campo">${_escAttr(p.opcaoInclusa.label || "Opção")}<select onchange="_np.opcao=this.value"><option value="">Escolha…</option>${p.opcaoInclusa.opcoes.map(o => { const esg = (p.opcoesEsgotadas || []).includes(o); return `<option value="${_escAttr(o)}" ${o === _np.opcao ? "selected" : ""} ${esg ? "disabled" : ""}>${_escAttr(o)}${esg ? " — esgotado" : ""}</option>`; }).join("")}</select></label>` : ""}
     ${_np.comp.map((_, i) => bloco(i)).join("")}
     <div class="np-add">
       <label class="np-campo">Qtd<input type="number" min="1" max="50" value="${_np.qtd}" oninput="_np.qtd=Math.max(1,parseInt(this.value)||1);npPrecoItem()"></label>
@@ -2418,7 +2907,7 @@ function npAdicionarItem() {
   if (extras) partes.push(`${extras} complemento${extras > 1 ? "s" : ""} extra${extras > 1 ? "s" : ""}`);
   if (copos === 1 && _np.adic[0].length) partes.push(`Adicionais: ${_np.adic[0].map(a => a.nome).join(", ")}`);
   _np.itens.push({
-    nome: p.nome, tamanho: tam.nome || "", quantidade: _np.qtd,
+    nome: p.nome, tamanho: tam.nome || "", quantidade: _np.qtd, opcao: temOpcao ? _np.opcao : "",
     preco: Math.round(_npUnit() * 100) / 100,
     detalhes: partes.join(" · "), produtoId: Number(p.id) || null, extras,
     adicionais: _np.adic.flat().map(a => a.nome),
@@ -2507,6 +2996,7 @@ async function npSalvar() {
     };
     if (etapa !== "recebido") dados.etapas = { [etapa]: firebase.firestore.FieldValue.serverTimestamp() };
     const ref = await db.collection("pedidos").add(dados);
+    if (ETAPAS_QUE_BAIXAM.includes(etapa)) movimentarEstoqueDoc("pedidos", ref.id, -1, `Pedido ${numero ? "Nº " + numero : ""} — ${nome}`);
     if (janela) {
       const p = { ...dados, docId: ref.id };
       const resumo = _np.itens.map(it => `• ${it.quantidade}x ${it.nome}${it.tamanho ? ` (${it.tamanho})` : ""} — ${_brl(it.preco * it.quantidade)}`).join("\n");
@@ -2531,6 +3021,7 @@ async function inicializar() {
   try { document.getElementById("ped-som").checked = localStorage.getItem("admin:somPedidos") !== "0"; } catch (e) {}
   assinarPedidos();
   await Promise.all([carregarCategorias(), carregarProdutos(), carregarCupons(), carregarConfiguracoes(), carregarVendasHoje()]);
+  assinarEstoque();
 }
 
 // ── TABS ──────────────────────────────────────────────────────────────────
@@ -2819,6 +3310,7 @@ async function carregarProdutos() {
     todosProdutos = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
     if (document.getElementById("tab-disponivel")?.classList.contains("active")) renderDisponivel();
     atualizarStats(); filtrar(); popularSelectCategorias(); renderPdvGrid();
+    if (_estoque.length) { renderEstoque(); sincronizarEsgotados(); }
   } catch(e) { toast("Erro ao carregar produtos: " + e.message, "err"); }
 }
 
@@ -3406,7 +3898,6 @@ function abrirModalCriar() {
   document.getElementById("form-disponibilidade").value = "pronta";
   document.getElementById("form-prazo").value    = "";
   alternarPrazoEncomenda();
-  document.getElementById("form-estoque").value  = "";
   document.getElementById("form-imagem").value   = "";
   document.getElementById("form-descricao").value= "";
   document.getElementById("form-ativo").checked  = true;
@@ -3436,7 +3927,6 @@ function abrirModalEditar(docId) {
   document.getElementById("form-disponibilidade").value = p.disponibilidade || "pronta";
   document.getElementById("form-prazo").value        = p.prazoDias || "";
   alternarPrazoEncomenda();
-  document.getElementById("form-estoque").value      = (p.estoque !== undefined && p.estoque !== null) ? p.estoque : "";
   document.getElementById("form-imagem").value       = p.imagem || "";
   document.getElementById("form-descricao").value    = p.descricao || "";
   document.getElementById("form-ativo").checked      = p.ativo !== false;
@@ -3475,8 +3965,6 @@ async function salvarProduto() {
   const prazoDias = disponibilidade === "encomenda"
     ? (parseInt(document.getElementById("form-prazo").value, 10) || null)
     : null;
-  const estoqueRaw = document.getElementById("form-estoque").value;
-  const estoque    = estoqueRaw === "" ? null : Math.max(0, parseInt(estoqueRaw, 10) || 0);
   const descricao = document.getElementById("form-descricao").value.trim();
   const ativo     = document.getElementById("form-ativo").checked;
   const destaque  = document.getElementById("form-destaque").checked;
@@ -3505,7 +3993,7 @@ async function salvarProduto() {
     }
   }
 
-  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, estoque, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, promoAte, banner, copos,
+  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, promoAte, banner, copos,
     usaComplementosLoja: listas.usaComplementosLoja, complementosExceto: listas.complementosExceto,
     usaAdicionaisLoja: listas.usaAdicionaisLoja, adicionaisExceto: listas.adicionaisExceto };
   try {
@@ -3515,7 +4003,7 @@ async function salvarProduto() {
     } else {
       const maxId = todosProdutos.length ? Math.max(...todosProdutos.map(p => Number(p.id)||0)) : 0;
       await db.collection("produtos").doc(String(maxId + 1)).set({
-        ...dados, id: maxId + 1,
+        ...dados, id: maxId + 1, estoque: null,
         criadoEm: firebase.firestore.FieldValue.serverTimestamp()
       });
       toast("Produto criado!", "ok");
@@ -3961,34 +4449,9 @@ async function pdvFinalizarVenda() {
   };
 
   try {
-    // Transação: confere estoque de cada item (quando controlado) e só registra a
-    // venda + desconta o estoque se houver quantidade suficiente para todos os itens.
-    // Isso evita vender mais do que existe, mesmo com duas pessoas usando o PDV ao mesmo tempo.
-    await db.runTransaction(async (tx) => {
-      const refs = pdvCarrinho.map(item => db.collection("produtos").doc(item.docId));
-      const snaps = await Promise.all(refs.map(ref => tx.get(ref)));
-
-      for (let i = 0; i < pdvCarrinho.length; i++) {
-        const item = pdvCarrinho[i];
-        const dados = snaps[i].data() || {};
-        if (dados.estoque !== undefined && dados.estoque !== null) {
-          const estoqueAtual = Number(dados.estoque);
-          if (item.qtd > estoqueAtual) {
-            throw new Error(`Estoque insuficiente para "${item.nome}": disponível ${estoqueAtual}, no carrinho ${item.qtd}.`);
-          }
-        }
-      }
-
-      for (let i = 0; i < pdvCarrinho.length; i++) {
-        const item = pdvCarrinho[i];
-        const dados = snaps[i].data() || {};
-        if (dados.estoque !== undefined && dados.estoque !== null) {
-          tx.update(refs[i], { estoque: Number(dados.estoque) - item.qtd });
-        }
-      }
-
-      tx.set(db.collection("vendas").doc(), venda);
-    });
+    const refVenda = db.collection("vendas").doc();
+    await refVenda.set(venda);
+    await movimentarEstoqueDoc("vendas", refVenda.id, -1, "Venda no PDV");
 
     toast("Venda finalizada com sucesso!", "ok");
     pdvLimparCarrinho();
@@ -4176,6 +4639,7 @@ function confirmarExclusaoVenda(docId, origem) {
   document.getElementById("confirm-msg").textContent = "Excluir esta venda? Esta ação não pode ser desfeita.";
   document.getElementById("confirm-ok-btn").onclick = async () => {
     try {
+      await movimentarEstoqueDoc("vendas", docId, +1, "Venda excluída");
       await db.collection("vendas").doc(docId).delete();
       toast("Venda excluída.", "ok");
       fecharModal("confirm-modal");

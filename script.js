@@ -843,10 +843,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         const tamanhos = tamanhosDoProduto(produto);
         const temTamanhos = tamanhos.length > 1;
         if (temTamanhos) {
+            // Tamanho esgotado (estoque do admin) aparece desabilitado
+            const tamEsg = Array.isArray(produto.tamanhosEsgotados) ? produto.tamanhosEsgotados : [];
             detailSizeSelect.innerHTML = tamanhos
-                .map((t, i) => `<option value="${i}">${t.nome} — ${formatarMoeda(t.preco)}</option>`)
+                .map((t, i) => `<option value="${i}" ${tamEsg.includes(t.nome) ? "disabled" : ""}>${t.nome} — ${formatarMoeda(t.preco)}${tamEsg.includes(t.nome) ? " (esgotado)" : ""}</option>`)
                 .join("");
-            detailSizeSelect.value = "0";
+            const primeiroLivre = Math.max(0, tamanhos.findIndex((t) => !tamEsg.includes(t.nome)));
+            detailSizeSelect.value = String(primeiroLivre);
+            detailTamanhoIdx = primeiroLivre;
             detailSizeGroup.hidden = false;
         } else {
             detailSizeGroup.hidden = true;
@@ -856,7 +860,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             detailInclusoLabel.textContent = produto.opcaoInclusa.label || "Escolha uma opção";
             detailInclusoSelect.innerHTML =
                 `<option value="" selected disabled>Escolha</option>` +
-                produto.opcaoInclusa.opcoes.map((o) => `<option value="${o}">${o}</option>`).join("");
+                produto.opcaoInclusa.opcoes.map((o) => {
+                    const esg = Array.isArray(produto.opcoesEsgotadas) && produto.opcoesEsgotadas.includes(o);
+                    return `<option value="${o}" ${esg ? "disabled" : ""}>${o}${esg ? " (esgotado)" : ""}</option>`;
+                }).join("");
             detailInclusoGroup.hidden = false;
         } else {
             detailInclusoGroup.hidden = true;
@@ -1610,6 +1617,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 produtoId: Number(item.id) || null,
                 extras: Number(item.complementosExtras) || 0,
                 adicionais: (item.adicionaisSelecionados || []).slice(0, 30).map((ad) => String(ad.nome || "").slice(0, 40)),
+                // Sabor/opção escolhida (usada pelo controle de estoque do admin)
+                opcao: String(item.opcaoInclusaSelecionada || "").slice(0, 60),
             }));
             const v = (id) => (document.getElementById(id)?.value || "").trim();
             const token = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join("");
