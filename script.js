@@ -892,6 +892,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         atualizarPosicaoCarrossel();
     });
 
+    // Opção inclusa com foto por opção (ex: sabor do sorvete) → mostra a foto do sabor escolhido
+    detailInclusoSelect.addEventListener("change", () => {
+        const oi = detailProdutoAtual && detailProdutoAtual.opcaoInclusa;
+        if (!oi || !Array.isArray(oi.imagens)) return;
+        const foto = oi.imagens[oi.opcoes.indexOf(detailInclusoSelect.value)];
+        const i = detailFotos.indexOf(foto);
+        if (i >= 0) { detailIndice = i; atualizarPosicaoCarrossel(); }
+    });
+
     detailSizeSelect.addEventListener("change", () => {
         detailTamanhoIdx = Number(detailSizeSelect.value) || 0;
         // Muda de tamanho pode reduzir o limite de complementos grátis — descarta os que passarem do limite

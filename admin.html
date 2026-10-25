@@ -2343,7 +2343,7 @@ function npEscolherProduto() {
   if (!p) { document.getElementById("np-config").hidden = true; return; }
   const prod = produtoParaVenda(p);
   const copos = Math.max(1, Number(prod.copos) || 1);
-  _np.prod = prod; _np.tamIdx = 0; _np.qtd = 1;
+  _np.prod = prod; _np.tamIdx = 0; _np.qtd = 1; _np.opcao = "";
   _np.comp = Array.from({ length: copos }, () => []);
   _np.adic = Array.from({ length: copos }, () => []);
   npRenderConfig();
@@ -2376,6 +2376,7 @@ function npRenderConfig() {
   const cont = document.getElementById("np-config");
   cont.innerHTML = `
     ${tams.length > 1 ? `<label class="np-campo">Tamanho<select onchange="_np.tamIdx=Number(this.value);npRenderConfig()">${tams.map((t, i) => `<option value="${i}" ${i === _np.tamIdx ? "selected" : ""}>${_escAttr(t.nome)} — ${_brl(t.preco)}${Number(t.complementosGratis) ? ` (${t.complementosGratis} grátis)` : ""}</option>`).join("")}</select></label>` : ""}
+    ${p.opcaoInclusa && (p.opcaoInclusa.opcoes || []).length ? `<label class="np-campo">${_escAttr(p.opcaoInclusa.label || "Opção")}<select onchange="_np.opcao=this.value"><option value="">Escolha…</option>${p.opcaoInclusa.opcoes.map(o => `<option ${o === _np.opcao ? "selected" : ""}>${_escAttr(o)}</option>`).join("")}</select></label>` : ""}
     ${_np.comp.map((_, i) => bloco(i)).join("")}
     <div class="np-add">
       <label class="np-campo">Qtd<input type="number" min="1" max="50" value="${_np.qtd}" oninput="_np.qtd=Math.max(1,parseInt(this.value)||1);npPrecoItem()"></label>
@@ -2403,8 +2404,11 @@ function npAlterna(tipo, i, nome, on) {
 
 function npAdicionarItem() {
   const p = _np.prod, tam = _npTam(), copos = _np.comp.length;
+  const temOpcao = p.opcaoInclusa && (p.opcaoInclusa.opcoes || []).length;
+  if (temOpcao && !_np.opcao) { toast(`Escolha: ${p.opcaoInclusa.label || "opção"}.`, "err"); return; }
   const partes = [];
   if ((p.tamanhos || []).length > 1 && tam.nome) partes.push(tam.nome);
+  if (temOpcao) partes.push(`${p.opcaoInclusa.label || "Opção"}: ${_np.opcao}`);
   if (copos > 1) _np.comp.forEach((sel, i) => {
     const ad = _np.adic[i].map(a => `+ ${a.nome}`);
     partes.push(`${i + 1}º açaí: ${sel.length ? sel.join(", ") : "sem complementos"}${ad.length ? ` (${ad.join(", ")})` : ""}`);
@@ -3456,7 +3460,14 @@ async function salvarProduto() {
   const tamanhos  = lerTamanhosLinhas();
   const opcaoInclusaLabel  = document.getElementById("form-opcao-inclusa-label").value.trim();
   const opcaoInclusaOpcoes = parseListaLinhas(document.getElementById("form-opcao-inclusa-opcoes").value);
-  const opcaoInclusa = (opcaoInclusaLabel && opcaoInclusaOpcoes.length) ? { label: opcaoInclusaLabel, opcoes: opcaoInclusaOpcoes } : null;
+  let opcaoInclusa = (opcaoInclusaLabel && opcaoInclusaOpcoes.length) ? { label: opcaoInclusaLabel, opcoes: opcaoInclusaOpcoes } : null;
+  // Mantém a foto ligada a cada opção (ex: foto de cada sabor), seguindo o nome da opção
+  const _pAnt = todosProdutos.find(x => x.docId === document.getElementById("form-id").value);
+  const _oiAnt = _pAnt && _pAnt.opcaoInclusa;
+  if (opcaoInclusa && _oiAnt && Array.isArray(_oiAnt.imagens)) {
+    const imgs = opcaoInclusa.opcoes.map(o => _oiAnt.imagens[_oiAnt.opcoes.indexOf(o)] || "");
+    if (imgs.some(Boolean)) opcaoInclusa.imagens = imgs;
+  }
   const listas = lerListasProduto();
   const { complementosLista, adicionaisPagos } = listas;
   const preco = tamanhos.length ? Math.min(...tamanhos.map(t => t.preco)) : NaN;

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Atualização do catálogo – Açaí da Bru</title>
+  <title>Novidades: sorvetes – Açaí da Bru</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #eee; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 32px 16px; }
@@ -19,14 +19,12 @@
   </style>
 </head>
 <body>
-<h1>🔄 Atualização do catálogo — 21/10</h1>
-<p>Aplica só as mudanças abaixo no Firebase, <strong>sem apagar</strong> o que já foi editado pelo admin (preços, fotos e textos dos outros produtos continuam como estão). Pode rodar mais de uma vez sem problema.</p>
+<h1>🍦 Novidades do catálogo — 25/10</h1>
+<p>Coloca na loja só os produtos novos abaixo, <strong>sem mexer</strong> no que já existe (produtos, preços, bairros e configurações continuam como estão). Pode rodar mais de uma vez: se o produto já existir, só atualiza ele.</p>
 <ul>
-  <li>Combo Casal: 2 açaís montados separados, 3 complementos grátis em cada</li>
-  <li>Remove o adicional "Açaí puro" de todos os produtos</li>
-  <li>Fotos novas: Morango Cravejado e Coca-Cola 2L</li>
-  <li>Foto de fundo do topo (3 copos)</li>
-  <li>Taxas de entrega por bairro, tempo estimado (40 a 45 min) e complemento extra a R$ 2,00</li>
+  <li>Nova categoria <strong>Sorvetes</strong></li>
+  <li><strong>Sorvete 1 Litro</strong> — R$ 17,90, com escolha do sabor: Napolitano, Abacaxi, Flocos ou Baunilha (cada sabor com a foto do pote)</li>
+  <li><strong>Kit Casquinhas</strong> — 5 cascões + 5 bijus por R$ 11,90</li>
 </ul>
 <div id="login-box">
   <input type="email" id="email" placeholder="E-mail do admin" autocomplete="username">
@@ -71,49 +69,50 @@ document.getElementById("btn").addEventListener("click", async () => {
     catch (e) { addLog("✘ " + nome + " — " + e.message, "err"); erros++; }
   };
 
-  // Produtos: busca pelo nome (o ID pode ter mudado se algo foi recriado pelo admin)
-  const snap = await db.collection("produtos").get();
-  const docs = snap.docs.map(d => ({ ref: d.ref, ...d.data() }));
-  const acha = (trecho) => docs.find(p => (p.nome || "").toLowerCase().includes(trecho));
+  // Categoria "Sorvetes" logo antes de Bebidas
+  const cats = (await db.collection("categorias").get()).docs.map(d => ({ ref: d.ref, ...d.data() }));
+  const bebidas = cats.find(c => c.id === "bebidas" || (c.nome || "").toLowerCase() === "bebidas");
+  const jaTem = cats.find(c => c.id === "sorvetes" || (c.nome || "").toLowerCase() === "sorvetes");
+  const idCat = jaTem ? (jaTem.id || jaTem.ref.id) : "sorvetes";
+  if (!jaTem) {
+    const ordem = bebidas ? Number(bebidas.ordem) || 4 : Math.max(0, ...cats.map(c => Number(c.ordem) || 0)) + 1;
+    await passo("Categoria Sorvetes", () => db.collection("categorias").doc("sorvetes").set({ id: "sorvetes", nome: "Sorvetes", icone: "fa-ice-cream", ordem }));
+    if (bebidas) await passo("Bebidas vai para depois de Sorvetes", () => bebidas.ref.update({ ordem: ordem + 1 }));
+  } else addLog("• Categoria Sorvetes já existe", "info");
 
-  const combo = acha("combo casal");
-  if (combo) await passo("Combo Casal: 2 açaís, 3 complementos grátis em cada", () => combo.ref.update({
-    copos: 2,
-    tamanhos: [{ nome: "2 açaís de 400ml", preco: 32.80, complementosGratis: 3 }],
-    preco: 32.80,
-    descricao: "Promoção de outubro (01/10 a 31/10): 2 açaís de 400ml com 3 complementos grátis em cada — você monta cada açaí do seu jeito.",
-  }));
-  else { addLog("✘ Combo Casal não encontrado", "err"); erros++; }
-
-  const cravejado = acha("cravejado");
-  if (cravejado) await passo("Foto do Morango Cravejado", () => cravejado.ref.update({ imagem: "assets/morango-cravejado.jpg" }));
-  const coca = acha("coca");
-  if (coca) await passo("Foto da Coca-Cola 2L", () => coca.ref.update({ imagem: "assets/coca-cola.jpg" }));
-
-  for (const p of docs) {
-    const lista = Array.isArray(p.adicionaisPagos) ? p.adicionaisPagos : [];
-    const semAcaiPuro = lista.filter(a => (a.nome || "").trim().toLowerCase() !== "açaí puro");
-    if (semAcaiPuro.length !== lista.length) {
-      await passo(`Remove "Açaí puro" de: ${p.nome}`, () => p.ref.update({ adicionaisPagos: semAcaiPuro }));
+  // Produtos: se já existir (pelo nome) atualiza; senão cria com o próximo número
+  const docs = (await db.collection("produtos").get()).docs.map(d => ({ ref: d.ref, ...d.data() }));
+  let maxId = Math.max(0, ...docs.map(p => Number(p.id) || 0));
+  const base = {
+    categoria: idCat, opcaoInclusa: null, complementosLista: [], adicionaisPagos: [],
+    usaComplementosLoja: false, complementosExceto: [], usaAdicionaisLoja: false, adicionaisExceto: [],
+    disponibilidade: "pronta", prazoDias: null, estoque: null, ativo: true, destaque: true,
+    promoAte: null, banner: null, copos: 1, codigo: "", galeria: [],
+  };
+  const sabores = ["Napolitano", "Abacaxi", "Flocos", "Baunilha"];
+  const fotos = ["assets/sorvete-napolitano.jpg", "assets/sorvete-abacaxi.jpg", "assets/sorvete-flocos.jpg", "assets/sorvete-baunilha.jpg"];
+  const novos = [
+    { ...base, nome: "Sorvete 1 Litro", preco: 17.90,
+      tamanhos: [{ nome: "", preco: 17.90, complementosGratis: 0 }],
+      opcaoInclusa: { label: "Sabor", opcoes: sabores, imagens: fotos },
+      imagem: fotos[0], galeria: fotos.slice(1),
+      descricao: "Pote de 1 litro (430 g) por apenas R$ 17,90! Sabores: Napolitano, Abacaxi, Flocos e Baunilha." },
+    { ...base, nome: "Kit Casquinhas", preco: 11.90,
+      tamanhos: [{ nome: "", preco: 11.90, complementosGratis: 0 }],
+      imagem: "assets/kit-casquinhas.jpg",
+      descricao: "Kit com 5 cascões + 5 bijus — perfeito para acompanhar o sorvete em casa." },
+  ];
+  for (const n of novos) {
+    const existe = docs.find(p => (p.nome || "").trim().toLowerCase() === n.nome.toLowerCase());
+    if (existe) await passo(`Atualiza ${n.nome}`, () => existe.ref.update(n));
+    else {
+      maxId += 1; const id = maxId;
+      await passo(`Cria ${n.nome} (#${id})`, () => db.collection("produtos").doc(String(id)).set({ ...n, id, criadoEm: firebase.firestore.FieldValue.serverTimestamp() }));
     }
   }
 
-  await passo("Configurações: fundo do topo, bairros/taxas, tempo de entrega e complemento extra", () =>
-    db.collection("configuracoes").doc("geral").set({
-      bannerUrl: "assets/fundo-hero.jpg",
-      taxasEntrega: [
-        { bairro: "Campo Belo", taxa: 3 }, { bairro: "Recanto dos Girassóis", taxa: 3 },
-        { bairro: "Hortênsias", taxa: 3 }, { bairro: "Camélias", taxa: 3 },
-        { bairro: "Jardim Betânia", taxa: 6 }, { bairro: "Sítio Piranga", taxa: 6 }, { bairro: "Chácara das Rosas", taxa: 6 },
-        { bairro: "Brigadeiro", taxa: 8 }, { bairro: "Guajuviras", taxa: 8 },
-      ],
-      aceitarOutrosBairros: true,
-      tempoEntrega: "40 a 45 minutos",
-      precoComplementoExtra: 2,
-    }, { merge: true }));
-
   addLog("");
-  addLog(erros ? `━━━ Terminou com ${erros} erro(s) ━━━` : "━━━ Tudo atualizado! Recarregue a loja. ━━━", erros ? "err" : "info");
+  addLog(erros ? `━━━ Terminou com ${erros} erro(s) ━━━` : "━━━ Pronto! Recarregue a loja. ━━━", erros ? "err" : "info");
   btn.disabled = false;
 });
 </script>
