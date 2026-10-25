@@ -251,6 +251,16 @@
     .pdv-troco-resultado.falta { color: var(--red); }
     .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 8px; margin-bottom: 20px; }
     .chart-card h3 { font-size: .95rem; color: var(--gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* Taxas por bairro */
+    .bairro-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+    .bairro-add > input { flex: 1; min-width: 180px; }
+    .bairro-taxa { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: .85rem; }
+    .bairro-taxa input { width: 84px !important; text-align: right; font-weight: 700; color: var(--gold) !important; }
+    .bairros-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+    .bairro-item { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 6px 8px; }
+    .bairro-item .bairro-nome { flex: 1; min-width: 0; background: transparent !important; border-color: transparent !important; font-weight: 600; }
+    .bairro-item .bairro-nome:focus { border-color: var(--gold) !important; background: var(--surface) !important; }
+    @media (max-width: 600px) { .bairros-lista { grid-template-columns: 1fr; } }
     /* Novo pedido manual */
     .np-modal { max-width: 760px; width: 100%; max-height: 92vh; overflow-y: auto; }
     .np-sec { font-size: .9rem; color: var(--gold); margin: 16px 0 8px; }
@@ -832,8 +842,13 @@
           <small style="color:var(--muted);font-size:.75rem;display:block;margin-top:4px">Desmarque temporariamente a que não estiver disponível (ex: sem entregador hoje). Pelo menos uma precisa ficar marcada — some da tela de compra quando desmarcada.</small>
         </div>
         <div class="form-group full">
-          <label>Taxas de entrega por bairro <small style="color:var(--muted)">(um por linha: Bairro | Taxa. Ex: Campo Belo | 3,00 — aparecem como opções no carrinho e a taxa entra no total do pedido)</small></label>
-          <textarea id="config-taxas-entrega" rows="7" placeholder="Campo Belo | 3,00&#10;Jardim Betânia | 6,00&#10;Guajuviras | 8,00"></textarea>
+          <label>Taxas de entrega por bairro <small style="color:var(--muted)">(aparecem como opções no carrinho e a taxa entra no total — mudou, já fica salvo)</small></label>
+          <div class="bairro-add">
+            <input type="text" id="bairro-novo-nome" maxlength="60" placeholder="Nome do bairro (ex: Vila Imbuí)" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('bairro-novo-taxa').focus()}">
+            <div class="bairro-taxa"><span>R$</span><input type="text" id="bairro-novo-taxa" inputmode="decimal" placeholder="0,00" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarBairro()}"></div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="adicionarBairro()"><i class="fa-solid fa-plus"></i> Adicionar</button>
+          </div>
+          <div id="bairros-lista" class="bairros-lista"></div>
           <label class="toggle-row" style="margin-top:6px"><input type="checkbox" id="config-aceitar-outros-bairros" checked> Aceitar pedido de bairro fora da lista (taxa combinada pelo WhatsApp)</label>
         </div>
         <div class="form-group">
@@ -2215,6 +2230,51 @@ function alternarTema() {
   if (document.getElementById("tab-relatorio").classList.contains("active")) renderRelatorio();
 }
 aplicarIconeTema();
+
+// ── TAXAS DE ENTREGA POR BAIRRO (lista com campos; salva sozinho) ─────────
+let _bairros = [];
+let _bairrosTimer = null;
+const _bairrosParaSalvar = () => _bairros.filter(b => b.bairro.trim()).map(b => ({ bairro: b.bairro.trim(), taxa: Math.round((Number(b.taxa) || 0) * 100) / 100 }));
+function renderBairros() {
+  const el = document.getElementById("bairros-lista");
+  if (!_bairros.length) { el.innerHTML = `<p class="ingr-vazio">Nenhum bairro ainda. Digite o nome e a taxa acima e toque em Adicionar.</p>`; return; }
+  el.innerHTML = _bairros.map((b, i) => `
+    <div class="bairro-item">
+      <input type="text" class="bairro-nome" maxlength="60" value="${_escAttr(b.bairro)}" aria-label="Nome do bairro" onchange="editarBairro(${i}, 'bairro', this.value)">
+      <div class="bairro-taxa"><span>R$</span><input type="text" inputmode="decimal" value="${_fmtPreco(b.taxa)}" aria-label="Taxa de ${_escAttr(b.bairro)}" onchange="editarBairro(${i}, 'taxa', this.value)" onfocus="this.select()"></div>
+      <button type="button" class="btn btn-danger btn-sm" title="Remover bairro" onclick="removerBairro(${i})"><i class="fa-solid fa-trash"></i></button>
+    </div>`).join("");
+}
+function adicionarBairro() {
+  const nomeEl = document.getElementById("bairro-novo-nome"), taxaEl = document.getElementById("bairro-novo-taxa");
+  const nome = nomeEl.value.trim();
+  if (!nome) { toast("Digite o nome do bairro.", "err"); nomeEl.focus(); return; }
+  if (_bairros.some(b => _normNome(b.bairro) === _normNome(nome))) { toast(`${nome} já está na lista — é só mudar a taxa dele.`, "err"); return; }
+  _bairros.push({ bairro: nome, taxa: _lerPreco(taxaEl.value) });
+  _bairros.sort((a, b) => a.taxa - b.taxa || a.bairro.localeCompare(b.bairro, "pt-BR"));
+  nomeEl.value = ""; taxaEl.value = ""; nomeEl.focus();
+  renderBairros(); salvarBairros();
+}
+function editarBairro(i, campo, valor) {
+  if (campo === "bairro") {
+    const v = valor.trim();
+    if (!v) { renderBairros(); return; }
+    _bairros[i].bairro = v;
+  } else _bairros[i].taxa = _lerPreco(valor);
+  renderBairros(); salvarBairros();
+}
+function removerBairro(i) { _bairros.splice(i, 1); renderBairros(); salvarBairros(); }
+function salvarBairros() {
+  clearTimeout(_bairrosTimer);
+  _bairrosTimer = setTimeout(async () => {
+    try {
+      const taxasEntrega = _bairrosParaSalvar();
+      await db.collection("configuracoes").doc("geral").set({ taxasEntrega }, { merge: true });
+      _cfgLoja = { ..._cfgLoja, taxasEntrega };
+      toast("Taxas de entrega salvas", "ok");
+    } catch (e) { toast("Erro ao salvar as taxas: " + e.message, "err"); }
+  }, 400);
+}
 
 // ── NOVO PEDIDO MANUAL (WhatsApp / telefone / balcão) ───────────────────────
 // Monta o pedido com as mesmas regras da loja (tamanho, complementos grátis por açaí,
@@ -4608,8 +4668,8 @@ async function carregarConfiguracoes() {
     document.getElementById("config-cor-destaque").value   = cfg.corDestaque;
     document.getElementById("config-entrega-disponivel").checked  = cfg.entregaDisponivel !== false;
     document.getElementById("config-retirada-disponivel").checked = cfg.retiradaDisponivel !== false;
-    document.getElementById("config-taxas-entrega").value = (Array.isArray(cfg.taxasEntrega) ? cfg.taxasEntrega : [])
-      .map(t => `${t.bairro} | ${Number(t.taxa || 0).toFixed(2).replace(".", ",")}`).join("\n");
+    _bairros = (Array.isArray(cfg.taxasEntrega) ? cfg.taxasEntrega : []).map(t => ({ bairro: t.bairro, taxa: Number(t.taxa) || 0 }));
+    renderBairros();
     document.getElementById("config-aceitar-outros-bairros").checked = cfg.aceitarOutrosBairros !== false;
     document.getElementById("config-tempo-entrega").value = cfg.tempoEntrega || "";
     document.getElementById("config-google-review").value = cfg.googleReviewUrl || "";
@@ -4669,16 +4729,7 @@ async function salvarConfiguracoes() {
   const corSecundaria = document.getElementById("config-cor-secundaria").value;
   const corDestaque   = document.getElementById("config-cor-destaque").value;
   const entregaDisponivel  = document.getElementById("config-entrega-disponivel").checked;
-  // "Bairro | 3,00" por linha → [{ bairro, taxa }]
-  const taxasEntrega = document.getElementById("config-taxas-entrega").value.split("\n")
-    .map(l => l.split("|").map(x => x.trim()))
-    .filter(([b]) => b)
-    .map(([bairro, taxa]) => {
-      // aceita "3,00", "3.00" ou "3"
-      const t = String(taxa || "0");
-      const n = t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t;
-      return { bairro, taxa: Number(n) || 0 };
-    });
+  const taxasEntrega = _bairrosParaSalvar();
   const aceitarOutrosBairros = document.getElementById("config-aceitar-outros-bairros").checked;
   const tempoEntrega = document.getElementById("config-tempo-entrega").value.trim();
   const googleReviewUrl = document.getElementById("config-google-review").value.trim();
