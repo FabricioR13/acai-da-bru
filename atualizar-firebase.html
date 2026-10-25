@@ -23,7 +23,7 @@
 <p>Coloca na loja só os produtos novos abaixo, <strong>sem mexer</strong> no que já existe (produtos, preços, bairros e configurações continuam como estão). Pode rodar mais de uma vez: se o produto já existir, só atualiza ele.</p>
 <ul>
   <li>Nova categoria <strong>Sorvetes</strong></li>
-  <li><strong>Sorvete 1 Litro</strong> — R$ 17,90, com escolha do sabor: Napolitano, Abacaxi, Flocos ou Baunilha (cada sabor com a foto do pote)</li>
+  <li><strong>Sorvete 1 Litro</strong> — R$ 17,90, com escolha do sabor: Napolitano, Abacaxi, Flocos ou Baunilha (foto com os potes na capa e a foto de cada sabor)</li>
   <li><strong>Kit Casquinhas</strong> — 5 cascões + 5 bijus por R$ 11,90</li>
 </ul>
 <div id="login-box">
@@ -95,7 +95,7 @@ document.getElementById("btn").addEventListener("click", async () => {
     { ...base, nome: "Sorvete 1 Litro", preco: 17.90,
       tamanhos: [{ nome: "", preco: 17.90, complementosGratis: 0 }],
       opcaoInclusa: { label: "Sabor", opcoes: sabores, imagens: fotos },
-      imagem: fotos[0], galeria: fotos.slice(1),
+      imagem: "assets/sorvete-capa.jpg", galeria: fotos,
       descricao: "Pote de 1 litro (430 g) por apenas R$ 17,90! Sabores: Napolitano, Abacaxi, Flocos e Baunilha." },
     { ...base, nome: "Kit Casquinhas", preco: 11.90,
       tamanhos: [{ nome: "", preco: 11.90, complementosGratis: 0 }],
