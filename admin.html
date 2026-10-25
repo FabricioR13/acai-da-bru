@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin – Açaí da Bru</title>
+  <script>try { if (localStorage.getItem("admin:tema") === "claro") document.documentElement.dataset.tema = "claro"; } catch (e) {}</script>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <!-- Cropper.js: ferramenta de recorte manual de foto (usada só no admin). Se não
@@ -24,6 +25,41 @@
       --green:   #4caf50;
       --blue:    #2196f3;
     }
+    /* ── Tema claro (botão ☀/☾ no topo; cada aparelho lembra a escolha) ── */
+    :root[data-tema="claro"] {
+      --bg:      #f5f2ed;
+      --surface: #f1ece5;
+      --card:    #ffffff;
+      --border:  #e2dbd0;
+      --gold:    #9a6a06;
+      --gold2:   #7d5604;
+      --text:    #231c17;
+      --muted:   #6f675f;
+      --red:     #c62828;
+      --green:   #2e7d32;
+      --blue:    #1565c0;
+      color-scheme: light;
+    }
+    :root[data-tema="claro"] .side-btn.active,
+    :root[data-tema="claro"] .badge-destaque { background: #fbf0d6; }
+    :root[data-tema="claro"] .btn-primary { color: #fff; }
+    :root[data-tema="claro"] .btn-danger { background: #fdecec; border-color: #f3c4c4; }
+    :root[data-tema="claro"] .btn-danger:hover { background: #fadada; }
+    :root[data-tema="claro"] .badge-inativo { background: #fdecec; }
+    :root[data-tema="claro"] .badge-ativo { background: #e3f3e6; }
+    :root[data-tema="claro"] .chart-tooltip { background: #fff; box-shadow: 0 4px 14px rgba(60,40,20,.15); }
+    :root[data-tema="claro"] .menu-badge { color: #fff; }
+    :root[data-tema="claro"] .ingr-aviso,
+    :root[data-tema="claro"] .ped-obs,
+    :root[data-tema="claro"] .painel-aviso { background: #fff5dc; }
+    :root[data-tema="claro"] tr:hover td { background: #faf6ef; }
+    :root[data-tema="claro"] .disp-switch span { background: #cfc6b8; }
+    :root[data-tema="claro"] .disp-switch input:checked + span { background: var(--green); }
+    :root[data-tema="claro"] .ped-card, :root[data-tema="claro"] .kpi, :root[data-tema="claro"] .chart-card,
+    :root[data-tema="claro"] .stat-card, :root[data-tema="claro"] .aval-card { box-shadow: 0 2px 10px rgba(60,40,20,.06); }
+    :root[data-tema="claro"] .mapa td[style*="rgba"] { color: #231c17 !important; }
+    .tema-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 8px; width: 36px; height: 32px; cursor: pointer; font-size: .95rem; }
+    .tema-btn:hover { border-color: var(--gold); color: var(--gold); }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
     #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 16px; }
@@ -215,6 +251,36 @@
     .pdv-troco-resultado.falta { color: var(--red); }
     .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 8px; margin-bottom: 20px; }
     .chart-card h3 { font-size: .95rem; color: var(--gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* Novo pedido manual */
+    .np-modal { max-width: 760px; width: 100%; max-height: 92vh; overflow-y: auto; }
+    .np-sec { font-size: .9rem; color: var(--gold); margin: 16px 0 8px; }
+    .np-escolha select, .np-grid input, .np-grid select, .np-campo select, .np-campo input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; color: var(--text); font-size: .9rem; }
+    .np-config { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+    .np-config .copo-bloco { background: var(--card); }
+    .np-config .ingr-checklist { background: var(--card); max-height: none; }
+    .np-campo { display: flex; flex-direction: column; gap: 4px; font-size: .75rem; color: var(--muted); }
+    .np-add { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; position: sticky; bottom: -12px; background: var(--surface); padding: 8px 0 2px; }
+    .np-add .np-campo { width: 80px; }
+    .np-preco-item { margin-left: auto; font-size: .9rem; }
+    .np-preco-item strong { color: var(--gold); font-size: 1.05rem; }
+    .np-itens { margin-top: 10px; }
+    .np-itens .ped-itens span { display: flex; align-items: center; gap: 8px; }
+    .np-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .np-grid label { display: flex; flex-direction: column; gap: 4px; font-size: .75rem; color: var(--muted); }
+    .np-grid .np-largo { grid-column: 1 / -1; }
+    @media (max-width: 600px) { .np-grid { grid-template-columns: 1fr; } }
+    .np-checks { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+    .np-rodape { justify-content: space-between; align-items: center; position: sticky; bottom: -24px; background: var(--card); padding-top: 12px; }
+    .np-total { font-size: .9rem; color: var(--muted); }
+    .np-total strong { font-size: 1.3rem; color: var(--gold); margin-left: 6px; }
+    .np-config .copo-bloco { border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+    .np-config .copo-titulo { font-weight: 700; color: var(--gold); margin-bottom: 6px; }
+    .np-config .copo-subtitulo { font-size: .8rem; color: var(--muted); margin: 6px 0 4px; display: flex; gap: 8px; align-items: center; }
+    .np-config .detail-option-counter { font-weight: 700; color: var(--green); }
+    .np-config .detail-option-counter.limite-atingido { color: var(--gold); }
+    .np-config .ingr-check small { color: var(--gold); font-weight: 700; }
+    .np-tipo.ativo { border-color: var(--gold); color: var(--gold); font-weight: 700; }
+    .ped-origem { font-size: .68rem; font-weight: 700; color: var(--green); background: var(--surface); border-radius: 999px; padding: 2px 7px; margin-left: 4px; vertical-align: middle; }
     /* Pedidos */
     .menu-badge { margin-left: auto; background: var(--red, #e53935); color: #fff; font-size: .7rem; font-weight: 700; border-radius: 999px; padding: 1px 7px; }
     .ped-ao-vivo { font-size: .7rem; color: var(--green, #4caf50); font-weight: 600; margin-left: 6px; vertical-align: middle; }
@@ -371,6 +437,7 @@
     <div class="topbar-brand" id="topbar-brand-nome">Admin</div>
     <div class="topbar-right">
       <span style="font-size:.8rem;color:var(--muted)" id="topbar-count"></span>
+      <button class="tema-btn" id="tema-btn" onclick="alternarTema()" title="Tela clara ou escura"><i class="fa-solid fa-sun"></i></button>
       <button class="logout-btn" onclick="fazerLogout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</button>
     </div>
   </div>
@@ -400,6 +467,7 @@
         <div class="ped-controles">
           <input type="date" id="ped-dia" onchange="assinarPedidos()" aria-label="Dia dos pedidos">
           <label class="toggle-row" title="Toca um som quando chega pedido novo"><input type="checkbox" id="ped-som" checked onchange="salvarPrefSom()"> <i class="fa-solid fa-bell"></i> Som</label>
+          <button class="btn btn-primary btn-sm" onclick="abrirNovoPedido()" title="Pedido que chegou pelo WhatsApp, telefone ou no balcão"><i class="fa-solid fa-plus"></i> Novo pedido</button>
         </div>
       </div>
       <div class="ped-filtros" id="ped-filtros"></div>
@@ -410,7 +478,7 @@
       <div class="disp-topo">
         <div>
           <h2 style="font-size:1.1rem;margin-bottom:4px">Painel do mês</h2>
-          <p style="color:var(--muted);font-size:.8rem">Vendas = pedidos do site <strong>pagos</strong> + balcão (PDV). Lucro usa os custos cadastrados nos produtos e adicionais.</p>
+          <p style="color:var(--muted);font-size:.8rem">Vendas = pedidos <strong>pagos</strong> (site, WhatsApp e balcão) + vendas rápidas do PDV. Lucro usa os custos cadastrados nos produtos e adicionais.</p>
         </div>
         <div class="ped-controles">
           <input type="month" id="painel-mes" onchange="carregarPainel()" aria-label="Mês do painel">
@@ -443,7 +511,7 @@
       <div class="disp-topo">
         <div>
           <h2 style="font-size:1.1rem;margin-bottom:4px">Entradas e saídas</h2>
-          <p style="color:var(--muted);font-size:.8rem">Vendas do balcão (PDV) e pedidos do site <strong>marcados como pagos</strong> entram sozinhos. Aqui você lança as despesas e outras entradas.</p>
+          <p style="color:var(--muted);font-size:.8rem">Vendas do PDV e pedidos (site, WhatsApp e balcão) <strong>marcados como pagos</strong> entram sozinhos. Aqui você lança as despesas e outras entradas.</p>
         </div>
         <div class="ped-controles">
           <input type="month" id="caixa-mes" onchange="carregarCaixa()" aria-label="Mês do caixa">
@@ -693,8 +761,8 @@
           <label>Origem
             <select id="horario-origem" onchange="renderRelatorioHorarios()">
               <option value="todos">Site + balcão</option>
-              <option value="site">Só pedidos do site</option>
-              <option value="balcao">Só balcão (PDV)</option>
+              <option value="site">Só pedidos (site, WhatsApp e balcão)</option>
+              <option value="balcao">Só vendas rápidas do PDV</option>
             </select>
           </label>
         </div>
@@ -1169,6 +1237,60 @@
   </div>
 </div>
 
+<!-- Novo pedido manual (cliente pediu pelo WhatsApp, telefone ou no balcão) -->
+<div class="modal-overlay" id="np-modal">
+  <div class="modal np-modal">
+    <button class="modal-close" onclick="fecharModal('np-modal')">&times;</button>
+    <h2><i class="fa-solid fa-plus"></i> Novo pedido</h2>
+    <p style="color:var(--muted);font-size:.8rem;margin:-4px 0 12px">Para quem pediu pelo WhatsApp, telefone ou no balcão. Ele entra na lista de Pedidos com as mesmas etapas e avisos.</p>
+
+    <h3 class="np-sec">1. Itens</h3>
+    <div class="np-escolha">
+      <select id="np-produto" onchange="npEscolherProduto()"><option value="">Escolha o produto…</option></select>
+    </div>
+    <div id="np-config" class="np-config" hidden></div>
+    <div id="np-itens" class="np-itens"></div>
+
+    <h3 class="np-sec">2. Cliente e entrega</h3>
+    <div class="np-grid">
+      <label>Nome<input type="text" id="np-nome" maxlength="80" placeholder="Nome do cliente"></label>
+      <label>WhatsApp<input type="tel" id="np-telefone" maxlength="15" inputmode="numeric" placeholder="(51) 99999-9999" oninput="npMascaraTel(this)"></label>
+    </div>
+    <div class="caixa-tipo" style="margin-top:10px">
+      <button type="button" class="caixa-tipo-btn np-tipo ativo" data-np-tipo="entrega" onclick="npTipo('entrega')"><i class="fa-solid fa-motorcycle"></i> Entrega</button>
+      <button type="button" class="caixa-tipo-btn np-tipo" data-np-tipo="retirada" onclick="npTipo('retirada')"><i class="fa-solid fa-store"></i> Retirada</button>
+      <button type="button" class="caixa-tipo-btn np-tipo" data-np-tipo="balcao" onclick="npTipo('balcao')"><i class="fa-solid fa-cash-register"></i> Balcão (na hora)</button>
+    </div>
+    <div class="np-grid" id="np-entrega">
+      <label class="np-largo">Endereço<input type="text" id="np-rua" maxlength="120" placeholder="Rua / Avenida"></label>
+      <label>Número<input type="text" id="np-numero" maxlength="10"></label>
+      <label>Bairro<select id="np-bairro" onchange="npBairro()"></select></label>
+      <label>Taxa de entrega (R$)<input type="text" id="np-taxa" inputmode="decimal" placeholder="0,00" oninput="npAtualizarTotal()"></label>
+    </div>
+
+    <h3 class="np-sec">3. Pagamento</h3>
+    <div class="np-grid">
+      <label>Forma<select id="np-pagamento" onchange="document.getElementById('np-troco-box').hidden = this.value !== 'Dinheiro'">
+        <option>PIX</option><option>Dinheiro</option><option>Cartão de Crédito (na entrega)</option><option>Cartão de Débito (na entrega)</option></select></label>
+      <label id="np-troco-box" hidden>Troco para (R$)<input type="text" id="np-troco" inputmode="decimal" placeholder="Ex: 50"></label>
+      <label>Etapa inicial<select id="np-etapa"><option value="recebido">Recebido</option><option value="preparo">Em preparo</option></select></label>
+      <label class="np-largo">Observações<input type="text" id="np-obs" maxlength="500" placeholder="Ex: sem granola, embalagens separadas…"></label>
+    </div>
+    <div class="np-checks">
+      <label class="toggle-row"><input type="checkbox" id="np-pago"> Já está pago</label>
+      <label class="toggle-row"><input type="checkbox" id="np-avisar" checked> Mandar a confirmação para o cliente no WhatsApp</label>
+    </div>
+
+    <div class="modal-footer np-rodape">
+      <div class="np-total">Total <strong id="np-total">R$ 0,00</strong></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="fecharModal('np-modal')">Cancelar</button>
+        <button class="btn btn-primary" id="np-salvar" onclick="npSalvar()"><i class="fa-solid fa-floppy-disk"></i> Registrar pedido</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="confirm-modal">
   <div class="modal">
     <button class="modal-close" onclick="fecharModal('confirm-modal')">&times;</button>
@@ -1351,7 +1473,7 @@ const _horaDe = (p) => {
   return dt ? dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--";
 };
 const _nomePedido = (p) => p.numero ? `Nº ${p.numero}` : `#${p.codigo || p.docId.slice(0, 6)}`;
-const _ehEntrega = (p) => p.tipo !== "retirada";
+const _ehEntrega = (p) => !p.tipo || p.tipo === "entrega";
 const _etapaDe = (p) => ETAPAS[p.status] ? p.status : "recebido";
 
 // Mensagem pronta para cada etapa (o cliente recebe pelo WhatsApp da loja)
@@ -1482,12 +1604,12 @@ function cardPedido(p) {
   const telFmt = tel.length === 11 ? `(${tel.slice(0, 2)}) ${tel.slice(2, 7)}-${tel.slice(7)}` : tel;
   const end = p.endereco
     ? `${_escAttr(p.endereco.rua || "")}${p.endereco.numero ? `, ${_escAttr(p.endereco.numero)}` : ""} — ${_escAttr(p.endereco.bairro || p.bairro || "")}`
-    : (_ehEntrega(p) ? _escAttr(p.bairro || "") : "Retirada no local");
+    : (_ehEntrega(p) ? _escAttr(p.bairro || "") : p.tipo === "balcao" ? "Balcão (na hora)" : "Retirada no local");
   const itens = (p.itens || []).map(it => `<li><strong>${it.quantidade}x ${_escAttr(it.nome)}${it.tamanho ? ` (${_escAttr(it.tamanho)})` : ""}</strong> <span>${_brl(it.preco * it.quantidade)}</span>${it.detalhes ? `<small>${_escAttr(it.detalhes)}</small>` : ""}</li>`).join("");
   const botaoProx = prox ? `<button class="btn btn-primary btn-sm" onclick="avancarPedido('${p.docId}','${prox}',true)" title="Muda a etapa e abre o WhatsApp do cliente com o aviso"><i class="fa-solid ${ETAPAS[prox].icone}"></i> ${prox === "saiu" && !_ehEntrega(p) ? "Pronto p/ retirada" : ETAPAS[prox].nome}${temTel ? ` <i class="fa-brands fa-whatsapp"></i>` : ""}</button>` : "";
   return `<article class="ped-card${p._novo ? " ped-novo" : ""}" style="--cor-etapa:${E.cor}">
     <header>
-      <div><strong class="ped-num">${_nomePedido(p)}</strong> <span class="ped-hora">${_horaDe(p)}</span></div>
+      <div><strong class="ped-num">${_nomePedido(p)}</strong> <span class="ped-hora">${_horaDe(p)}</span>${p.origem === "whatsapp" ? ' <span class="ped-origem"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span>' : p.origem === "balcao" ? ' <span class="ped-origem"><i class="fa-solid fa-cash-register"></i> Balcão</span>' : ""}</div>
       <span class="ped-etapa"><i class="fa-solid ${E.icone}"></i> ${E.nome}</span>
     </header>
     <div class="ped-cliente">
@@ -1603,7 +1725,7 @@ async function carregarCaixaMes(mesStr) {
   const lanc = [];
   manual.forEach(l => lanc.push({ id: "m:" + l.docId, docId: l.docId, origem: "manual", tipo: l.tipo, categoria: l.categoria, descricao: l.descricao || "", forma: l.forma || "", valor: Number(l.valor || 0), data: _dataDe(l.data) }));
   vendas.forEach(vd => lanc.push({ id: "v:" + vd.docId, origem: "pdv", tipo: "entrada", categoria: "Venda no balcão", descricao: `Balcão${vd.cliente ? " — " + vd.cliente : ""} (${(vd.itens || []).reduce((s, i) => s + (i.qtd || 0), 0)} itens)`, forma: vd.pagamento || "", valor: Number(vd.total || 0), data: _dataDe(vd.criadoEm) }));
-  pedidos.filter(pd => pd.pago && pd.status !== "cancelado").forEach(pd => lanc.push({ id: "p:" + pd.docId, origem: "site", tipo: "entrada", categoria: "Venda pelo site", descricao: `Pedido ${pd.numero ? "Nº " + pd.numero : "#" + (pd.codigo || pd.docId.slice(0, 6))} — ${pd.cliente || ""}`, forma: pd.pagamento || "", valor: Number(pd.total || 0), data: _dataDe(pd.pagoEm) || _dataDe(pd.criadoEm) }));
+  pedidos.filter(pd => pd.pago && pd.status !== "cancelado").forEach(pd => lanc.push({ id: "p:" + pd.docId, origem: "site", tipo: "entrada", categoria: pd.origem === "whatsapp" ? "Venda pelo WhatsApp" : pd.origem === "balcao" ? "Venda no balcão" : "Venda pelo site", descricao: `Pedido ${pd.numero ? "Nº " + pd.numero : "#" + (pd.codigo || pd.docId.slice(0, 6))} — ${pd.cliente || ""}`, forma: pd.pagamento || "", valor: Number(pd.total || 0), data: _dataDe(pd.pagoEm) || _dataDe(pd.criadoEm) }));
   return { manual, vendas, pedidos, lanc: lanc.filter(l => l.data).sort((a, b) => b.data - a.data) };
 }
 
@@ -1821,7 +1943,7 @@ function renderPainel(P, A, mesStr) {
     kpi("Despesas", _brl(P.despesas), _chipVar(_variacao(P.despesas, A.despesas), true), "var(--red)"),
     kpi("Lucro do mês (caixa)", _brl(P.lucroLiquido), `<small>entradas − saídas</small>${_chipVar(_variacao(P.lucroLiquido, A.lucroLiquido))}`, P.lucroLiquido >= 0 ? "var(--green)" : "var(--red)"),
     kpi("Lucro nas vendas", P.cpv ? _brl(P.lucroBruto) : "—", P.cpv ? `<small>margem de ${pct(P.margemBruta)} · custo dos produtos ${_brl(P.cpv)}</small>` : `<small>cadastre os custos para ver</small>`),
-    kpi("Vendas no mês", String(P.qtdVendas), `<small>${P.pedidosSite} pedido${P.pedidosSite === 1 ? "" : "s"} pelo site</small>`),
+    kpi("Vendas no mês", String(P.qtdVendas), `<small>${P.pedidosSite} pedido${P.pedidosSite === 1 ? "" : "s"} (site/WhatsApp)</small>`),
     kpi("Ticket médio", _brl(P.ticket), _chipVar(_variacao(P.ticket, A.ticket))),
   ].join("");
 
@@ -1961,7 +2083,7 @@ function _comentariosDoMes(P, A, extras) {
   const c = [];
   const pc = (v) => `${Math.abs(v * 100).toFixed(0)}%`;
   const vV = _variacao(P.vendas, A.vendas);
-  if (P.vendas === 0) c.push("Ainda não há vendas pagas registradas neste mês. Lembre de marcar os pedidos do site como <strong>Pago</strong> e de usar o PDV no balcão.");
+  if (P.vendas === 0) c.push("Ainda não há vendas pagas registradas neste mês. Lembre de marcar os pedidos como <strong>Pago</strong> e de usar o PDV no balcão.");
   else if (vV === null) c.push(`As vendas somaram <strong>${_brl(P.vendas)}</strong> em ${P.qtdVendas} venda${P.qtdVendas === 1 ? "" : "s"}.`);
   else c.push(`As vendas somaram <strong>${_brl(P.vendas)}</strong>, ${vV >= 0 ? `<span class="bom">${pc(vV)} a mais</span>` : `<span class="ruim">${pc(vV)} a menos</span>`} que no mês anterior (${_brl(A.vendas)}).`);
 
@@ -2058,7 +2180,7 @@ async function gerarRelatorioMensal() {
     ${linhaKpi("Despesas", _brl(P.despesas), varTxt(_variacao(P.despesas, A.despesas)))}
     ${linhaKpi("Caixa do mês", _brl(P.lucroLiquido), "entradas − saídas")}
     ${linhaKpi("Lucro nas vendas", P.cpv ? _brl(P.lucroBruto) : "—", P.cpv ? `margem ${(P.margemBruta * 100).toFixed(0)}%` : "custos não cadastrados")}
-    ${linhaKpi("Nº de vendas", String(P.qtdVendas), `${P.pedidosSite} pedidos pelo site`)}
+    ${linhaKpi("Nº de vendas", String(P.qtdVendas), `${P.pedidosSite} pedidos (site/WhatsApp)`)}
     ${linhaKpi("Ticket médio", _brl(P.ticket), varTxt(_variacao(P.ticket, A.ticket)))}
   </div>
   <h2>O que os números dizem</h2>
@@ -2076,6 +2198,268 @@ async function gerarRelatorioMensal() {
   <p class="rod">Relatório gerado automaticamente pelo painel do ${_escAttr(loja)} · Site e sistema por TF Solutions</p>
   </body></html>`;
   jan.document.open(); jan.document.write(html); jan.document.close();
+}
+
+// ── TEMA CLARO / ESCURO ─────────────────────────────────────────────────────
+function aplicarIconeTema() {
+  const claro = document.documentElement.dataset.tema === "claro";
+  const b = document.getElementById("tema-btn");
+  if (b) { b.innerHTML = `<i class="fa-solid ${claro ? "fa-moon" : "fa-sun"}"></i>`; b.title = claro ? "Mudar para tela escura" : "Mudar para tela clara"; }
+}
+function alternarTema() {
+  const claro = document.documentElement.dataset.tema !== "claro";
+  if (claro) document.documentElement.dataset.tema = "claro"; else delete document.documentElement.dataset.tema;
+  try { localStorage.setItem("admin:tema", claro ? "claro" : "escuro"); } catch (e) {}
+  aplicarIconeTema();
+  // redesenha gráficos que usam cores calculadas
+  if (document.getElementById("tab-relatorio").classList.contains("active")) renderRelatorio();
+}
+aplicarIconeTema();
+
+// ── NOVO PEDIDO MANUAL (WhatsApp / telefone / balcão) ───────────────────────
+// Monta o pedido com as mesmas regras da loja (tamanho, complementos grátis por açaí,
+// complemento extra pago, adicionais por copo no combo, itens em falta escondidos) e grava
+// em "pedidos" — aparece na lista com as mesmas etapas, avisos, caixa e relatórios.
+let _np = null;
+
+// Produto com as listas resolvidas (lista da loja − exceções − itens em falta), igual à loja
+function produtoParaVenda(p) {
+  const fora = new Set(_indisponiveis.map(_normNome));
+  let comp = Array.isArray(p.complementosLista) ? p.complementosLista : [];
+  let adic = Array.isArray(p.adicionaisPagos) ? p.adicionaisPagos : [];
+  if (p.usaComplementosLoja && _complementosLoja.length) {
+    const ex = new Set((p.complementosExceto || []).map(_normNome));
+    comp = _complementosLoja.filter(n => !ex.has(_normNome(n)));
+  }
+  if (p.usaAdicionaisLoja && _adicionaisLoja.length) {
+    const ex = new Set((p.adicionaisExceto || []).map(_normNome));
+    adic = _adicionaisLoja.filter(a => !ex.has(_normNome(a.nome))).map(a => ({ nome: a.nome, preco: Number(a.preco) || 0 }));
+  }
+  return { ...p, complementosLista: comp.filter(n => !fora.has(_normNome(n))), adicionaisPagos: adic.filter(a => !fora.has(_normNome(a.nome))) };
+}
+
+function abrirNovoPedido() {
+  _np = { itens: [], prod: null, tamIdx: 0, comp: [[]], adic: [[]], qtd: 1, tipo: "entrega" };
+  const sel = document.getElementById("np-produto");
+  const ativos = todosProdutos.filter(p => p.ativo !== false).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+  sel.innerHTML = `<option value="">Escolha o produto…</option>` + ativos.map(p => `<option value="${p.docId}">${_escAttr(p.nome)}</option>`).join("");
+  ["np-nome", "np-telefone", "np-rua", "np-numero", "np-taxa", "np-troco", "np-obs"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("np-pagamento").value = "PIX";
+  document.getElementById("np-troco-box").hidden = true;
+  document.getElementById("np-etapa").value = "recebido";
+  document.getElementById("np-pago").checked = false;
+  document.getElementById("np-avisar").checked = true;
+  const taxas = Array.isArray(_cfgLoja.taxasEntrega) ? _cfgLoja.taxasEntrega : [];
+  document.getElementById("np-bairro").innerHTML = `<option value="">Selecione</option>` +
+    taxas.map(t => `<option value="${_escAttr(t.bairro)}" data-taxa="${Number(t.taxa) || 0}">${_escAttr(t.bairro)} — ${_brl(t.taxa)}</option>`).join("") +
+    `<option value="__outro" data-taxa="">Outro bairro (digite a taxa)</option>`;
+  document.getElementById("np-config").hidden = true;
+  npTipo("entrega");
+  npRenderItens();
+  abrirModal("np-modal");
+}
+
+function npMascaraTel(el) {
+  const d = el.value.replace(/\D/g, "").slice(0, 11);
+  el.value = d.length > 7 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length > 2 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : d;
+}
+function npTipo(tipo) {
+  _np.tipo = tipo;
+  document.querySelectorAll(".np-tipo").forEach(b => b.classList.toggle("ativo", b.dataset.npTipo === tipo));
+  document.getElementById("np-entrega").hidden = tipo !== "entrega";
+  npAtualizarTotal();
+}
+function npBairro() {
+  const op = document.getElementById("np-bairro").selectedOptions[0];
+  if (op && op.dataset.taxa !== "") document.getElementById("np-taxa").value = op.dataset.taxa ? _fmtPreco(op.dataset.taxa) : "";
+  else document.getElementById("np-taxa").focus();
+  npAtualizarTotal();
+}
+
+// ---- configuração do item (tamanho, complementos por açaí, adicionais, quantidade)
+function npEscolherProduto() {
+  const id = document.getElementById("np-produto").value;
+  const p = todosProdutos.find(x => x.docId === id);
+  if (!p) { document.getElementById("np-config").hidden = true; return; }
+  const prod = produtoParaVenda(p);
+  const copos = Math.max(1, Number(prod.copos) || 1);
+  _np.prod = prod; _np.tamIdx = 0; _np.qtd = 1;
+  _np.comp = Array.from({ length: copos }, () => []);
+  _np.adic = Array.from({ length: copos }, () => []);
+  npRenderConfig();
+}
+const _npTam = () => (_np.prod.tamanhos || [])[_np.tamIdx] || (_np.prod.tamanhos || [])[0] || { nome: "", preco: Number(_np.prod.preco) || 0, complementosGratis: 0 };
+const _npPrecoExtra = () => { const v = _np.prod.precoComplementoExtra ?? _cfgLoja.precoComplementoExtra; return Number(v) > 0 ? Number(v) : 0; };
+const _npExtras = () => { const lim = Number(_npTam().complementosGratis) || 0; return _np.comp.reduce((s, sel) => s + Math.max(0, sel.length - lim), 0); };
+const _npUnit = () => (Number(_npTam().preco) || 0) + _npExtras() * _npPrecoExtra() + _np.adic.flat().reduce((s, a) => s + (Number(a.preco) || 0), 0);
+
+function npRenderConfig() {
+  const p = _np.prod, tam = _npTam(), lim = Number(tam.complementosGratis) || 0, pe = _npPrecoExtra();
+  const copos = _np.comp.length;
+  const tams = p.tamanhos || [];
+  const temComp = p.complementosLista.length && lim > 0, temAdic = p.adicionaisPagos.length > 0;
+  const bloco = (i) => {
+    const sel = _np.comp[i], extras = Math.max(0, sel.length - lim);
+    const compHtml = temComp ? `<p class="copo-subtitulo">Complementos <span class="detail-option-counter${sel.length >= lim ? " limite-atingido" : ""}">${extras ? `${lim}/${lim} grátis + ${extras} extra${extras > 1 ? "s" : ""}` : `${sel.length}/${lim} grátis`}</span></p>
+      <div class="ingr-checklist">${p.complementosLista.map(n => {
+        const on = sel.includes(n), pago = !on && sel.length >= lim;
+        return `<label class="ingr-check"><input type="checkbox" ${on ? "checked" : ""} ${pago && !pe ? "disabled" : ""} onchange="npAlterna('comp',${i},${_escAttr(JSON.stringify(n))},this.checked)"> ${_escAttr(n)}${pago && pe ? ` <small>+${_brl(pe)}</small>` : ""}</label>`;
+      }).join("")}</div>` : "";
+    const adicHtml = temAdic ? `<p class="copo-subtitulo">Adicionais${copos > 1 ? ` do ${i + 1}º açaí` : ""} <span>(opcional)</span></p>
+      <div class="ingr-checklist">${p.adicionaisPagos.map(a => {
+        const on = _np.adic[i].some(x => x.nome === a.nome);
+        return `<label class="ingr-check"><input type="checkbox" ${on ? "checked" : ""} onchange="npAlterna('adic',${i},${_escAttr(JSON.stringify(a.nome))},this.checked)"> ${_escAttr(a.nome)} <small>+${_brl(a.preco)}</small></label>`;
+      }).join("")}</div>` : "";
+    if (!compHtml && !adicHtml) return "";
+    return copos > 1 ? `<div class="copo-bloco"><p class="copo-titulo"><i class="fa-solid fa-ice-cream"></i> ${i + 1}º açaí</p>${compHtml}${adicHtml}</div>` : compHtml + adicHtml;
+  };
+  const cont = document.getElementById("np-config");
+  cont.innerHTML = `
+    ${tams.length > 1 ? `<label class="np-campo">Tamanho<select onchange="_np.tamIdx=Number(this.value);npRenderConfig()">${tams.map((t, i) => `<option value="${i}" ${i === _np.tamIdx ? "selected" : ""}>${_escAttr(t.nome)} — ${_brl(t.preco)}${Number(t.complementosGratis) ? ` (${t.complementosGratis} grátis)` : ""}</option>`).join("")}</select></label>` : ""}
+    ${_np.comp.map((_, i) => bloco(i)).join("")}
+    <div class="np-add">
+      <label class="np-campo">Qtd<input type="number" min="1" max="50" value="${_np.qtd}" oninput="_np.qtd=Math.max(1,parseInt(this.value)||1);npPrecoItem()"></label>
+      <span class="np-preco-item" id="np-preco-item"></span>
+      <button class="btn btn-primary btn-sm" onclick="npAdicionarItem()"><i class="fa-solid fa-cart-plus"></i> Adicionar ao pedido</button>
+    </div>`;
+  cont.hidden = false;
+  npPrecoItem();
+}
+function npPrecoItem() {
+  const el = document.getElementById("np-preco-item");
+  if (el) el.innerHTML = `${_np.qtd > 1 ? `${_np.qtd} × ${_brl(_npUnit())} = ` : ""}<strong>${_brl(_npUnit() * _np.qtd)}</strong>`;
+}
+function npAlterna(tipo, i, nome, on) {
+  if (tipo === "comp") {
+    _np.comp[i] = on ? [..._np.comp[i].filter(n => n !== nome), nome] : _np.comp[i].filter(n => n !== nome);
+  } else {
+    const a = _np.prod.adicionaisPagos.find(x => x.nome === nome);
+    _np.adic[i] = on ? [..._np.adic[i].filter(x => x.nome !== nome), a] : _np.adic[i].filter(x => x.nome !== nome);
+  }
+  const rol = document.getElementById("np-config").scrollTop;
+  npRenderConfig();
+  document.getElementById("np-config").scrollTop = rol;
+}
+
+function npAdicionarItem() {
+  const p = _np.prod, tam = _npTam(), copos = _np.comp.length;
+  const partes = [];
+  if ((p.tamanhos || []).length > 1 && tam.nome) partes.push(tam.nome);
+  if (copos > 1) _np.comp.forEach((sel, i) => {
+    const ad = _np.adic[i].map(a => `+ ${a.nome}`);
+    partes.push(`${i + 1}º açaí: ${sel.length ? sel.join(", ") : "sem complementos"}${ad.length ? ` (${ad.join(", ")})` : ""}`);
+  });
+  else if (_np.comp[0].length) partes.push(`Complementos: ${_np.comp[0].join(", ")}`);
+  const extras = _npExtras();
+  if (extras) partes.push(`${extras} complemento${extras > 1 ? "s" : ""} extra${extras > 1 ? "s" : ""}`);
+  if (copos === 1 && _np.adic[0].length) partes.push(`Adicionais: ${_np.adic[0].map(a => a.nome).join(", ")}`);
+  _np.itens.push({
+    nome: p.nome, tamanho: tam.nome || "", quantidade: _np.qtd,
+    preco: Math.round(_npUnit() * 100) / 100,
+    detalhes: partes.join(" · "), produtoId: Number(p.id) || null, extras,
+    adicionais: _np.adic.flat().map(a => a.nome),
+  });
+  document.getElementById("np-produto").value = "";
+  document.getElementById("np-config").hidden = true;
+  npRenderItens();
+  toast(`${p.nome} adicionado`, "ok");
+}
+function npRemoverItem(i) { _np.itens.splice(i, 1); npRenderItens(); }
+function npRenderItens() {
+  document.getElementById("np-itens").innerHTML = _np.itens.length ? `<ul class="ped-itens">${_np.itens.map((it, i) => `
+    <li><strong>${it.quantidade}x ${_escAttr(it.nome)}${it.tamanho ? ` (${_escAttr(it.tamanho)})` : ""}</strong>
+      <span>${_brl(it.preco * it.quantidade)} <button class="btn btn-danger btn-sm" title="Tirar do pedido" onclick="npRemoverItem(${i})"><i class="fa-solid fa-xmark"></i></button></span>
+      ${it.detalhes ? `<small>${_escAttr(it.detalhes)}</small>` : ""}</li>`).join("")}</ul>`
+    : `<p class="ingr-vazio">Nenhum item ainda — escolha o produto acima.</p>`;
+  npAtualizarTotal();
+}
+function npAtualizarTotal() {
+  if (!_np) return;
+  const sub = _np.itens.reduce((s, it) => s + it.preco * it.quantidade, 0);
+  const taxa = _np.tipo === "entrega" ? _lerPreco(document.getElementById("np-taxa").value) : 0;
+  document.getElementById("np-total").textContent = _brl(sub + taxa);
+}
+
+async function _npNumeroDoDia() {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date()).map(x => [x.type, x.value]));
+  const iso = `${p.year}-${p.month}-${p.day}`;
+  const ref = db.collection("contadores").doc(`pedidos-${iso}`);
+  for (let t = 1; ; t++) {
+    try {
+      const n = await db.runTransaction(async tx => {
+        const d = await tx.get(ref);
+        const prox = (d.exists ? Number(d.data().total) || 0 : 0) + 1;
+        tx.set(ref, { total: prox });
+        return prox;
+      });
+      return { numero: n, iso };
+    } catch (e) {
+      if (t >= 5) return { numero: null, iso };
+      await new Promise(r => setTimeout(r, 150 + Math.random() * 350));
+    }
+  }
+}
+
+async function npSalvar() {
+  if (!_np.itens.length) { toast("Adicione pelo menos um item ao pedido.", "err"); return; }
+  const nome = document.getElementById("np-nome").value.trim();
+  const tel = document.getElementById("np-telefone").value.replace(/\D/g, "");
+  if (!nome) { toast("Digite o nome do cliente.", "err"); document.getElementById("np-nome").focus(); return; }
+  if (tel && tel.length < 10) { toast("Confira o WhatsApp do cliente (DDD + número).", "err"); return; }
+  const entrega = _np.tipo === "entrega";
+  const selB = document.getElementById("np-bairro");
+  const bairro = entrega ? (selB.value === "__outro" ? "" : selB.value) : "";
+  if (entrega && !document.getElementById("np-rua").value.trim()) { toast("Digite o endereço da entrega.", "err"); document.getElementById("np-rua").focus(); return; }
+  const avisar = document.getElementById("np-avisar").checked && tel;
+  // Abre a aba do WhatsApp já no clique (o celular bloqueia se abrir depois)
+  const janela = avisar ? window.open("", "_blank") : null;
+  const btn = document.getElementById("np-salvar");
+  btn.disabled = true;
+  try {
+    const { numero, iso } = await _npNumeroDoDia();
+    const sub = _np.itens.reduce((s, it) => s + it.preco * it.quantidade, 0);
+    const taxa = entrega ? _lerPreco(document.getElementById("np-taxa").value) : 0;
+    const pago = document.getElementById("np-pago").checked;
+    const etapa = document.getElementById("np-etapa").value;
+    const pagamento = document.getElementById("np-pagamento").value;
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, "0")).join("");
+    const r2 = (v) => Math.round(v * 100) / 100;
+    const dados = {
+      numero, codigo: null, dia: iso,
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      origem: _np.tipo === "balcao" ? "balcao" : "whatsapp",
+      tipo: _np.tipo,
+      bairro,
+      cliente: nome.slice(0, 80),
+      telefone: tel.slice(0, 13),
+      endereco: entrega ? { rua: document.getElementById("np-rua").value.trim().slice(0, 120), numero: document.getElementById("np-numero").value.trim().slice(0, 10), bairro, cep: "" } : null,
+      observacoes: document.getElementById("np-obs").value.trim().slice(0, 500),
+      talher: false,
+      troco: pagamento === "Dinheiro" ? document.getElementById("np-troco").value.trim().slice(0, 10) : "",
+      pagamento, status: etapa, token,
+      itens: _np.itens, qtdItens: _np.itens.reduce((s, it) => s + it.quantidade, 0),
+      subtotal: r2(sub), desconto: 0, taxaEntrega: r2(taxa), total: r2(sub + taxa),
+      pago, pagoEm: pago ? firebase.firestore.FieldValue.serverTimestamp() : null,
+    };
+    if (etapa !== "recebido") dados.etapas = { [etapa]: firebase.firestore.FieldValue.serverTimestamp() };
+    const ref = await db.collection("pedidos").add(dados);
+    if (janela) {
+      const p = { ...dados, docId: ref.id };
+      const resumo = _np.itens.map(it => `• ${it.quantidade}x ${it.nome}${it.tamanho ? ` (${it.tamanho})` : ""} — ${_brl(it.preco * it.quantidade)}`).join("\n");
+      const txt = `${mensagemEtapa(p, etapa)}\n\n${resumo}${taxa ? `\nEntrega: ${_brl(taxa)}` : ""}\n*Total: ${_brl(sub + taxa)}*`;
+      let t = tel.length <= 11 ? "55" + tel : tel;
+      janela.location.href = `https://wa.me/${t}?text=${encodeURIComponent(txt)}`;
+    }
+    fecharModal("np-modal");
+    toast(`Pedido ${numero ? "Nº " + numero : ""} registrado`, "ok");
+    // Se estiver vendo outro dia, volta para hoje para mostrar o pedido novo
+    if (document.getElementById("ped-dia").value !== _hojeISO()) { document.getElementById("ped-dia").value = _hojeISO(); assinarPedidos(); }
+  } catch (e) {
+    if (janela) janela.close();
+    toast("Erro ao registrar o pedido: " + e.message, "err");
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────

@@ -33,9 +33,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Pedidos do site (para os relatórios do admin): o site só pode CRIAR,
-    // com formato conferido; ver, editar e apagar é só para o admin logado.
+    // Pedidos: o site só pode CRIAR, com formato conferido; o admin logado cria
+    // pedidos manuais e é o único que vê, muda a etapa ou apaga.
     match /pedidos/{doc} {
+      // o admin logado também cria (pedido que chegou pelo WhatsApp / balcão)
+      allow create: if request.auth != null;
       allow create: if request.resource.data.keys().hasOnly(['numero', 'codigo', 'dia', 'criadoEm', 'origem', 'tipo', 'bairro', 'cliente', 'telefone', 'endereco', 'observacoes', 'talher', 'troco', 'pagamento', 'status', 'token', 'itens', 'qtdItens', 'subtotal', 'desconto', 'taxaEntrega', 'total'])
                     && request.resource.data.origem == 'site'
                     && request.resource.data.status == 'recebido'
