@@ -274,6 +274,16 @@
     .est-vinc-qtd { font-size: .75rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
     .est-vinc-qtd input { width: 64px; padding: 4px 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
     #est-vinc-busca { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: .85rem; }
+    .resest-rodape { display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+    .resest-rodape .resest-planilha { order: -1; margin-right: auto; }
+    @media (max-width: 600px) { .resest-rodape { flex-direction: column; align-items: stretch; } .resest-rodape .resest-planilha { order: 3; margin: 0; } .resest-rodape .btn { justify-content: center; } }
+    .resest-lista { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; }
+    .resest-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+    .resest-item.resest-zerado { border-color: var(--red); } .resest-item.resest-baixo { border-color: var(--gold); }
+    .resest-nome { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .resest-nums { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 6px; }
+    .resest-nums span { display: block; font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+    .resest-nums strong { font-size: 1rem; } .resest-nums .mais { color: var(--green); } .resest-nums .menos { color: var(--gold); }
     #painel-estoque { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     /* Taxas por bairro */
     .bairro-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
@@ -637,7 +647,7 @@
         </div>
         <div class="ped-controles">
           <button class="btn btn-ghost btn-sm" onclick="abrirListaCompras()"><i class="fa-solid fa-cart-shopping"></i> Lista de compras</button>
-          <button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEstoque()"><i class="fa-solid fa-file-excel"></i> Baixar planilha</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirResumoEstoque()"><i class="fa-solid fa-clipboard-list"></i> Resumo do mês</button>
           <button class="btn btn-primary btn-sm" onclick="abrirItemEstoque()"><i class="fa-solid fa-plus"></i> Novo item</button>
         </div>
       </div>
@@ -1395,6 +1405,21 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="fecharModal('rep-modal')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarReposicao()"><i class="fa-solid fa-plus"></i> Dar entrada</button>
+    </div>
+  </div>
+</div>
+
+<!-- Estoque: resumo do mês (feito para o celular) -->
+<div class="modal-overlay" id="resest-modal">
+  <div class="modal np-modal">
+    <button class="modal-close" onclick="fecharModal('resest-modal')">&times;</button>
+    <h2><i class="fa-solid fa-clipboard-list"></i> <span id="resest-titulo">Resumo do estoque</span></h2>
+    <p style="color:var(--muted);font-size:.8rem;margin-bottom:10px">Quanto tem agora, quanto chegou e quanto saiu nas vendas neste mês.</p>
+    <div id="resest-lista" class="resest-lista"></div>
+    <div class="resest-rodape">
+      <button class="btn btn-primary" onclick="resumoEstoqueWhats()"><i class="fa-brands fa-whatsapp"></i> Mandar no WhatsApp</button>
+      <button class="btn btn-ghost" onclick="resumoEstoquePdf()"><i class="fa-solid fa-file-pdf"></i> Salvar PDF</button>
+      <button class="btn btn-ghost btn-sm resest-planilha" onclick="baixarPlanilhaEstoque()" title="Arquivo para abrir no Excel ou Google Planilhas, no computador"><i class="fa-solid fa-file-excel"></i> Planilha (computador)</button>
     </div>
   </div>
 </div>
@@ -2663,6 +2688,64 @@ function copiarListaCompras() {
 function enviarListaCompras() {
   window.open(`https://wa.me/?text=${encodeURIComponent(document.getElementById("compras-texto").value)}`, "_blank");
 }
+// ---- resumo do mês (tela, WhatsApp e PDF — tudo funciona no celular)
+let _resEst = [];
+async function _dadosResumoEstoque() {
+  const agora = new Date(), inicio = new Date(agora.getFullYear(), agora.getMonth(), 1);
+  let movs = [];
+  try {
+    const snap = await db.collection("estoqueMov").where("criadoEm", ">=", firebase.firestore.Timestamp.fromDate(inicio)).get();
+    movs = snap.docs.map(d => d.data());
+  } catch (e) { console.warn(e); }
+  const soma = (id, f) => movs.filter(m => m.itemId === id && f(m)).reduce((s, m) => s + Number(m.qtd || 0), 0);
+  const peso = (e) => _estZerado(e) ? 0 : _estBaixo(e) ? 1 : !_estTemQtd(e) ? 2 : 3;
+  return [..._estoque].sort((a, b) => peso(a) - peso(b) || (a.nome || "").localeCompare(b.nome || "", "pt-BR")).map(e => ({
+    e, entrou: soma(e.docId, m => m.motivo === "Reposição"),
+    saiu: -soma(e.docId, m => /^(Pedido|Venda|Cancelado)/.test(m.motivo || "")),
+    sit: _estZerado(e) ? "Esgotado" : _estBaixo(e) ? "Acabando" : !_estTemQtd(e) ? "Falta contar" : "OK",
+  }));
+}
+const _mesAno = () => new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+async function abrirResumoEstoque() {
+  document.getElementById("resest-titulo").textContent = `Estoque de ${_mesAno()}`;
+  document.getElementById("resest-lista").innerHTML = `<div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div>`;
+  abrirModal("resest-modal");
+  _resEst = await _dadosResumoEstoque();
+  document.getElementById("resest-lista").innerHTML = _resEst.length ? _resEst.map(r => `
+    <div class="resest-item resest-${r.sit === "Esgotado" ? "zerado" : r.sit === "Acabando" ? "baixo" : "ok"}">
+      <div class="resest-nome"><strong>${_escAttr(r.e.nome)}</strong>${r.sit !== "OK" ? `<span class="est-pill ${r.sit === "Esgotado" ? "est-pill-zerado" : r.sit === "Acabando" ? "est-pill-baixo" : ""}">${r.sit}</span>` : ""}</div>
+      <div class="resest-nums">
+        <div><span>Tem agora</span><strong>${_estTemQtd(r.e) ? _escAttr(_qtdUn(r.e.quantidade, r.e.unidade)) : "—"}</strong></div>
+        <div><span>Chegou</span><strong class="mais">${r.entrou ? "+" + _fmtQtd(r.entrou) : "0"}</strong></div>
+        <div><span>Vendeu</span><strong class="menos">${r.saiu ? _fmtQtd(r.saiu) : "0"}</strong></div>
+      </div></div>`).join("") : `<p class="ingr-vazio">Nenhum item no estoque ainda.</p>`;
+}
+function resumoEstoqueWhats() {
+  const linhas = _resEst.map(r => `• *${r.e.nome}*: ${_estTemQtd(r.e) ? _qtdUn(r.e.quantidade, r.e.unidade) : "não contado"}${r.sit === "Esgotado" ? " ❌" : r.sit === "Acabando" ? " ⚠️" : ""} (chegou ${_fmtQtd(r.entrou)} · vendeu ${_fmtQtd(r.saiu)})`);
+  const txt = `📦 Estoque — ${_cfgLoja.nomeLoja || "Açaí da Bru"} (${new Date().toLocaleDateString("pt-BR")})\n\n${linhas.join("\n")}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank");
+}
+function resumoEstoquePdf() {
+  const jan = window.open("", "_blank");
+  if (!jan) { toast("O navegador bloqueou a janela. Permita pop-ups para este site.", "err"); return; }
+  const loja = _cfgLoja.nomeLoja || "Açaí da Bru";
+  const cor = { Esgotado: "#dc2626", Acabando: "#b7791f", "Falta contar": "#6b7280", OK: "#16a34a" };
+  jan.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Estoque ${_escAttr(_mesAno())} – ${_escAttr(loja)}</title>
+  <style>*{box-sizing:border-box} body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#2B1420;margin:0 auto;padding:20px;max-width:820px}
+  header{display:flex;align-items:center;gap:14px;border-bottom:3px solid #7A1F4B;padding-bottom:10px;margin-bottom:14px} header img{height:56px}
+  h1{margin:0;font-size:1.25rem;color:#2B0D1E} header p{margin:2px 0 0;color:#6b7280;font-size:.8rem}
+  table{width:100%;border-collapse:collapse;font-size:.85rem} th,td{padding:7px 6px;border-bottom:1px solid #f1e7ea;text-align:left} th{color:#6b7280;font-size:.7rem;text-transform:uppercase}
+  td.n,th.n{text-align:right} .bt{position:fixed;top:12px;right:12px;background:#7A1F4B;color:#fff;border:0;border-radius:999px;padding:10px 16px;font-weight:700}
+  @media (max-width:600px){.bt{position:static;display:block;width:100%;margin-bottom:12px} body{padding:14px} td,th{padding:7px 4px}}
+  .rod{margin-top:20px;font-size:.7rem;color:#9ca3af;text-align:center} @media print{.bt{display:none} body{padding:0}}</style></head><body>
+  <button class="bt" onclick="window.print()">Salvar PDF / Imprimir</button>
+  <header><img src="${location.href.replace(/[^/]*$/, "")}assets/logo.jpg" alt=""><div><h1>Estoque de ${_escAttr(_mesAno())}</h1><p>${_escAttr(loja)} · ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p></div></header>
+  <table><thead><tr><th>Item</th><th class="n">Tem agora</th><th class="n">Chegou</th><th class="n">Vendeu</th><th>Situação</th></tr></thead><tbody>
+  ${_resEst.map(r => `<tr><td>${_escAttr(r.e.nome)}</td><td class="n"><strong>${_estTemQtd(r.e) ? _escAttr(_qtdUn(r.e.quantidade, r.e.unidade)) : "—"}</strong></td><td class="n">${_fmtQtd(r.entrou)}</td><td class="n">${_fmtQtd(r.saiu)}</td><td style="color:${cor[r.sit]};font-weight:700">${r.sit}</td></tr>`).join("")}
+  </tbody></table><p class="rod">Gerado pelo painel do ${_escAttr(loja)} · TF Solutions</p></body></html>`);
+  jan.document.close();
+}
+
 async function baixarPlanilhaEstoque() {
   const agora = new Date(), inicio = new Date(agora.getFullYear(), agora.getMonth(), 1);
   let movs = [];
