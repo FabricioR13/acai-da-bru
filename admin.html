@@ -85,6 +85,11 @@
     .side-btn i { width: 18px; text-align: center; font-size: .95rem; }
     .side-btn:hover { background: var(--card); color: var(--text); }
     .side-btn.active { background: #2a2205; color: var(--gold); font-weight: 600; }
+    .side-grupo { font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); opacity: .75; padding: 14px 14px 4px; }
+    .side-grupo:first-child { padding-top: 2px; }
+    #form-promo-area label { display: block; margin-bottom: 4px; }
+    #form-promo-area input[type=date] { display: block; margin-bottom: 4px; }
+    .combina-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px; max-height: 170px; overflow-y: auto; }
     .content { padding: 24px; flex: 1; min-width: 0; }
     [hidden] { display: none !important; }
     .tab-panel { display: none; }
@@ -93,6 +98,8 @@
       .app-body { flex-direction: column; }
       .sidebar { width: 100%; flex-direction: row; overflow-x: auto; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
       .side-btn { width: auto; white-space: nowrap; }
+      .side-grupo { align-self: center; padding: 0 2px 0 10px; white-space: nowrap; border-left: 1px solid var(--border); }
+      .side-grupo:first-child { border-left: 0; padding-left: 4px; }
     }
     .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
     .toolbar input[type=text], .toolbar input[type=month], .toolbar select { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; color: var(--text); font-size: .88rem; outline: none; }
@@ -488,17 +495,21 @@
 
   <div class="app-body">
   <div class="sidebar">
+    <span class="side-grupo">Dia a dia</span>
     <button class="side-btn active" onclick="mudarTab('pedidos',this)"><i class="fa-solid fa-receipt"></i> Pedidos <span class="menu-badge" id="menu-ped-badge" hidden>0</span></button>
-    <button class="side-btn" onclick="mudarTab('painel',this)"><i class="fa-solid fa-gauge-high"></i> Painel</button>
-    <button class="side-btn" onclick="mudarTab('caixa',this)"><i class="fa-solid fa-wallet"></i> Entradas e saídas</button>
-    <button class="side-btn" onclick="mudarTab('avaliacoes',this)"><i class="fa-solid fa-star"></i> Avaliações</button>
-    <button class="side-btn" onclick="mudarTab('produtos',this)"><i class="fa-solid fa-box"></i> Produtos</button>
-    <button class="side-btn" onclick="mudarTab('disponivel',this)"><i class="fa-solid fa-toggle-on"></i> Ingredientes</button>
+    <button class="side-btn" onclick="mudarTab('pdv',this)"><i class="fa-solid fa-cash-register"></i> PDV</button>
     <button class="side-btn" id="side-estoque" onclick="mudarTab('estoque',this)"><i class="fa-solid fa-boxes-stacked"></i> Estoque <span class="menu-badge" id="menu-est-badge" hidden>0</span></button>
+    <button class="side-btn" onclick="mudarTab('disponivel',this)"><i class="fa-solid fa-toggle-on"></i> Ingredientes</button>
+    <span class="side-grupo">Cardápio</span>
+    <button class="side-btn" onclick="mudarTab('produtos',this)"><i class="fa-solid fa-box"></i> Produtos</button>
     <button class="side-btn" onclick="mudarTab('categorias',this)"><i class="fa-solid fa-tags"></i> Categorias</button>
     <button class="side-btn" onclick="mudarTab('cupons',this)"><i class="fa-solid fa-ticket"></i> Cupons</button>
-    <button class="side-btn" onclick="mudarTab('pdv',this)"><i class="fa-solid fa-cash-register"></i> PDV</button>
+    <span class="side-grupo">Dinheiro</span>
+    <button class="side-btn" onclick="mudarTab('painel',this)"><i class="fa-solid fa-gauge-high"></i> Painel</button>
+    <button class="side-btn" onclick="mudarTab('caixa',this)"><i class="fa-solid fa-wallet"></i> Entradas e saídas</button>
     <button class="side-btn" onclick="mudarTab('relatorio',this)"><i class="fa-solid fa-chart-column"></i> Relatório</button>
+    <span class="side-grupo">Loja</span>
+    <button class="side-btn" onclick="mudarTab('avaliacoes',this)"><i class="fa-solid fa-star"></i> Avaliações</button>
     <button class="side-btn" onclick="mudarTab('config',this)"><i class="fa-solid fa-gear"></i> Configurações</button>
   </div>
 
@@ -627,7 +638,7 @@
           <option value="">Todos status</option>
           <option value="ativo">Ativos</option>
           <option value="inativo">Inativos</option>
-          <option value="destaque">Destaques</option>
+          <option value="destaque">Com selo (promoção, novidade…)</option>
         </select>
         <button class="btn btn-primary" onclick="abrirModalCriar()"><i class="fa-solid fa-plus"></i> Novo Produto</button>
       </div>
@@ -1185,14 +1196,22 @@
       <div class="form-group full"><label>Descrição</label><textarea id="form-descricao" placeholder="Descrição, acabamento, cuidados com a peça..."></textarea></div>
       <div class="form-group full" style="flex-direction:row;gap:20px;align-items:center">
         <label class="toggle-row"><input type="checkbox" id="form-ativo" checked> Produto ativo (visível na loja)</label>
-        <label class="toggle-row"><input type="checkbox" id="form-destaque" onchange="alternarAreaPromo()"> Destaque / Promoção <small style="color:var(--muted)">(aparece no carrossel do topo)</small></label>
+        <label class="toggle-row" style="gap:8px">Selo na loja
+          <select id="form-selo" onchange="alternarAreaPromo()" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text)">
+            <option value="">Nenhum</option><option value="promocao">Promoção</option><option value="novidade">Novidade</option><option value="maisPedido">Mais pedido</option>
+          </select></label>
+      </div>
+      <div class="form-group full">
+        <label>Combina com <small style="color:var(--muted)">(opcional — quando o cliente colocar este produto no carrinho, a loja sugere levar também. Ex: sorvete → kit de casquinhas)</small></label>
+        <div id="form-combina" class="combina-lista"></div>
       </div>
 
-      <!-- PROMOÇÃO: data de término + arte do carrossel (só aparece com "Destaque" marcado) -->
+      <!-- PROMOÇÃO / NOVIDADE: data + arte do carrossel "Destaques da Bru" -->
       <div class="form-group full" id="form-promo-area" style="display:none;border:1px dashed var(--border);border-radius:10px;padding:12px">
-        <label>Promoção válida até <small style="color:var(--muted)">(opcional — depois desse dia o produto some da loja sozinho)</small></label>
+        <p style="font-size:.8rem;color:var(--muted);margin-bottom:8px"><i class="fa-solid fa-star"></i> Aparece no carrossel <strong>Destaques da Bru</strong>, no topo da loja.</p>
+        <label id="form-promo-ate-label">Promoção válida até <small style="color:var(--muted)">(opcional — depois desse dia o produto some da loja sozinho)</small></label>
         <input type="date" id="form-promo-ate">
-        <label style="margin-top:12px">Arte da promoção <small style="color:var(--muted)">(opcional — a arte em pé do Instagram/Status. Sem arte, o carrossel usa a 1ª foto da galeria ou a foto principal)</small></label>
+        <label style="margin-top:12px">Arte do carrossel <small style="color:var(--muted)">(opcional — a arte em pé do Instagram/Status. Sem arte, o carrossel usa a 1ª foto da galeria ou a foto principal)</small></label>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <img id="form-banner-preview" alt="" style="width:72px;height:112px;object-fit:cover;border-radius:8px;display:none;border:1px solid var(--border)">
           <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('form-banner-file').click()"><i class="fa-solid fa-image"></i> Escolher arte</button>
@@ -3414,7 +3433,7 @@ function filtrar() {
   if (cat)    lista = lista.filter(p => (p.categoria||"") === cat);
   if (status === "ativo")    lista = lista.filter(p => p.ativo !== false);
   if (status === "inativo")  lista = lista.filter(p => p.ativo === false);
-  if (status === "destaque") lista = lista.filter(p => p.destaque);
+  if (status === "destaque") lista = lista.filter(p => _seloDoProduto(p));
   mostrarTabela(lista);
 }
 
@@ -3437,7 +3456,7 @@ function mostrarTabela(lista) {
         const min = Math.min(...precos), max = Math.max(...precos);
         return min === max ? `R$ ${min.toFixed(2).replace('.',',')}` : `R$ ${min.toFixed(2).replace('.',',')} – ${max.toFixed(2).replace('.',',')}`;
       })()}</td>
-      <td>${p.ativo !== false ? '<span class="badge badge-ativo">Ativo</span>' : '<span class="badge badge-inativo">Inativo</span>'}${p.destaque ? ' <span class="badge badge-destaque">★ Destaque</span>' : ''}${p.promoAte ? (new Date(p.promoAte + "T23:59:59") < new Date() ? ` <span class="badge badge-inativo">Promoção encerrada (${p.promoAte.split("-").reverse().join("/")})</span>` : ` <span style="font-size:.72rem;color:var(--muted)">Promo até ${p.promoAte.split("-").reverse().join("/")}</span>`) : ''}${p.disponibilidade === 'encomenda' ? ' <span class="badge" style="background:#2a2205;color:var(--blue)">Sob encomenda</span>' : ''}${(p.estoque !== undefined && p.estoque !== null && Number(p.estoque) <= 0) ? ' <span class="badge badge-inativo"><i class="fa-solid fa-triangle-exclamation"></i> Esgotado</span>' : ''}${(p.estoque !== undefined && p.estoque !== null && Number(p.estoque) > 0) ? ` <span style="font-size:.72rem;color:var(--muted)">Estoque: ${p.estoque}</span>` : ''}</td>
+      <td>${p.ativo !== false ? '<span class="badge badge-ativo">Ativo</span>' : '<span class="badge badge-inativo">Inativo</span>'}${_seloDoProduto(p) ? ` <span class="badge badge-destaque">★ ${{ promocao: "Promoção", novidade: "Novidade", maisPedido: "Mais pedido" }[_seloDoProduto(p)] || "Destaque"}${_seloDoProduto(p) === "novidade" && p.seloAte ? " até " + p.seloAte.split("-").reverse().join("/") : ""}</span>` : ''}${p.promoAte ? (new Date(p.promoAte + "T23:59:59") < new Date() ? ` <span class="badge badge-inativo">Promoção encerrada (${p.promoAte.split("-").reverse().join("/")})</span>` : ` <span style="font-size:.72rem;color:var(--muted)">Promo até ${p.promoAte.split("-").reverse().join("/")}</span>`) : ''}${p.disponibilidade === 'encomenda' ? ' <span class="badge" style="background:#2a2205;color:var(--blue)">Sob encomenda</span>' : ''}${(p.estoque !== undefined && p.estoque !== null && Number(p.estoque) <= 0) ? ' <span class="badge badge-inativo"><i class="fa-solid fa-triangle-exclamation"></i> Esgotado</span>' : ''}${(p.estoque !== undefined && p.estoque !== null && Number(p.estoque) > 0) ? ` <span style="font-size:.72rem;color:var(--muted)">Estoque: ${p.estoque}</span>` : ''}</td>
       <td><div class="actions-cell">
         <button class="btn btn-ghost btn-sm" title="Editar" onclick="abrirModalEditar('${p.docId}')"><i class="fa-solid fa-pen"></i></button>
         <button class="btn btn-ghost btn-sm" title="Duplicar" onclick="duplicarProduto('${p.docId}')"><i class="fa-solid fa-copy"></i></button>
@@ -3649,8 +3668,19 @@ async function fazerUploadImagem(file, maxDim, quadrado, qualidade, formato) {
 let _bannerPromo = ""; // data URL (ou caminho) da arte da promoção do produto em edição
 
 function alternarAreaPromo() {
-  document.getElementById("form-promo-area").style.display =
-    document.getElementById("form-destaque").checked ? "block" : "none";
+  const selo = document.getElementById("form-selo").value;
+  document.getElementById("form-promo-area").style.display = ["promocao", "novidade"].includes(selo) ? "block" : "none";
+  document.getElementById("form-promo-ate-label").innerHTML = selo === "novidade"
+    ? `Mostrar como novidade até <small style="color:var(--muted)">(opcional — depois desse dia o selo sai sozinho e o produto continua na loja normal)</small>`
+    : `Promoção válida até <small style="color:var(--muted)">(opcional — depois desse dia o produto some da loja sozinho)</small>`;
+}
+const _seloDoProduto = (p) => p.selo !== undefined && p.selo !== null ? p.selo : (p.destaque ? "promocao" : "");
+// "Combina com": lista de outros produtos para marcar
+function renderCombinaCom(docAtual, marcados) {
+  const set = new Set((marcados || []).map(Number));
+  document.getElementById("form-combina").innerHTML = todosProdutos.filter(p => p.docId !== docAtual).map(p =>
+    `<label class="ingr-check"><input type="checkbox" value="${p.id}" ${set.has(Number(p.id)) ? "checked" : ""}> ${_escAttr(p.nome)}${p.ativo === false ? " <small>(fora da loja)</small>" : ""}</label>`).join("")
+    || `<p class="ingr-vazio">Cadastre outros produtos para sugerir junto.</p>`;
 }
 
 function definirBannerPromo(src) {
@@ -3957,7 +3987,7 @@ function duplicarProduto(docId) {
   document.getElementById("form-codigo").placeholder = `Ex: AC01 (em branco = código automático #${proximoId})`;
   // A cópia nasce desligada para não aparecer na loja antes de ser revisada
   document.getElementById("form-ativo").checked = false;
-  document.getElementById("form-destaque").checked = false;
+  document.getElementById("form-selo").value = ""; renderCombinaCom("", []);
   document.getElementById("form-promo-ate").value = "";
   definirBannerPromo("");
   alternarAreaPromo();
@@ -3984,7 +4014,7 @@ function abrirModalCriar() {
   document.getElementById("form-imagem").value   = "";
   document.getElementById("form-descricao").value= "";
   document.getElementById("form-ativo").checked  = true;
-  document.getElementById("form-destaque").checked = false;
+  document.getElementById("form-selo").value = ""; renderCombinaCom("", []);
   document.getElementById("form-copos").value = 1;
   document.getElementById("form-promo-ate").value = "";
   definirBannerPromo("");
@@ -4013,9 +4043,10 @@ function abrirModalEditar(docId) {
   document.getElementById("form-imagem").value       = p.imagem || "";
   document.getElementById("form-descricao").value    = p.descricao || "";
   document.getElementById("form-ativo").checked      = p.ativo !== false;
-  document.getElementById("form-destaque").checked   = !!p.destaque;
+  document.getElementById("form-selo").value       = _seloDoProduto(p);
+  renderCombinaCom(docId, p.combinaCom);
   document.getElementById("form-copos").value        = Math.max(1, Number(p.copos) || 1);
-  document.getElementById("form-promo-ate").value    = p.promoAte || "";
+  document.getElementById("form-promo-ate").value    = (_seloDoProduto(p) === "novidade" ? p.seloAte : p.promoAte) || "";
   definirBannerPromo(p.banner || "");
   alternarAreaPromo();
   setTimeout(() => { document.getElementById("form-categoria").value = p.categoria || ""; }, 0);
@@ -4050,8 +4081,12 @@ async function salvarProduto() {
     : null;
   const descricao = document.getElementById("form-descricao").value.trim();
   const ativo     = document.getElementById("form-ativo").checked;
-  const destaque  = document.getElementById("form-destaque").checked;
-  const promoAte  = document.getElementById("form-promo-ate").value || null;
+  const selo      = document.getElementById("form-selo").value;
+  const destaque  = ["promocao", "novidade"].includes(selo);
+  const combinaCom = [...document.querySelectorAll("#form-combina input:checked")].map(i => Number(i.value));
+  const dataSelo  = document.getElementById("form-promo-ate").value || null;
+  const promoAte  = selo === "promocao" ? dataSelo : null;
+  const seloAte   = selo === "novidade" ? dataSelo : null;
   const copos     = Math.min(6, Math.max(1, parseInt(document.getElementById("form-copos").value, 10) || 1));
   const banner    = _bannerPromo || null;
 
@@ -4076,7 +4111,7 @@ async function salvarProduto() {
     }
   }
 
-  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, promoAte, banner, copos,
+  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, selo, seloAte, combinaCom, promoAte, banner, copos,
     usaComplementosLoja: listas.usaComplementosLoja, complementosExceto: listas.complementosExceto,
     usaAdicionaisLoja: listas.usaAdicionaisLoja, adicionaisExceto: listas.adicionaisExceto };
   try {

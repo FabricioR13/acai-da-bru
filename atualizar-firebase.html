@@ -25,6 +25,8 @@
   <li>Nova categoria <strong>Sorvetes</strong></li>
   <li><strong>Sorvete 1 Litro</strong> — R$ 17,90, com escolha do sabor: Napolitano, Abacaxi, Flocos ou Baunilha (foto com os potes na capa e a foto de cada sabor)</li>
   <li><strong>Kit Casquinhas</strong> — 5 cascões + 5 bijus por R$ 11,90</li>
+  <li>Sorvete e Kit com o selo <strong>Novidade</strong> (até 25/11) e o sorvete sugerindo o Kit ("combina com")</li>
+  <li>Combo Casal e Açaí 300ml + Ninho com o selo <strong>Promoção</strong>, e "Promoções" deixa de ser categoria (vira filtro automático) — os produtos vão para Açaí</li>
 </ul>
 <div id="login-box">
   <input type="email" id="email" placeholder="E-mail do admin" autocomplete="username">
@@ -86,7 +88,7 @@ document.getElementById("btn").addEventListener("click", async () => {
   const base = {
     categoria: idCat, opcaoInclusa: null, complementosLista: [], adicionaisPagos: [],
     usaComplementosLoja: false, complementosExceto: [], usaAdicionaisLoja: false, adicionaisExceto: [],
-    disponibilidade: "pronta", prazoDias: null, estoque: null, ativo: true, destaque: true,
+    disponibilidade: "pronta", prazoDias: null, estoque: null, ativo: true, destaque: true, selo: "novidade", seloAte: "2026-11-25",
     promoAte: null, banner: null, copos: 1, codigo: "", galeria: [],
   };
   const sabores = ["Napolitano", "Abacaxi", "Flocos", "Baunilha"];
@@ -102,14 +104,26 @@ document.getElementById("btn").addEventListener("click", async () => {
       imagem: "assets/kit-casquinhas.jpg",
       descricao: "Kit com 5 cascões + 5 bijus — perfeito para acompanhar o sorvete em casa." },
   ];
+  const ids = {};
   for (const n of novos) {
     const existe = docs.find(p => (p.nome || "").trim().toLowerCase() === n.nome.toLowerCase());
-    if (existe) await passo(`Atualiza ${n.nome}`, () => existe.ref.update(n));
+    if (existe) { ids[n.nome] = existe.id; await passo(`Atualiza ${n.nome}`, () => existe.ref.update(n)); }
     else {
-      maxId += 1; const id = maxId;
+      maxId += 1; const id = maxId; ids[n.nome] = id;
       await passo(`Cria ${n.nome} (#${id})`, () => db.collection("produtos").doc(String(id)).set({ ...n, id, criadoEm: firebase.firestore.FieldValue.serverTimestamp() }));
     }
   }
+  // Sorvete sugere o Kit Casquinhas
+  await passo("Sorvete 1 Litro → sugere Kit Casquinhas", () => db.collection("produtos").doc(String(ids["Sorvete 1 Litro"])).update({ combinaCom: [Number(ids["Kit Casquinhas"])] }));
+
+  // "Promoções" deixa de ser categoria: vira selo + filtro automático na loja
+  for (const p of docs.filter(p => p.categoria === "promocoes")) {
+    const nome = (p.nome || "").toLowerCase();
+    const destino = nome.includes("fondue") ? "especiais" : "acai";
+    await passo(`${p.nome}: selo Promoção, categoria ${destino === "acai" ? "Açaí" : "Especiais da Bru"}`, () => p.ref.update({ categoria: destino, selo: "promocao", destaque: true }));
+  }
+  const catPromo = cats.find(c => c.id === "promocoes" || c.ref.id === "promocoes");
+  if (catPromo) await passo("Remove a categoria Promoções (agora é filtro automático)", () => catPromo.ref.delete());
 
   addLog("");
   addLog(erros ? `━━━ Terminou com ${erros} erro(s) ━━━` : "━━━ Pronto! Recarregue a loja. ━━━", erros ? "err" : "info");

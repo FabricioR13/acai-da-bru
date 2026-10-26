@@ -815,7 +815,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         detailIndice = 0;
         renderDetailCarrossel();
 
-        detailBadgeDestaque.hidden = !produto.destaque;
+        const seloP = seloDe(produto);
+        detailBadgeDestaque.hidden = !seloP;
+        if (seloP) {
+            detailBadgeDestaque.className = `detail-badge-destaque selo-${seloP}`;
+            detailBadgeDestaque.innerHTML = `<i class="fa-solid ${SELOS[seloP].icone}" aria-hidden="true"></i> ${SELOS[seloP].nome}`;
+        }
         detailCodigoEl.textContent = `Código: ${codigoDoProduto(produto)}`;
         detailNomeEl.textContent = produto.nome;
         detailDetailsEl.hidden = true;
@@ -1040,6 +1045,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
     produtos = produtos.filter((p) => !promoVencida(p));
 
+    // --- SELO DO PRODUTO: Promoção / Novidade / Mais pedido ---
+    // "selo" escolhido no admin. Produtos antigos só com "destaque" contam como Promoção.
+    // Novidade com data ("seloAte") vira produto normal depois desse dia.
+    const SELOS = {
+        promocao:   { nome: "Promoção",    icone: "fa-tag" },
+        novidade:   { nome: "Novidade",    icone: "fa-wand-magic-sparkles" },
+        maisPedido: { nome: "Mais pedido", icone: "fa-fire" },
+    };
+    const seloDe = (p) => {
+        const s = p.selo !== undefined && p.selo !== null ? p.selo : (p.destaque ? "promocao" : "");
+        if (!SELOS[s]) return "";
+        if (s === "novidade" && p.seloAte) {
+            const fim = new Date(`${p.seloAte}T23:59:59`);
+            if (!Number.isNaN(fim.getTime()) && fim < new Date()) return "";
+        }
+        return s;
+    };
+    const naVitrine = (p) => ["promocao", "novidade"].includes(seloDe(p));
+    const seloHtml = (p, classe) => {
+        const s = seloDe(p);
+        return s ? `<span class="${classe} selo-${s}"><i class="fa-solid ${SELOS[s].icone}" aria-hidden="true"></i> ${SELOS[s].nome}</span>` : "";
+    };
+
     // --- CARROSSEL DE PROMOÇÕES (logo abaixo do topo) ---
     // Mostra os produtos marcados como "destaque" usando a arte da promoção
     // (campo "banner" ou a primeira foto da galeria). Clicar abre o produto.
@@ -1047,7 +1075,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         promoTrack = document.getElementById("promo-track"),
         promoDots = document.getElementById("promo-dots");
     const renderPromocoes = () => {
-        const promos = produtos.filter((p) => p.destaque);
+        // Promoções e novidades primeiro as promoções (têm prazo), depois as novidades
+        const promos = produtos.filter(naVitrine).sort((a, b) => (seloDe(a) === "promocao" ? 0 : 1) - (seloDe(b) === "promocao" ? 0 : 1));
+        const temPromo = promos.some((p) => seloDe(p) === "promocao"), temNovo = promos.some((p) => seloDe(p) === "novidade");
+        const kicker = document.getElementById("promo-kicker");
+        if (kicker) kicker.innerHTML = temPromo && temNovo
+            ? `<i class="fa-solid fa-star" aria-hidden="true"></i> Novidades e promoções`
+            : temNovo ? `<i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Acabou de chegar`
+            : `<i class="fa-solid fa-fire" aria-hidden="true"></i> Só por tempo limitado`;
         if (!promoSection || !promos.length) {
             if (promoSection) promoSection.hidden = true;
             return;
@@ -1056,7 +1091,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             .map((p) => {
                 const arte = p.banner || (Array.isArray(p.galeria) && p.galeria[0]) || p.imagem;
                 return `
-                <button class="promo-card" type="button" data-id="${p.id}" aria-label="Ver promoção: ${p.nome}">
+                <button class="promo-card" type="button" data-id="${p.id}" aria-label="Ver ${SELOS[seloDe(p)].nome.toLowerCase()}: ${p.nome}">
+                    ${seloHtml(p, "promo-card-selo")}
                     <img class="promo-card-arte" src="${arte}" alt="${p.nome}" loading="lazy">
                     <span class="promo-card-rodape">
                         <span class="promo-card-nome">${p.nome}</span>
@@ -1066,7 +1102,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             })
             .join("");
         promoDots.innerHTML = promos.length > 1
-            ? promos.map((_, i) => `<button class="promo-dot${i === 0 ? " active" : ""}" type="button" data-idx="${i}" aria-label="Promoção ${i + 1}"></button>`).join("")
+            ? promos.map((_, i) => `<button class="promo-dot${i === 0 ? " active" : ""}" type="button" data-idx="${i}" aria-label="Destaque ${i + 1}"></button>`).join("")
             : "";
         promoSection.hidden = false;
     };
@@ -1114,13 +1150,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     const renderFiltros = () => {
         const heading = document.getElementById("products-heading");
         const comProduto = categorias.filter((c) => produtos.some((p) => p.categoria === c.id));
+        // Filtros automáticos por selo — só aparecem quando há produto com aquele selo
+        const virtuais = [
+            { id: "__promocao", nome: "Promoções", icone: "fa-tag" },
+            { id: "__novidade", nome: "Novidades", icone: "fa-wand-magic-sparkles" },
+        ].filter((v) => produtos.some((p) => seloDe(p) === v.id.slice(2)));
         const chip = (id, nome, icone) => `
             <button class="category-chip${(categoriaAtiva || "all") === id ? " active" : ""}" type="button" data-category="${id}">
                 ${icone ? `<i class="fa-solid ${icone}" aria-hidden="true"></i>` : ""}${nome}
             </button>`;
         heading.innerHTML = `<div class="category-chips" role="tablist" aria-label="Filtrar por categoria">
             ${chip("all", "Todos", "fa-border-all")}
-            ${comProduto.map((c) => chip(c.id, c.nome, c.icone)).join("")}
+            ${virtuais.map((v) => chip(v.id, v.nome, v.icone)).join("")}
+            ${comProduto.filter((c) => !(virtuais.length && ["promocoes", "novidades"].includes(c.id))).map((c) => chip(c.id, c.nome, c.icone)).join("")}
         </div>`;
         heading.hidden = false;
     };
@@ -1137,9 +1179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const tagEsgotado = esgotado
             ? `<span class="product-tag tag-esgotado">Esgotado</span>`
             : "";
-        const badgeDestaque = p.destaque
-            ? `<span class="product-badge-destaque"><i class="fa-solid fa-star" aria-hidden="true"></i> Promoção</span>`
-            : "";
+        const badgeDestaque = seloHtml(p, "product-badge-destaque");
         // Preço: produto com um único tamanho mostra o valor fixo; com vários
         // tamanhos mostra "A partir de" com o menor preço cadastrado.
         const tamanhos = tamanhosDoProduto(p);
@@ -1158,12 +1198,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ${badgeDestaque}
                 <img class="product-img" src="${p.imagem}" alt="${p.nome}" loading="lazy">
                 <div class="product-info">
-                    <p class="product-code">Código: ${codigoDoProduto(p)}</p>
                     <h3 class="product-name">${p.nome}</h3>
                     <p class="product-description">${p.descricao}</p>
                     ${esgotado ? tagEsgotado : tagEncomenda}
                     <p class="product-price">${precoTexto}</p>
-                    <button class="product-button"${esgotado ? " disabled" : ""}>${esgotado ? "Esgotado" : (precisaDetalhe ? "Escolher" : "Adicionar ao carrinho")}</button>
+                    <button class="product-button"${esgotado ? " disabled" : ""}>${esgotado ? "Esgotado" : (precisaDetalhe ? "Escolher" : "Adicionar")}</button>
                 </div>
             </div>
         `;
@@ -1178,7 +1217,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const buscando = termoBusca.trim() !== "";
 
         let produtosFiltrados = produtos;
-        if (categoriaAtiva) {
+        if (categoriaAtiva && categoriaAtiva.startsWith("__")) {
+            produtosFiltrados = produtosFiltrados.filter((produto) => seloDe(produto) === categoriaAtiva.slice(2));
+        } else if (categoriaAtiva) {
             produtosFiltrados = produtosFiltrados.filter((produto) => produto.categoria === categoriaAtiva);
         }
         if (buscando) {
@@ -1189,9 +1230,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                     (produto.descricao || "").toLowerCase().includes(termo),
             );
         }
-        // Produtos em destaque aparecem primeiro (mantendo a ordem entre eles estável)
+        // Produtos com selo aparecem primeiro (mantendo a ordem entre eles estável)
         produtosFiltrados = [...produtosFiltrados].sort(
-            (a, b) => (b.destaque ? 1 : 0) - (a.destaque ? 1 : 0),
+            (a, b) => (seloDe(b) ? 1 : 0) - (seloDe(a) ? 1 : 0),
         );
 
         if (produtosFiltrados.length === 0) {
@@ -1289,7 +1330,40 @@ document.addEventListener("DOMContentLoaded", async () => {
             _chave: chave,
         });
         atualizarCarrinho();
+        mostrarSugestao(produto);
     };
+
+    // --- "COMBINA COM": depois de adicionar, sugere um produto que a dona escolheu no admin ---
+    const sugestaoEl = document.getElementById("sugestao");
+    let sugestaoTimer = null;
+    const esgotadoP = (p) => p.estoque !== undefined && p.estoque !== null && Number(p.estoque) <= 0;
+    const fecharSugestao = () => { if (sugestaoEl) sugestaoEl.classList.remove("show"); clearTimeout(sugestaoTimer); };
+    const mostrarSugestao = (produto) => {
+        if (!sugestaoEl || !Array.isArray(produto.combinaCom)) return;
+        const sug = produto.combinaCom
+            .map((id) => produtos.find((p) => p.id === Number(id)))
+            .find((p) => p && p.id !== produto.id && !esgotadoP(p) && !carrinho.some((i) => i.id === p.id));
+        if (!sug) return;
+        const preco = Math.min(...tamanhosDoProduto(sug).map((t) => Number(t.preco) || 0));
+        sugestaoEl.innerHTML = `
+            <img src="${sug.imagem}" alt="">
+            <div class="sugestao-texto"><small>Combina com o seu pedido</small><strong>${sug.nome}</strong><span>${formatarMoeda(preco)}</span></div>
+            <button type="button" class="sugestao-add" data-id="${sug.id}"><i class="fa-solid fa-plus" aria-hidden="true"></i> Levar</button>
+            <button type="button" class="sugestao-fechar" aria-label="Fechar sugestão">&times;</button>`;
+        sugestaoEl.classList.add("show");
+        clearTimeout(sugestaoTimer);
+        sugestaoTimer = setTimeout(fecharSugestao, 9000);
+    };
+    if (sugestaoEl) sugestaoEl.addEventListener("click", (e) => {
+        if (e.target.closest(".sugestao-fechar")) return fecharSugestao();
+        const bt = e.target.closest(".sugestao-add");
+        if (!bt) return;
+        const id = Number(bt.dataset.id);
+        const card = document.querySelector(`.product-card[data-id="${id}"]`);
+        fecharSugestao();
+        if (card && !card.dataset.precisaDetalhe) adicionarAoCarrinho(id, null, {});
+        else abrirDetalhe(id);
+    });
 
     // Monta a lista de personalização de um item do carrinho (tamanho, opção inclusa,
     // complementos grátis e adicionais pagos) pra reaproveitar no carrinho, no resumo e
