@@ -646,3 +646,13 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 .sugestao-add{background:var(--secondary-color);color:#fff;border:0;border-radius:999px;padding:.55rem .9rem;font-weight:700;font-size:.85rem;cursor:pointer;white-space:nowrap;font-family:inherit}
 .sugestao-fechar{background:none;border:0;font-size:1.4rem;color:#9ca3af;cursor:pointer;padding:0 .2rem;line-height:1}
 @media (min-width:769px){.sugestao{bottom:24px}}
+
+/* ===== Celular: destaques dois por vez, lado a lado ===== */
+@media (max-width:767px){
+  .promo-track{gap:.7rem}
+  .promo-card{flex:0 0 calc(50% - .35rem);max-width:none;border-radius:14px;scroll-snap-align:start}
+  .promo-card-rodape{flex-direction:column;align-items:flex-start;gap:.4rem;padding:.55rem .65rem}
+  .promo-card-nome{font-size:.8rem}
+  .promo-card-cta{font-size:.78rem;padding:.3rem .6rem}
+  .promo-card-selo{top:7px;left:7px;font-size:.62rem;padding:.22rem .5rem}
+}
