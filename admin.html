@@ -2483,7 +2483,7 @@ async function gerarRelatorioMensal() {
     td.n,th.n{text-align:right} .rod{margin-top:26px;font-size:.72rem;color:#9ca3af;text-align:center}
     .bt{position:fixed;top:14px;right:14px;background:#7A1F4B;color:#fff;border:0;border-radius:999px;padding:10px 18px;font-weight:700;cursor:pointer}
     @media print{.bt{display:none} body{padding:0}}
-  </style></head><body>
+  <\/style><\/head><body>
   <button class="bt" onclick="window.print()">Imprimir / Salvar PDF</button>
   <header><img src="${location.href.replace(/[^/]*$/, "")}assets/logo.jpg" alt=""><div><h1>Relatório de ${NOMES_MES[m - 1]} de ${ano}</h1><p>${_escAttr(loja)} · gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p></div></header>
   <h2>Resumo do mês</h2>
@@ -2508,7 +2508,7 @@ async function gerarRelatorioMensal() {
   <h2>Movimento por horário</h2>
   <table><thead><tr>${porHora.map((q, h) => q ? `<th class="n">${h}h</th>` : "").join("")}</tr></thead><tbody><tr>${porHora.map(q => q ? `<td class="n">${q}</td>` : "").join("")}</tr></tbody></table>
   <p class="rod">Relatório gerado automaticamente pelo painel do ${_escAttr(loja)} · Site e sistema por TF Solutions</p>
-  </body></html>`;
+  <\/body><\/html>`;
   jan.document.open(); jan.document.write(html); jan.document.close();
 }
 
@@ -2911,12 +2911,12 @@ function resumoEstoquePdf() {
   table{width:100%;border-collapse:collapse;font-size:.85rem} th,td{padding:7px 6px;border-bottom:1px solid #f1e7ea;text-align:left} th{color:#6b7280;font-size:.7rem;text-transform:uppercase}
   td.n,th.n{text-align:right} .bt{position:fixed;top:12px;right:12px;background:#7A1F4B;color:#fff;border:0;border-radius:999px;padding:10px 16px;font-weight:700}
   @media (max-width:600px){.bt{position:static;display:block;width:100%;margin-bottom:12px} body{padding:14px} td,th{padding:7px 4px}}
-  .rod{margin-top:20px;font-size:.7rem;color:#9ca3af;text-align:center} @media print{.bt{display:none} body{padding:0}}</style></head><body>
+  .rod{margin-top:20px;font-size:.7rem;color:#9ca3af;text-align:center} @media print{.bt{display:none} body{padding:0}}<\/style><\/head><body>
   <button class="bt" onclick="window.print()">Salvar PDF / Imprimir</button>
   <header><img src="${location.href.replace(/[^/]*$/, "")}assets/logo.jpg" alt=""><div><h1>Estoque de ${_escAttr(_mesAno())}</h1><p>${_escAttr(loja)} · ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p></div></header>
   <table><thead><tr><th>Item</th><th class="n">Tem agora</th><th class="n">Chegou</th><th class="n">Vendeu</th><th>Situação</th></tr></thead><tbody>
   ${_resEst.map(r => `<tr><td>${_escAttr(r.e.nome)}</td><td class="n"><strong>${_estTemQtd(r.e) ? _escAttr(_qtdUn(r.e.quantidade, r.e.unidade)) : "—"}</strong></td><td class="n">${_fmtQtd(r.entrou)}</td><td class="n">${_fmtQtd(r.saiu)}</td><td style="color:${cor[r.sit]};font-weight:700">${r.sit}</td></tr>`).join("")}
-  </tbody></table><p class="rod">Gerado pelo painel do ${_escAttr(loja)} · TF Solutions</p></body></html>`);
+  </tbody></table><p class="rod">Gerado pelo painel do ${_escAttr(loja)} · TF Solutions</p><\/body><\/html>`);
   jan.document.close();
 }
 
@@ -5594,7 +5594,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261103b"></script>
-<script src="post-do-dia.js?v=20261103b"></script>
+<script src="estoque-loja.js?v=20261103c"></script>
+<script src="post-do-dia.js?v=20261103c"></script>
 </body>
 </html>
