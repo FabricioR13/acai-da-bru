@@ -89,6 +89,11 @@
     .side-btn i { width: 18px; text-align: center; font-size: .95rem; }
     .side-btn:hover { background: var(--card); color: var(--text); }
     .side-btn.active { background: #2a2205; color: var(--gold); font-weight: 600; }
+    .bottom-nav, #tab-mais .mais-grupo { display: none; }
+    .atalhos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+    .atalho { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 18px 10px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: .9rem; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; }
+    .atalho i { font-size: 1.5rem; color: var(--gold); }
+    .atalho-sair i { color: var(--red); }
     .side-grupo { font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); opacity: .75; padding: 14px 14px 4px; }
     .side-grupo:first-child { padding-top: 2px; }
     .side-grupo { cursor: pointer; }
@@ -101,7 +106,20 @@
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
     @media (max-width: 800px) {
-      .app-body { flex-direction: column; }
+      /* Celular: menu embaixo, como app */
+      .sidebar { display: none !important; }
+      .bottom-nav { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 500; background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -4px 16px rgba(0,0,0,.18); padding: 4px 2px calc(4px + env(safe-area-inset-bottom)); }
+      .bottom-nav button { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; color: var(--muted); font-size: .72rem; font-weight: 600; padding: 7px 2px; cursor: pointer; }
+      .bottom-nav button i { font-size: 1.3rem; }
+      .bottom-nav button.ativo { color: var(--gold); }
+      .bn-badge { position: absolute; top: 2px; right: 22%; background: var(--red); color: #fff; font-size: .66rem; min-width: 18px; height: 18px; border-radius: 9px; display: grid; place-items: center; padding: 0 4px; }
+      .bn-badge[hidden] { display: none; }
+      body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+      #toast { bottom: calc(80px + env(safe-area-inset-bottom)); right: 12px; left: 12px; max-width: none; }
+      #tab-mais .mais-grupo { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 14px 2px 6px; }
+      #topbar-count, .logout-btn { display: none; }
+      .app-body { flex-direction: column; align-items: stretch; }
+      .content { width: 100%; padding: 16px; }
       .sidebar { width: 100%; flex-direction: row; overflow-x: auto; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
       .side-btn { width: auto; white-space: nowrap; }
       .side-grupo { align-self: center; padding: 0 2px 0 10px; white-space: nowrap; border-left: 1px solid var(--border); }
@@ -503,6 +521,8 @@
       .print-area .comprovante-cabecalho strong { color: #000 !important; }
     }
     @media (max-width: 900px) { .pdv-layout { grid-template-columns: 1fr; } .pdv-cart { position: static; max-height: none; } }
+    .pdv-layout > *, .app-body > * { min-width: 0; }
+    @media (max-width: 600px) { .pdv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; } }
     @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .stats-row .stat-card { min-width: 100px; } .modal { padding: 20px; } }
     /* ── RECORTE MANUAL DE FOTO ── */
     .crop-container { max-height: 360px; overflow: hidden; background: #000; border-radius: 8px; }
@@ -552,6 +572,15 @@
     </div>
   </div>
 
+  <!-- Celular: menu na parte de baixo (o que não cabe fica em "Mais") -->
+  <nav class="bottom-nav" id="bottom-nav" aria-label="Menu">
+    <button data-bn="pedidos" class="ativo" onclick="irPara('pedidos')"><i class="fa-solid fa-receipt"></i><span>Pedidos</span><b class="bn-badge" id="bn-ped-badge" hidden>0</b></button>
+    <button data-bn="pdv" onclick="irPara('pdv')"><i class="fa-solid fa-cash-register"></i><span>PDV</span></button>
+    <button data-bn="estoque" onclick="irPara('estoque')"><i class="fa-solid fa-boxes-stacked"></i><span>Estoque</span><b class="bn-badge" id="bn-est-badge" hidden>0</b></button>
+    <button data-bn="painel" onclick="irPara('painel')"><i class="fa-solid fa-gauge-high"></i><span>Painel</span></button>
+    <button data-bn="mais" onclick="irPara('mais')"><i class="fa-solid fa-ellipsis"></i><span>Mais</span></button>
+  </nav>
+
   <div class="app-body">
   <div class="sidebar">
     <span class="side-grupo" role="button" tabindex="0" title="Abrir Dia a dia" onclick="abrirGrupoMenu(this)" onkeydown="if(event.key==='Enter')abrirGrupoMenu(this)">Dia a dia</span>
@@ -588,6 +617,34 @@
       </div>
       <div class="ped-filtros" id="ped-filtros"></div>
       <div class="ped-lista" id="ped-lista"><div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div></div>
+    </div>
+
+    <div id="tab-mais" class="tab-panel">
+      <h2 style="font-size:1.1rem;margin-bottom:12px">Mais opções</h2>
+      <p class="mais-grupo">Dia a dia</p>
+      <div class="atalhos">
+        <button class="atalho" onclick="irPara('disponivel')"><i class="fa-solid fa-toggle-on"></i><span>Ingredientes</span></button>
+        <button class="atalho" onclick="irPara('post')"><i class="fa-solid fa-camera-retro"></i><span>Post do dia</span></button>
+      </div>
+      <p class="mais-grupo">Cardápio</p>
+      <div class="atalhos">
+        <button class="atalho" onclick="irPara('produtos')"><i class="fa-solid fa-box"></i><span>Produtos</span></button>
+        <button class="atalho" onclick="irPara('categorias')"><i class="fa-solid fa-tags"></i><span>Categorias</span></button>
+        <button class="atalho" onclick="irPara('cupons')"><i class="fa-solid fa-ticket"></i><span>Cupons</span></button>
+      </div>
+      <p class="mais-grupo">Dinheiro</p>
+      <div class="atalhos">
+        <button class="atalho" onclick="irPara('caixa')"><i class="fa-solid fa-wallet"></i><span>Entradas e saídas</span></button>
+        <button class="atalho" onclick="irPara('relatorio')"><i class="fa-solid fa-chart-column"></i><span>Relatório</span></button>
+      </div>
+      <p class="mais-grupo">Loja</p>
+      <div class="atalhos">
+        <button class="atalho" onclick="irPara('avaliacoes')"><i class="fa-solid fa-star"></i><span>Avaliações</span></button>
+        <button class="atalho" onclick="irPara('config')"><i class="fa-solid fa-gear"></i><span>Configurações</span></button>
+        <a class="atalho" href="index.html" target="_blank"><i class="fa-solid fa-store"></i><span>Ver a loja</span></a>
+        <button class="atalho" onclick="alternarTema()"><i class="fa-solid fa-circle-half-stroke"></i><span>Tela clara / escura</span></button>
+        <button class="atalho atalho-sair" onclick="fazerLogout()"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Sair</span></button>
+      </div>
     </div>
 
     <div id="tab-painel" class="tab-panel">
@@ -2733,7 +2790,7 @@ function renderAvisoEstoquePainel() {
   el.innerHTML = `<i class="fa-solid fa-boxes-stacked"></i> <strong>Estoque:</strong> ${[
     z.length ? `esgotado — ${z.map(e => _escAttr(e.nome)).join(", ")}` : "",
     b.length ? `acabando — ${b.map(e => `${_escAttr(e.nome)} (${_fmtQtd(e.quantidade)})`).join(", ")}` : ""].filter(Boolean).join(" · ")}
-    <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="mudarTab('estoque', document.getElementById('side-estoque')); abrirListaCompras()">Lista de compras</button>`;
+    <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="irPara('estoque'); abrirListaCompras()">Lista de compras</button>`;
 }
 
 // ---- cadastro / contagem
@@ -3047,7 +3104,7 @@ function produtoParaVenda(p) {
 function abrirNovoPedido() {
   _np = { itens: [], prod: null, tamIdx: 0, comp: [[]], adic: [[]], qtd: 1, tipo: "entrega" };
   const sel = document.getElementById("np-produto");
-  const ativos = todosProdutos.filter(p => p.ativo !== false).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+  const ativos = todosProdutos.filter(p => p.ativo !== false && !_promoVencida(p)).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
   sel.innerHTML = `<option value="">Escolha o produto…</option>` + ativos.map(p => `<option value="${p.docId}">${_escAttr(p.nome)}</option>`).join("");
   ["np-nome", "np-telefone", "np-rua", "np-numero", "np-taxa", "np-troco", "np-obs"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("np-pagamento").value = "PIX";
@@ -3289,7 +3346,37 @@ function abrirGrupoMenu(titulo) {
   if (el) { el.click(); el.scrollIntoView({ block: "nearest", inline: "nearest" }); }
 }
 
+// Abre uma aba pelo nome (usado pelo menu de baixo do celular e pela página "Mais")
+const BN_ABAS = ["pedidos", "pdv", "estoque", "painel"];
+function irPara(tab) {
+  if (tab === "mais") {
+    document.querySelectorAll(".side-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById("tab-mais").classList.add("active");
+    _sincronizarBottomNav("mais");
+  } else {
+    const btn = [...document.querySelectorAll(".side-btn")].find(b => (b.getAttribute("onclick") || "").includes(`mudarTab('${tab}'`));
+    if (btn) mudarTab(tab, btn);
+  }
+  window.scrollTo(0, 0);
+}
+function _sincronizarBottomNav(tab) {
+  const alvo = BN_ABAS.includes(tab) ? tab : "mais";
+  document.querySelectorAll("#bottom-nav button").forEach(b => b.classList.toggle("ativo", b.dataset.bn === alvo));
+}
+// Os números vermelhos do menu de baixo acompanham os do menu lateral
+function _espelharBadge(origem, destino) {
+  const o = document.getElementById(origem), d = document.getElementById(destino);
+  if (!o || !d) return;
+  const copia = () => { d.hidden = o.hidden; d.textContent = o.textContent; };
+  new MutationObserver(copia).observe(o, { attributes: true, childList: true, characterData: true, subtree: true });
+  copia();
+}
+_espelharBadge("menu-ped-badge", "bn-ped-badge");
+_espelharBadge("menu-est-badge", "bn-est-badge");
+
 function mudarTab(tab, btn) {
+  _sincronizarBottomNav(tab);
   document.querySelectorAll(".side-btn").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
   btn.classList.add("active");
@@ -3840,6 +3927,8 @@ function alternarAreaPromo() {
     ? `Mostrar como novidade até <small style="color:var(--muted)">(opcional — depois desse dia o selo sai sozinho e o produto continua na loja normal)</small>`
     : `Promoção válida até <small style="color:var(--muted)">(opcional — depois desse dia o produto some da loja sozinho)</small>`;
 }
+// Promoção que já passou da data (some da loja; também sai do PDV e do Novo pedido)
+const _promoVencida = (p) => { if (!p.promoAte) return false; const f = new Date(`${p.promoAte}T23:59:59`); return !isNaN(f) && f < new Date(); };
 const _seloDoProduto = (p) => p.selo !== undefined && p.selo !== null ? p.selo : (p.destaque ? "promocao" : "");
 // "Combina com": lista de outros produtos para marcar
 function renderCombinaCom(docAtual, marcados) {
@@ -4502,7 +4591,7 @@ let vendasRelatorio = [];
 function renderPdvGrid() {
   const grid = document.getElementById("pdv-grid");
   const busca = (document.getElementById("pdv-busca")?.value || "").toLowerCase();
-  let lista = todosProdutos.filter(p => p.ativo !== false);
+  let lista = todosProdutos.filter(p => p.ativo !== false && !_promoVencida(p));
   if (busca) lista = lista.filter(p => p.nome.toLowerCase().includes(busca) || (p.codigo||"").toLowerCase().includes(busca));
   if (!lista.length) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-box-open"></i><p>Nenhum produto encontrado.</p></div>`;
@@ -5594,7 +5683,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261103c"></script>
-<script src="post-do-dia.js?v=20261103c"></script>
+<script src="estoque-loja.js?v=20261103d"></script>
+<script src="post-do-dia.js?v=20261103d"></script>
 </body>
 </html>
