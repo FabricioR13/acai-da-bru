@@ -8,6 +8,7 @@ Catálogo online com pedido pelo WhatsApp para o **Açaí da Bru** — desenvolv
 - `admin.html` — painel da loja (produtos, categorias, cupons, PDV, relatório e configurações)
 - `seed-firebase.html` — cadastra o cardápio inicial no Firestore (rodar uma única vez — SOBRESCREVE os produtos)
 - `atualizar-firebase.html` — aplica a atualização de 21/10 (combo com 2 açaís, taxas por bairro, fotos novas) sem apagar edições feitas no admin
+- `CNAME` — endereço do site: acaidabru.tfsolutions.com.br
 - `regras.md` — regras de segurança do Firestore
 - `assets/` — fotos dos produtos (recortes das artes da loja) e logo da TF Solutions
 
