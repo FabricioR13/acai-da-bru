@@ -9,35 +9,50 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Quem pode mexer no painel: só os e-mails que estão na coleção "admins"
+    // (um documento por e-mail, com o e-mail em letras minúsculas como ID).
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+    }
+
+    // A lista de acesso: cada pessoa logada só consegue ver o PRÓPRIO item (para o painel
+    // saber se ela tem acesso). Ninguém altera pelo site — só pelo Console do Firebase.
+    match /admins/{email} {
+      allow read: if request.auth != null && request.auth.token.email == email;
+      allow write: if false;
+    }
+
     match /produtos/{doc} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     match /categorias/{doc} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     match /cupons/{doc} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     match /configuracoes/{doc} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     match /vendas/{doc} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin();
     }
 
     // Pedidos: o site só pode CRIAR, com formato conferido; o admin logado cria
     // pedidos manuais e é o único que vê, muda a etapa ou apaga.
     match /pedidos/{doc} {
       // o admin logado também cria (pedido que chegou pelo WhatsApp / balcão)
-      allow create: if request.auth != null;
+      allow create: if isAdmin();
       allow create: if request.resource.data.keys().hasOnly(['numero', 'codigo', 'dia', 'criadoEm', 'origem', 'tipo', 'bairro', 'cliente', 'telefone', 'endereco', 'observacoes', 'talher', 'troco', 'pagamento', 'status', 'token', 'itens', 'qtdItens', 'subtotal', 'desconto', 'taxaEntrega', 'total'])
                     && request.resource.data.origem == 'site'
                     && request.resource.data.status == 'recebido'
@@ -46,12 +61,12 @@ service cloud.firestore {
                     && request.resource.data.total >= 0 && request.resource.data.total < 5000
                     && request.resource.data.itens is list
                     && request.resource.data.itens.size() > 0 && request.resource.data.itens.size() <= 50;
-      allow read, update, delete: if request.auth != null;
+      allow read, update, delete: if isAdmin();
     }
 
     // Lançamentos de entradas e saídas (caixa) — só o admin
     match /caixa/{doc} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin();
     }
 
     // Avaliações: o cliente cria UMA por pedido, e só com o código secreto (token)
@@ -68,8 +83,8 @@ service cloud.firestore {
                     && request.resource.data.permitirPublicar is bool
                     && request.resource.data.aprovada == false
                     && request.resource.data.criadoEm == request.time;
-      allow read: if resource.data.aprovada == true || request.auth != null;
-      allow update, delete: if request.auth != null;
+      allow read: if resource.data.aprovada == true || isAdmin();
+      allow update, delete: if isAdmin();
     }
 
     // Numeração diária dos pedidos: o site só pode criar o contador do dia
@@ -77,10 +92,10 @@ service cloud.firestore {
     // pular números.
     // Estoque e histórico de movimentações: só o admin logado
     match /estoque/{doc} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin();
     }
     match /estoqueMov/{doc} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin();
     }
 
     match /contadores/{doc} {
@@ -89,7 +104,7 @@ service cloud.firestore {
                     && request.resource.data.total == 1;
       allow update: if request.resource.data.keys().hasOnly(['total'])
                     && request.resource.data.total == resource.data.total + 1;
-      allow delete: if request.auth != null;
+      allow delete: if isAdmin();
     }
   }
 }
@@ -97,12 +112,26 @@ service cloud.firestore {
 
 ## O que essas regras fazem
 
-- **produtos, categorias, cupons, configuracoes**: qualquer visitante da loja pode *ler* (necessário para o site funcionar sem login), mas só usuários logados no admin podem *escrever* (criar, editar, excluir).
-- **vendas**: dado sensível (faturamento) — só usuários logados podem ler ou escrever. Não é público.
+- **admins**: a lista de quem entra no painel. Só quem está aqui consegue ler os dados internos e mexer em qualquer coisa. Ter usuário e senha no Authentication **não basta** — o e-mail precisa estar nesta lista.
+
+- **produtos, categorias, cupons, configuracoes**: qualquer visitante da loja pode *ler* (necessário para o site funcionar sem login), mas só os e-mails da lista `admins` podem *escrever* (criar, editar, excluir).
+- **vendas**: dado sensível (faturamento) — só os e-mails da lista `admins` podem ler ou escrever. Não é público.
 - **pedidos**: cada pedido enviado pelo site (horário, itens, valores, cliente, telefone e endereço para atender o pedido). O site só cria; só o admin logado vê, muda a etapa ou apaga.
 - **caixa**: despesas e entradas lançadas à mão no admin (aba Entradas e saídas). Só o admin.
 - **avaliacoes**: uma avaliação por pedido (nota, comentário, primeiro nome). Só quem tem o link do pedido avalia; a loja mostra só as aprovadas pela dona.
 - **contadores**: numeração diária dos pedidos (`pedidos-AAAA-MM-DD`). O site só consegue somar +1; só o admin logado apaga.
+
+## Lista de acesso ao painel (admins)
+
+Hoje têm acesso: **tf.solutions@outlook.com.br** (suporte TF Solutions) e o e-mail da dona da loja.
+
+**Liberar alguém** (no Console do Firebase):
+1. **Authentication → Usuários → Adicionar usuário**: e-mail e uma senha provisória (a pessoa troca depois em "Esqueci minha senha").
+2. **Firestore Database → Iniciar coleção** (ou abrir a coleção `admins`) → **ID do documento** = o e-mail, todo em minúsculas → adicione um campo qualquer, por exemplo `nome` (texto) = nome da pessoa → **Salvar**.
+
+**Tirar o acesso**: apague o documento do e-mail na coleção `admins`.
+
+**Importante**: em **Authentication → Configurações → Ações do usuário**, deixe **desmarcado** "Ativar criação (inscrição)". Assim ninguém cria conta sozinho pelo site.
 
 ## Pré-requisito
 

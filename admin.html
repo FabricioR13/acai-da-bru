@@ -1792,8 +1792,26 @@ async function esqueciSenha() {
 function fazerLogout() { auth.signOut(); }
 document.getElementById("senha-input").addEventListener("keydown", e => { if (e.key === "Enter") fazerLogin(); });
 document.getElementById("email-input").addEventListener("keydown", e => { if (e.key === "Enter") fazerLogin(); });
-auth.onAuthStateChanged(user => {
+// Só entra no painel quem está na lista "admins" do banco (um item por e-mail, criado no
+// Console do Firebase). Logou com outro e-mail → sai na hora. As regras do banco (regras.md)
+// fazem a mesma conferência, então mesmo burlando esta tela não dá para mexer em nada.
+async function _temAcessoAdmin(user) {
+  try {
+    const doc = await db.collection("admins").doc(String(user.email || "").toLowerCase()).get();
+    return doc.exists;
+  } catch (e) {
+    // Regras antigas (sem a lista "admins") recusam a leitura: segue como antes até as
+    // regras novas serem publicadas. Com as regras novas, quem não está na lista lê "não existe".
+    return e && e.code === "permission-denied";
+  }
+}
+auth.onAuthStateChanged(async user => {
   if (user) {
+    if (!(await _temAcessoAdmin(user))) {
+      await auth.signOut();
+      mostrarMsgLogin("erro", "Este e-mail não tem acesso ao painel. Fale com a TF Solutions.");
+      return;
+    }
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("app").style.display = "block";
     inicializar();
@@ -5683,7 +5701,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261103d"></script>
-<script src="post-do-dia.js?v=20261103d"></script>
+<script src="estoque-loja.js?v=20261103e"></script>
+<script src="post-do-dia.js?v=20261103e"></script>
 </body>
 </html>
