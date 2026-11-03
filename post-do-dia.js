@@ -17,6 +17,9 @@ const POST_SELOS = { promocao: "PROMOÇÃO", novidade: "NOVIDADE", maisPedido: "
 
 let postFormato = "grupo";
 let postSel = null;               // Set de docIds no post de hoje (null = ainda não escolheu → padrão)
+let postProntos = [];             // artes prontas que a dona incluiu (outra IA, Canva…): { id, imagem, criadoEm }
+let postProntosSel = new Set();   // quais vão junto hoje
+let postExcluindo = null;         // Set dos marcados para excluir (null = fora do modo excluir)
 let postTextoEditado = false;
 let postCanvases = [];
 let postRenderId = 0;
@@ -32,6 +35,8 @@ function _postCarregarPrefs() {
     const s = JSON.parse(localStorage.getItem(POST_CHAVE) || "null");
     if (!s) return;
     if (s.dia === _postHoje() && Array.isArray(s.sel)) postSel = new Set(s.sel);
+    if (s.dia === _postHoje() && Array.isArray(s.prontos)) postProntosSel = new Set(s.prontos);
+    if (typeof s.gerada === "boolean") _postEl("post-gerada").checked = s.gerada;
     if (POST_FMT[s.formato]) postFormato = s.formato;
     if (typeof s.preco === "boolean") _postEl("post-preco").checked = s.preco;
     if (typeof s.ingr === "boolean") _postEl("post-ingr").checked = s.ingr;
@@ -42,6 +47,7 @@ function _postSalvarPrefs() {
   try {
     localStorage.setItem(POST_CHAVE, JSON.stringify({
       dia: _postHoje(), sel: postSel ? [...postSel] : null, formato: postFormato,
+      prontos: [...postProntosSel], gerada: _postEl("post-gerada").checked,
       preco: _postEl("post-preco").checked, ingr: _postEl("post-ingr").checked, frase: _postEl("post-frase").value,
     }));
   } catch (e) { /* ignora */ }
@@ -98,8 +104,10 @@ const _postDataExtenso = () => { const t = new Date().toLocaleDateString("pt-BR"
 const _postFrase = () => _postEl("post-frase").value.trim() || "Hoje tem açaí!";
 
 // ── Tela ─────────────────────────────────────────────────────────────────────
+let _postProntosCarregados = false;
 function renderPostDia() {
   if (!_postEl("tab-post")) return;
+  if (!_postProntosCarregados) { _postProntosCarregados = true; carregarPostsProntos(); }
   if (postSel === null) _postAplicarModelo("destaques");
   document.querySelectorAll("#post-formato [data-formato]").forEach(b => b.classList.toggle("ativo", b.dataset.formato === postFormato));
   if (document.activeElement !== _postEl("post-link")) _postEl("post-link").value = _cfgLoja.linkCatalogo || "";
@@ -211,6 +219,12 @@ async function _postDesenhar() {
     if (postCanvases.length > 1) { const c = document.createElement("figcaption"); c.textContent = `Imagem ${n + 1} de ${postCanvases.length}`; f.appendChild(c); }
     area.appendChild(f);
   });
+  _postProntosEscolhidos().forEach(pp => {
+    const f = document.createElement("figure"); f.className = "post-previa-pronto";
+    f.innerHTML = `<img src="${pp.imagem}" alt="Seu post"><figcaption>Seu post</figcaption>`;
+    area.appendChild(f);
+  });
+  if (!_postEl("post-gerada").checked) [...area.querySelectorAll("figure:not(.post-previa-pronto)")].forEach(f => f.style.opacity = ".3");
   _postEl("post-aviso-paginas").hidden = postCanvases.length < 2;
   _postEl("post-aviso-paginas").textContent = `Como são muitos produtos, o painel separou em ${postCanvases.length} imagens (até ${fmt.porImagem} por imagem). Todas vão juntas ao compartilhar.`;
 }
@@ -346,7 +360,17 @@ function _postSeloDesenho(ctx, texto, x, y, t, fundo, cor) {
 }
 
 // ── Exportar / compartilhar ──────────────────────────────────────────────────
-function _postArquivos() {
+async function _postArquivos() {
+  const geradas = _postEl("post-gerada").checked ? await _postArquivosGerados() : [];
+  const prontas = await Promise.all(_postProntosEscolhidos().map(async (pp, i) => {
+    const b = await (await fetch(pp.imagem)).blob();
+    return new File([b], `acai-da-bru-post-${_postHoje()}-${i + 1}.${b.type === "image/png" ? "png" : "jpg"}`, { type: b.type || "image/jpeg" });
+  }));
+  const todos = [...geradas, ...prontas];
+  if (!todos.length) throw Object.assign(new Error("nada"), { name: "Nada" });
+  return todos;
+}
+function _postArquivosGerados() {
   return Promise.all(postCanvases.map((cv, i) => new Promise((ok, erro) => {
     try { cv.toBlob(b => b ? ok(new File([b], `acai-da-bru-${POST_FMT[postFormato].rotulo}-${_postHoje()}${postCanvases.length > 1 ? "-" + (i + 1) : ""}.png`, { type: "image/png" })) : erro(new Error("vazio")), "image/png"); }
     catch (e) { erro(e); }
@@ -354,6 +378,7 @@ function _postArquivos() {
 }
 function _postErro(e) {
   console.error(e);
+  if (e && e.name === "Nada") { toast("Nada para mandar: marque um post pronto ou a imagem do painel.", "err"); return; }
   toast(e && e.name === "SecurityError" ? "O navegador bloqueou a imagem: abra o painel pelo site publicado, não direto do arquivo." : "Não consegui gerar a imagem. Tente de novo.", "err");
 }
 async function postCopiarTexto(silencioso = false) {
@@ -385,10 +410,117 @@ async function postCompartilhar() {
   setTimeout(() => window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank"), 900);
 }
 
+// ── Posts prontos (arte feita em outro lugar) ─────────────────────────────────
+// Ficam em configuracoes/postPronto-<id> (a coleção que o admin já pode gravar e que
+// guarda o que é público da loja) — assim aparecem no celular e no computador.
+const _postProntosEscolhidos = () => postProntos.filter(pp => postProntosSel.has(pp.id));
+
+async function carregarPostsProntos() {
+  try {
+    const snap = await db.collection("configuracoes").where("tipo", "==", "postPronto").get();
+    postProntos = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+    postProntosSel = new Set([...postProntosSel].filter(id => postProntos.some(pp => pp.id === id)));
+  } catch (e) { console.warn("posts prontos:", e.message); }
+  renderPostsProntos();
+}
+
+function renderPostsProntos() {
+  const el = _postEl("post-prontos");
+  if (!el) return;
+  const excl = postExcluindo !== null;
+  el.innerHTML = postProntos.length ? postProntos.map(pp => {
+    const cls = excl ? (postExcluindo.has(pp.id) ? " marcado" : "") : (postProntosSel.has(pp.id) ? " on" : "");
+    return `<button type="button" class="post-pronto${cls}" data-pronto="${pp.id}" aria-pressed="${excl ? postExcluindo.has(pp.id) : postProntosSel.has(pp.id)}">
+      <img src="${pp.imagem}" alt="Post pronto" loading="lazy"><span class="post-check"><i class="fa-solid ${excl ? "fa-trash" : "fa-check"}"></i></span></button>`;
+  }).join("") : `<div class="post-pronto-vazio" onclick="document.getElementById('post-arquivo').click()"><i class="fa-solid fa-image"></i> Nenhum post pronto ainda — toque para incluir</div>`;
+  _postEl("post-excluir-btn").hidden = excl || !postProntos.length;
+  _postEl("post-excluir-barra").hidden = !excl;
+  _postEl("post-excluir-ok").innerHTML = `<i class="fa-solid fa-trash"></i> Excluir selecionados${excl && postExcluindo.size ? ` (${postExcluindo.size})` : ""}`;
+  _postEl("post-prontos-ajuda").textContent = excl
+    ? "Toque nos posts que você não quer mais e depois em Excluir selecionados."
+    : "Fez uma arte em outro lugar (outra IA, Canva…)? Inclua aqui e toque nela para mandar junto hoje.";
+}
+
+function postModoExcluir(ligar) {
+  postExcluindo = ligar ? new Set() : null;
+  renderPostsProntos();
+}
+
+// Reduz a imagem (lado maior 1440px, JPEG) para caber no banco e carregar rápido
+function _postReduzir(arquivo) {
+  return new Promise((ok, erro) => {
+    const url = URL.createObjectURL(arquivo);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const esc = Math.min(1, 1440 / Math.max(img.width, img.height));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(img.width * esc); cv.height = Math.round(img.height * esc);
+      const ctx = cv.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      let q = 0.86, dados = cv.toDataURL("image/jpeg", q);
+      while (dados.length > 900000 && q > 0.4) { q -= 0.1; dados = cv.toDataURL("image/jpeg", q); }
+      ok(dados);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); erro(new Error("não é uma imagem")); };
+    img.src = url;
+  });
+}
+
+async function postIncluirArquivos(arquivos) {
+  const lista = [...arquivos].filter(f => f.type.startsWith("image/"));
+  if (!lista.length) { toast("Escolha uma imagem (foto ou arte).", "err"); return; }
+  toast(lista.length > 1 ? `Incluindo ${lista.length} posts…` : "Incluindo o post…", "ok");
+  let ok = 0;
+  for (const f of lista) {
+    try {
+      const imagem = await _postReduzir(f);
+      const ref = db.collection("configuracoes").doc(`postPronto-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
+      const doc = { tipo: "postPronto", imagem, criadoEm: Date.now() };
+      await ref.set(doc);
+      postProntos.unshift({ id: ref.id, ...doc });
+      postProntosSel.add(ref.id); // acabou de incluir → já vai junto hoje
+      ok++;
+    } catch (e) { toast(`Não consegui incluir ${f.name}: ${e.message}`, "err"); }
+  }
+  if (ok) toast(ok > 1 ? `${ok} posts incluídos e marcados para hoje.` : "Post incluído e marcado para hoje.", "ok");
+  _postSalvarPrefs(); renderPostsProntos(); _postAgendarDesenho();
+}
+
+function postExcluirSelecionados() {
+  if (!postExcluindo || !postExcluindo.size) { toast("Toque nos posts que quer excluir.", "err"); return; }
+  const n = postExcluindo.size;
+  document.getElementById("confirm-msg").textContent = `Excluir ${n === 1 ? "este post" : `estes ${n} posts`}? Eles saem do painel e não dá para desfazer.`;
+  document.getElementById("confirm-ok-btn").onclick = async () => {
+    try {
+      const lote = db.batch();
+      postExcluindo.forEach(id => lote.delete(db.collection("configuracoes").doc(id)));
+      await lote.commit();
+      postProntos = postProntos.filter(pp => !postExcluindo.has(pp.id));
+      postExcluindo.forEach(id => postProntosSel.delete(id));
+      postExcluindo = null;
+      fecharModal("confirm-modal");
+      toast(n > 1 ? `${n} posts excluídos.` : "Post excluído.", "ok");
+      _postSalvarPrefs(); renderPostsProntos(); _postAgendarDesenho();
+    } catch (e) { toast("Erro ao excluir: " + e.message, "err"); }
+  };
+  abrirModal("confirm-modal");
+}
+
 // ── Eventos ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   if (!_postEl("tab-post")) return;
   _postCarregarPrefs();
+  _postEl("post-arquivo").addEventListener("change", e => { postIncluirArquivos(e.target.files); e.target.value = ""; });
+  _postEl("post-prontos").addEventListener("click", e => {
+    const b = e.target.closest("[data-pronto]"); if (!b) return;
+    const id = b.dataset.pronto;
+    if (postExcluindo) { if (postExcluindo.has(id)) postExcluindo.delete(id); else postExcluindo.add(id); renderPostsProntos(); return; }
+    if (postProntosSel.has(id)) postProntosSel.delete(id); else postProntosSel.add(id);
+    _postSalvarPrefs(); renderPostsProntos(); _postAgendarDesenho();
+  });
+  _postEl("post-gerada").addEventListener("change", () => { _postSalvarPrefs(); _postAgendarDesenho(); });
   _postEl("post-lista").addEventListener("click", e => {
     const b = e.target.closest("[data-post-item]"); if (!b) return;
     const p = todosProdutos.find(x => x.docId === b.dataset.postItem); if (!p) return;
