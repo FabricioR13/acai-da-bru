@@ -18,6 +18,8 @@ Catálogo online com pedido pelo WhatsApp para o **Açaí da Bru** — desenvolv
 - **Entradas e saídas** — despesas e outras entradas lançadas à mão; vendas do PDV e pedidos pagos entram sozinhos; exportação para planilha (CSV).
 - **Avaliações** — link de avaliação vai na mensagem de "Entregue" (`avaliar.html`, uma avaliação por pedido); a dona aprova quais aparecem na loja.
 - **Ingredientes** — lista única de complementos e adicionais (preço, custo, liga/desliga).
+- **Estoque** — itens separados por grupo (Copos e tampas, Açaí, Mantimentos, Sorvetes, Bebidas). Botão **Lista da loja** confere o estoque com todos os itens que a Bru trabalha (`estoque-loja.js`), sem perder quantidade nem histórico. Mantimento ligado a um ingrediente: zerou (botão **Acabou**) → o ingrediente sai da loja; repôs → volta sozinho.
+- **Post do dia** — escolhe os produtos (promoções, açaís ou cardápio todo) e gera a imagem para grupos (4:5) e status (9:16) com "Hoje tem" (complementos disponíveis), mais o texto com o link da loja (`post-do-dia.js`).
 - **Relatório** — vendas por dia, pedidos por horário e mapa dia da semana × horário.
 
 Coleções do Firestore: `produtos`, `categorias`, `cupons`, `configuracoes`, `vendas` (PDV), `pedidos` (site), `caixa`, `avaliacoes`, `contadores`. Regras em `regras.md`.

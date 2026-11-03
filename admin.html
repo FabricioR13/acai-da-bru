@@ -7,6 +7,10 @@
   <script>try { if (localStorage.getItem("admin:tema") === "claro") document.documentElement.dataset.tema = "claro"; } catch (e) {}</script>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Fontes da loja, usadas na imagem do Post do dia -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@500;600;700&display=swap">
   <!-- Cropper.js: ferramenta de recorte manual de foto (usada só no admin). Se não
        carregar por algum motivo (sem internet, CDN bloqueado), o sistema cai
        automaticamente no recorte central automático, igual à versão anterior. -->
@@ -291,6 +295,48 @@
     .resest-nums { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 6px; }
     .resest-nums span { display: block; font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
     .resest-nums strong { font-size: 1rem; } .resest-nums .mais { color: var(--green); } .resest-nums .menos { color: var(--gold); }
+    /* Post do dia */
+    .post-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+    @media (max-width: 900px) { .post-layout { grid-template-columns: 1fr; } }
+    .post-bloco { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .post-bloco h3 { font-size: .95rem; display: flex; align-items: center; gap: 8px; }
+    .post-bloco h3 small { color: var(--muted); font-weight: 400; }
+    .post-passo { width: 24px; height: 24px; border-radius: 50%; background: var(--gold); color: #1a1208; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 800; flex-shrink: 0; }
+    .post-ajuda { color: var(--muted); font-size: .8rem; }
+    .post-barra { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .post-lista { display: flex; flex-direction: column; gap: 6px; max-height: 460px; overflow-y: auto; }
+    .post-cat { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-top: 6px; }
+    .post-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; text-align: left; color: var(--text); width: 100%; font: inherit; }
+    .post-item.on { border-color: var(--gold); }
+    .post-item.sem { opacity: .5; cursor: not-allowed; }
+    .post-item img, .post-item .post-noimg { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--card); display: flex; align-items: center; justify-content: center; color: var(--muted); }
+    .post-item .post-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .post-item .post-info strong { font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .post-item .post-info span { font-size: .75rem; color: var(--muted); }
+    .post-check { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: transparent; font-size: .7rem; }
+    .post-item.on .post-check { background: var(--gold); border-color: var(--gold); color: #1a1208; }
+    .post-tag { font-size: .65rem; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-left: 4px; background: rgba(212,162,76,.18); color: var(--gold); }
+    .post-tag.esg { background: rgba(229,57,53,.15); color: var(--red); }
+    .post-campo { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--muted); }
+    .post-campo input, .post-campo textarea { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font: inherit; font-size: .88rem; }
+    .post-campo textarea { resize: vertical; font-size: .82rem; line-height: 1.45; }
+    .post-previa { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+    .post-previa figure { flex: 0 0 auto; margin: 0; }
+    .post-previa canvas { width: 300px; max-width: 78vw; height: auto; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.35); display: block; }
+    .post-previa figcaption { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 4px; }
+    .post-botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+    @media (max-width: 600px) { .post-botoes .btn { flex: 1 1 100%; justify-content: center; } }
+    .est-grupo { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 8px; margin: 10px 0 0; font-weight: 800; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gold); border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+    .est-grupo:first-child { margin-top: 0; }
+    .est-grupo small { color: var(--muted); font-weight: 600; }
+    .est-acabou { color: var(--red); }
+    .lb-sec { margin: 12px 0 6px; font-size: .85rem; }
+    .lb-sec small { color: var(--muted); font-weight: 400; }
+    .lb-lista { display: flex; flex-wrap: wrap; gap: 6px; }
+    .lb-chip { font-size: .78rem; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; }
+    .lb-chip small { color: var(--muted); }
+    .lb-fora { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+    .lb-fora label { display: flex; align-items: center; gap: 8px; font-size: .85rem; cursor: pointer; }
     #painel-estoque { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     /* Taxas por bairro */
     .bairro-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
@@ -500,6 +546,7 @@
     <button class="side-btn" onclick="mudarTab('pdv',this)"><i class="fa-solid fa-cash-register"></i> PDV</button>
     <button class="side-btn" id="side-estoque" onclick="mudarTab('estoque',this)"><i class="fa-solid fa-boxes-stacked"></i> Estoque <span class="menu-badge" id="menu-est-badge" hidden>0</span></button>
     <button class="side-btn" onclick="mudarTab('disponivel',this)"><i class="fa-solid fa-toggle-on"></i> Ingredientes</button>
+    <button class="side-btn" onclick="mudarTab('post',this)"><i class="fa-solid fa-camera-retro"></i> Post do dia</button>
     <span class="side-grupo">Cardápio</span>
     <button class="side-btn" onclick="mudarTab('produtos',this)"><i class="fa-solid fa-box"></i> Produtos</button>
     <button class="side-btn" onclick="mudarTab('categorias',this)"><i class="fa-solid fa-tags"></i> Categorias</button>
@@ -659,10 +706,11 @@
         <div class="ped-controles">
           <button class="btn btn-ghost btn-sm" onclick="abrirListaCompras()"><i class="fa-solid fa-cart-shopping"></i> Lista de compras</button>
           <button class="btn btn-ghost btn-sm" onclick="abrirResumoEstoque()"><i class="fa-solid fa-clipboard-list"></i> Resumo do mês</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirListaBru()" title="Confere o estoque com a lista de itens que a loja trabalha"><i class="fa-solid fa-list-check"></i> Lista da loja</button>
           <button class="btn btn-primary btn-sm" onclick="abrirItemEstoque()"><i class="fa-solid fa-plus"></i> Novo item</button>
         </div>
       </div>
-      <p style="color:var(--muted);font-size:.8rem;margin:-4px 0 12px">O estoque <strong>baixa sozinho</strong> quando o pedido vai para "Em preparo" e numa venda do PDV, e volta se o pedido for cancelado. Quando a mercadoria chegar, toque em <strong>Repor</strong>. Item zerado aparece como esgotado na loja.</p>
+      <p style="color:var(--muted);font-size:.8rem;margin:-4px 0 12px">O estoque <strong>baixa sozinho</strong> quando o pedido vai para "Em preparo" e numa venda do PDV, e volta se o pedido for cancelado. Quando a mercadoria chegar, toque em <strong>Repor</strong>. Item zerado aparece como esgotado na loja. Mantimentos (granola, cremes, coberturas…) não baixam sozinhos: quando acabar, toque em <strong>Acabou</strong> e o ingrediente sai da loja até você repor.</p>
       <div class="ped-filtros" id="est-filtros">
         <button class="ped-filtro ativo" data-est-filtro="todos" onclick="filtrarEstoque('todos')">Todos <span id="est-c-todos">0</span></button>
         <button class="ped-filtro" data-est-filtro="baixo" onclick="filtrarEstoque('baixo')">Acabando <span id="est-c-baixo">0</span></button>
@@ -670,6 +718,57 @@
         <button class="ped-filtro" data-est-filtro="semqtd" onclick="filtrarEstoque('semqtd')">Sem quantidade <span id="est-c-semqtd">0</span></button>
       </div>
       <div id="est-lista" class="est-lista"><div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div></div>
+    </div>
+
+    <div id="tab-post" class="tab-panel">
+      <div class="disp-topo">
+        <div>
+          <h2 style="font-size:1.1rem;margin-bottom:4px">Post do dia</h2>
+          <p style="color:var(--muted);font-size:.85rem">Escolha o que vai no post. A imagem e o texto com o link ficam prontos para os grupos e o status.</p>
+        </div>
+      </div>
+      <div class="post-layout">
+        <div class="post-col">
+          <div class="post-bloco">
+            <h3><span class="post-passo">1</span> O que vai no post?</h3>
+            <div class="post-barra">
+              <div class="ped-filtros" id="post-modelos" style="margin:0">
+                <button class="ped-filtro" data-modelo="destaques">Promoções e destaques</button>
+                <button class="ped-filtro" data-modelo="acai">Açaís</button>
+                <button class="ped-filtro" data-modelo="tudo">Cardápio todo</button>
+                <button class="ped-filtro" data-modelo="nada">Limpar</button>
+              </div>
+            </div>
+            <p class="post-ajuda"><strong id="post-contagem"></strong> · toque no produto para tirar ou pôr. Esgotados não entram.</p>
+            <div id="post-lista" class="post-lista"></div>
+          </div>
+          <div class="post-bloco">
+            <h3><span class="post-passo">2</span> Ajustes <small>(opcional)</small></h3>
+            <label class="post-campo">Frase do topo<input type="text" id="post-frase" maxlength="34" placeholder="Hoje tem açaí!"></label>
+            <label class="toggle-row"><input type="checkbox" id="post-preco" checked> Mostrar os preços</label>
+            <label class="toggle-row"><input type="checkbox" id="post-ingr" checked> Mostrar os complementos que tem hoje <small style="color:var(--muted)">(o que está em falta não aparece)</small></label>
+            <label class="post-campo">Link da loja <small>(vai no texto)</small><input type="url" id="post-link" placeholder="https://..."></label>
+          </div>
+        </div>
+        <div class="post-col">
+          <div class="post-bloco">
+            <h3><span class="post-passo">3</span> Pronto para postar</h3>
+            <div class="ped-filtros" id="post-formato" style="margin-bottom:10px">
+              <button class="ped-filtro ativo" data-formato="grupo"><i class="fa-solid fa-users"></i> Para os grupos</button>
+              <button class="ped-filtro" data-formato="status"><i class="fa-solid fa-mobile-screen"></i> Para o status</button>
+            </div>
+            <div id="post-previa" class="post-previa"></div>
+            <p class="post-ajuda" id="post-aviso-paginas" hidden></p>
+            <div class="post-botoes">
+              <button class="btn btn-primary" onclick="postCompartilhar()"><i class="fa-brands fa-whatsapp"></i> Compartilhar no WhatsApp</button>
+              <button class="btn btn-ghost" onclick="postBaixar()"><i class="fa-solid fa-download"></i> Salvar imagem</button>
+              <button class="btn btn-ghost" onclick="postCopiarTexto()"><i class="fa-regular fa-copy"></i> Copiar texto</button>
+            </div>
+            <label class="post-campo">Texto que vai junto <small>(pode editar)</small><textarea id="post-texto" rows="12"></textarea></label>
+            <button class="btn btn-ghost btn-sm" id="post-texto-refazer" hidden onclick="postRefazerTexto()"><i class="fa-solid fa-rotate-left"></i> Voltar ao texto automático</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="tab-disponivel" class="tab-panel">
@@ -1391,9 +1490,11 @@
     <input type="hidden" id="est-id">
     <div class="np-grid">
       <label class="np-largo">Nome do item<input type="text" id="est-nome" maxlength="60" placeholder="Ex: Copo 500ml, Polpa de açaí, Sorvete Flocos"></label>
-      <label>Unidade<select id="est-unidade"><option>unidade</option><option>copo</option><option>pote</option><option>caixa</option><option>pacote</option><option>fardo</option><option>kit</option><option>kg</option><option>litro</option></select></label>
+      <label>Unidade<select id="est-unidade"><option>unidade</option><option>copo</option><option>pote</option><option>balde</option><option>caixa</option><option>pacote</option><option>lata</option><option>frasco</option><option>fardo</option><option>kit</option><option>kg</option><option>litro</option></select></label>
       <label>Quantidade agora<input type="number" id="est-qtd" min="0" step="1" placeholder="Quanto tem hoje"></label>
       <label>Avisar quando chegar a<input type="number" id="est-min" min="0" step="1" placeholder="Ex: 20"></label>
+      <label>Grupo<select id="est-grupo"></select></label>
+      <label class="np-largo">Quando zerar, tira da loja o ingrediente <small style="color:var(--muted);font-weight:400">(opcional)</small><select id="est-ingrediente"></select></label>
     </div>
     <h3 class="np-sec">Baixa sozinho quando vender <small style="color:var(--muted);font-weight:400">(opcional — marque o que gasta este item)</small></h3>
     <input type="text" id="est-vinc-busca" placeholder="Procurar produto…" oninput="renderVinculosEstoque()" style="width:100%;margin-bottom:6px">
@@ -1453,6 +1554,20 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="copiarListaCompras()"><i class="fa-solid fa-copy"></i> Copiar</button>
       <button class="btn btn-primary" onclick="enviarListaCompras()"><i class="fa-brands fa-whatsapp"></i> Mandar no WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- Estoque: lista de itens da loja -->
+<div class="modal-overlay" id="listabru-modal">
+  <div class="modal np-modal">
+    <button class="modal-close" onclick="fecharModal('listabru-modal')">&times;</button>
+    <h2><i class="fa-solid fa-list-check"></i> Itens que a loja trabalha</h2>
+    <p style="color:var(--muted);font-size:.8rem;margin-bottom:6px">Confere o estoque com a lista da loja. O que já existe mantém a quantidade e o histórico; o que é novo entra como <strong>"Falta contar"</strong>.</p>
+    <div id="listabru-conteudo"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModal('listabru-modal')">Cancelar</button>
+      <button class="btn btn-primary" id="listabru-ok" onclick="aplicarListaBru()"><i class="fa-solid fa-check"></i> Atualizar estoque</button>
     </div>
   </div>
 </div>
@@ -2405,6 +2520,8 @@ function assinarEstoque() {
     renderEstoque();
     renderAvisoEstoquePainel();
     sincronizarEsgotados();
+    sincronizarIngredientesPeloEstoque();
+    if (typeof renderPostDia === "function" && document.getElementById("tab-post")?.classList.contains("active")) renderPostDia();
   }, e => console.warn("estoque:", e.message));
 }
 
@@ -2549,7 +2666,7 @@ function renderEstoque() {
   if (!_estoque.length) {
     el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-boxes-stacked"></i>
       <p>Para começar rápido, eu monto a lista com os copos de cada tamanho, os potes de sorvete por sabor e as bebidas — já ligados às vendas. Depois é só colocar quanto tem de cada um.</p>
-      <button class="btn btn-primary" style="margin-top:12px" onclick="criarItensSugeridos()"><i class="fa-solid fa-wand-magic-sparkles"></i> Criar itens sugeridos</button>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="abrirListaBru()"><i class="fa-solid fa-wand-magic-sparkles"></i> Montar a lista da loja</button>
       <button class="btn btn-ghost" style="margin-top:12px" onclick="abrirItemEstoque()">Cadastrar do zero</button></div>`;
     return;
   }
@@ -2557,19 +2674,25 @@ function renderEstoque() {
   // Esgotados e acabando primeiro
   const peso = (e) => _estZerado(e) ? 0 : _estBaixo(e) ? 1 : !_estTemQtd(e) ? 2 : 3;
   lista.sort((a, b) => peso(a) - peso(b) || (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
-  el.innerHTML = lista.length ? lista.map(e => {
+  const cartao = (e) => {
     const st = _estZerado(e) ? "zerado" : _estBaixo(e) ? "baixo" : !_estTemQtd(e) ? "semqtd" : "ok";
     const pill = { zerado: `<span class="est-pill est-pill-zerado">Esgotado</span>`, baixo: `<span class="est-pill est-pill-baixo">Acabando</span>`, semqtd: `<span class="est-pill">Falta contar</span>`, ok: "" }[st];
     return `<div class="est-item est-${st}">
       <div class="est-topo"><strong>${_escAttr(e.nome)}</strong>${pill}</div>
       <div class="est-qtd">${_estTemQtd(e) ? `<span>${_fmtQtd(e.quantidade)}</span> ${_escAttr(_plUn(e.quantidade, e.unidade))}` : `<button class="btn btn-ghost btn-sm" onclick="abrirItemEstoque('${e.docId}', true)">Informar quantidade</button>`}
         ${Number(e.minimo) ? `<small>mínimo ${_fmtQtd(e.minimo)}</small>` : ""}</div>
-      <p class="est-vinc">${_escAttr(_resumoVinculos(e))}</p>
+      <p class="est-vinc">${_escAttr(_resumoVinculos(e))}${e.ingrediente ? `${(e.vinculos || []).length ? " · " : ""}Zerou → tira <strong>${_escAttr(e.ingrediente)}</strong> da loja` : ""}</p>
       <div class="est-acoes">
         <button class="btn btn-primary btn-sm" onclick="abrirReposicao('${e.docId}')"><i class="fa-solid fa-truck-ramp-box"></i> Repor</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirItemEstoque('${e.docId}')"><i class="fa-solid fa-pen"></i> Editar / contar</button>
+        ${!_estZerado(e) ? `<button class="btn btn-ghost btn-sm est-acabou" onclick="marcarAcabouEstoque('${e.docId}')" title="Zera o item${e.ingrediente ? " e tira " + _escAttr(e.ingrediente) + " da loja" : ""}"><i class="fa-solid fa-ban"></i> Acabou</button>` : ""}
       </div></div>`;
-  }).join("") : `<p class="ingr-vazio">Nada aqui.</p>`;
+  };
+  // Separado por grupo (Copos e tampas, Açaí, Mantimentos…), na ordem da loja
+  const grupos = _gruposEstoque(lista);
+  el.innerHTML = lista.length ? grupos.map(g => `
+    ${grupos.length > 1 ? `<p class="est-grupo"><span>${_escAttr(g.nome)}</span><small>${g.itens.length}</small></p>` : ""}
+    ${g.itens.map(cartao).join("")}`).join("") : `<p class="ingr-vazio">Nada aqui.</p>`;
 }
 function renderAvisoEstoquePainel() {
   const el = document.getElementById("painel-estoque");
@@ -2592,6 +2715,7 @@ function abrirItemEstoque(docId, focarQtd) {
   document.getElementById("est-unidade").value = e ? (e.unidade || "unidade") : "unidade";
   document.getElementById("est-qtd").value = e && _estTemQtd(e) ? e.quantidade : "";
   document.getElementById("est-min").value = e && Number(e.minimo) ? e.minimo : "";
+  _preencherSelectsEstoque(e);
   document.getElementById("est-excluir").hidden = !e;
   document.getElementById("est-vinc-busca").value = "";
   _estVinc = {};
@@ -2624,7 +2748,8 @@ async function salvarItemEstoque() {
   const qtdTxt = document.getElementById("est-qtd").value;
   const quantidade = qtdTxt === "" ? null : Math.max(0, Number(qtdTxt) || 0);
   const vinculos = Object.entries(_estVinc).map(([k, qtd]) => { const [produto, tamanho, opcao] = k.split("|"); return { produto, tamanho, opcao, qtd: Number(qtd) || 1 }; });
-  const dados = { nome, unidade: document.getElementById("est-unidade").value, quantidade, minimo: Math.max(0, Number(document.getElementById("est-min").value) || 0), vinculos };
+  const dados = { nome, unidade: document.getElementById("est-unidade").value, quantidade, minimo: Math.max(0, Number(document.getElementById("est-min").value) || 0), vinculos,
+    grupo: document.getElementById("est-grupo").value || "Outros", ingrediente: document.getElementById("est-ingrediente").value || "" };
   try {
     const ant = docId ? _estoque.find(e => e.docId === docId) : null;
     const ref = docId ? db.collection("estoque").doc(docId) : db.collection("estoque").doc();
@@ -3134,6 +3259,7 @@ function mudarTab(tab, btn) {
   document.getElementById("tab-" + tab).classList.add("active");
   if (tab === "pdv") renderPdvGrid();
   if (tab === "disponivel") renderDisponivel();
+  if (tab === "post") renderPostDia();
   if (tab === "caixa") carregarCaixa();
   if (tab === "painel") carregarPainel();
   if (tab === "avaliacoes") carregarAvaliacoes();
@@ -3249,6 +3375,7 @@ async function salvarIngredientesLoja(msg) {
       complementosLoja: _complementosLoja,
       adicionaisLoja: _adicionaisLoja,
       indisponiveis: _indisponiveis,
+      indispEstoque: _indispEstoque,
     }, { merge: true });
     if (msg) toast(msg, "ok");
     return true;
@@ -3264,6 +3391,7 @@ async function salvarIngredientesLoja(msg) {
 function alternarIngrediente(input, nome) {
   const k = _normNome(nome);
   _indisponiveis = _indisponiveis.filter(n => _normNome(n) !== k);
+  _indispEstoque = _indispEstoque.filter(n => _normNome(n) !== k); // mexeu à mão: o estoque não decide mais por ela
   if (!input.checked) _indisponiveis.push(nome);
   salvarIngredientesLoja(input.checked ? `${nome} voltou para a loja` : `${nome} marcado como em falta`);
 }
@@ -3363,6 +3491,7 @@ async function alternarProdutoAtivo(input, docId) {
 function reativarTudoDisponivel() {
   if (!_indisponiveis.length) { toast("Todos os itens já estão disponíveis.", "ok"); return; }
   _indisponiveis = [];
+  _indispEstoque = [];
   salvarIngredientesLoja("Todos os complementos e adicionais voltaram para a loja");
 }
 
@@ -5222,6 +5351,9 @@ async function carregarConfiguracoes() {
     _indisponiveis = Array.isArray(cfg.indisponiveis) ? cfg.indisponiveis : [];
     _complementosLoja = Array.isArray(cfg.complementosLoja) ? cfg.complementosLoja : [];
     _adicionaisLoja = Array.isArray(cfg.adicionaisLoja) ? cfg.adicionaisLoja : [];
+    _indispEstoque = Array.isArray(cfg.indispEstoque) ? cfg.indispEstoque : [];
+    _cfgPronta = true;
+    sincronizarIngredientesPeloEstoque();
     if (document.getElementById("tab-disponivel").classList.contains("active")) renderDisponivel();
     document.getElementById("config-nome-loja").value  = cfg.nomeLoja;
     document.getElementById("config-whatsapp").value   = cfg.whatsapp;
@@ -5393,7 +5525,9 @@ async function salvarConfiguracoes() {
       sobreNome, sobreTexto, sobreFoto, sobreLink,
       taxasEntrega, aceitarOutrosBairros, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
-      indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja
+      indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
+      // campos do Estoque e do Post do dia (salvos fora desta tela)
+      indispEstoque: _indispEstoque, linkCatalogo: _cfgLoja.linkCatalogo || ""
     });
     toast("Configurações salvas!", "ok");
     await carregarConfiguracoes();
@@ -5423,5 +5557,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
+<script src="estoque-loja.js"></script>
+<script src="post-do-dia.js"></script>
 </body>
 </html>
