@@ -139,9 +139,9 @@ function _vinculosSugeridos(d) {
       tams.forEach(t => {
         const tamanho = tams.length > 1 ? t.nome : "*";
         // Combo com copos de tamanhos diferentes: "2 açaís de 400ml + 1 de 300ml"
-        const partes = [...String(t.nome || "").matchAll(/(\d+)\s*(?:a[çc]a[ií]s?\s*)?de\s*(\d+)\s*ml/gi)];
+        const partes = [...String(t.nome || "").matchAll(/(\d+)\s*(?:a[çc]a[ií]s?\s*)?de\s*(\d+)\s*(ml|l)\b/gi)];
         if (partes.length) {
-          const q = partes.filter(m => m[2] + "ml" === d.tam).reduce((s, m) => s + Number(m[1]), 0);
+          const q = partes.filter(m => m[2] + (m[3].toLowerCase() === "l" ? "L" : "ml") === d.tam).reduce((s, m) => s + Number(m[1]), 0);
           if (q) v.push({ produto: p.docId, tamanho, opcao: "*", qtd: q });
           return;
         }

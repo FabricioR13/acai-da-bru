@@ -2,10 +2,10 @@
 // → ["400ml", "400ml", "300ml"]. Sem composição no nome, repete o tamanho único em todos.
 const tamanhosDosCopos = (nome, copos) => {
     let lista = [];
-    [...String(nome || "").matchAll(/(\d+)\s*(?:a[çc]a[ií]s?\s*)?de\s*(\d+)\s*ml/gi)]
-        .forEach((m) => { for (let k = 0; k < Number(m[1]); k++) lista.push(`${m[2]}ml`); });
+    [...String(nome || "").matchAll(/(\d+)\s*(?:a[çc]a[ií]s?\s*)?de\s*(\d+)\s*(ml|l)\b/gi)]
+        .forEach((m) => { for (let k = 0; k < Number(m[1]); k++) lista.push(m[2] + (m[3].toLowerCase() === "l" ? "L" : "ml")); });
     if (lista.length !== copos) {
-        const unico = (String(nome || "").match(/\d+\s*ml/i) || [""])[0].replace(/\s+/g, "");
+        const unico = (String(nome || "").match(/\d+\s*ml|\b\d+\s*l\b/i) || [""])[0].replace(/\s+/g, "").replace(/^(\d+)l$/i, "$1L");
         lista = Array(copos).fill(unico);
     }
     return lista;

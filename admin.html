@@ -213,6 +213,16 @@
     .tam-linha input { width: 100%; }
     .tam-preco { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: .8rem; }
     #form-tamanhos-linhas .btn { padding: 6px 0; }
+    .combo-area { background: var(--surface); border: 1px solid var(--gold); border-radius: 10px; padding: 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+    .combo-qtd { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+    .combo-copos { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+    .combo-copo { white-space: nowrap; display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: .85rem; }
+    .combo-copo i { color: var(--gold); }
+    .combo-copo select { flex: 1; }
+    .combo-campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+    .combo-campos label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); }
+    .combo-resumo { font-size: .8rem; color: var(--muted); }
+    .combo-resumo strong { color: var(--gold); }
     .toggle-row input[type=checkbox] { accent-color: var(--gold); width: 16px; height: 16px; cursor: pointer; }
     .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
     #confirm-modal .modal { width: 360px; }
@@ -1291,6 +1301,21 @@
       <div class="form-group full"><label>Código do produto <small style="color:var(--muted)">(opcional — seu próprio código/etiqueta, útil na hora de separar o pedido. Ex: AC01. Se deixar em branco, o sistema usa o número #do produto como código)</small></label><input type="text" id="form-codigo" placeholder="Ex: AC01"></div>
       <div class="form-group"><label>Categoria *</label><select id="form-categoria"><option value="">Selecione...</option></select></div>
       <div class="form-group full">
+        <label class="toggle-row" style="font-weight:600"><input type="checkbox" id="form-eh-combo" onchange="alternarCombo()"> Este produto é um combo <small style="color:var(--muted);font-weight:400">(mais de um açaí — ex.: Combo Casal, Combo Família)</small></label>
+        <div id="form-combo-area" class="combo-area" hidden>
+          <label class="combo-qtd">Quantos açaís no combo?
+            <select id="form-combo-qtd" onchange="renderCombo()"><option value="2">2 açaís</option><option value="3">3 açaís</option><option value="4">4 açaís</option><option value="5">5 açaís</option><option value="6">6 açaís</option></select>
+          </label>
+          <div id="form-combo-copos" class="combo-copos"></div>
+          <div class="combo-campos">
+            <label>Preço do combo<span class="tam-preco"><span>R$</span><input id="form-combo-preco" placeholder="0,00" inputmode="decimal"></span></label>
+            <label>Complementos grátis em cada açaí<input id="form-combo-gratis" type="number" min="0" max="20" value="3" oninput="renderComboResumo()"></label>
+            <label>Custo <small style="color:var(--muted)">(opcional)</small><span class="tam-preco"><span>R$</span><input id="form-combo-custo" placeholder="custo" inputmode="decimal"></span></label>
+          </div>
+          <p class="combo-resumo" id="form-combo-resumo"></p>
+        </div>
+      </div>
+      <div class="form-group full" id="form-tamanhos-area">
         <label>Tamanhos e preços * <small style="color:var(--muted)">(produto com um preço só: deixe uma linha, com o nome em branco ou "Unidade")</small></label>
         <div class="tam-cabecalho"><span>Tamanho</span><span>Preço</span><span title="Quanto custa para você fazer (opcional) — usado no cálculo de lucro">Custo</span><span title="Complementos grátis">Grátis</span><span></span></div>
         <div id="form-tamanhos-linhas"></div>
@@ -1310,7 +1335,7 @@
         </div>
         <textarea id="form-complementos" rows="4" placeholder="Lista própria deste produto — um por linha:&#10;Granola&#10;Leite em pó&#10;Paçoca"></textarea>
       </div>
-      <div class="form-group">
+      <div class="form-group" hidden>
         <label>Quantidade de açaís no produto <small style="color:var(--muted)">(combo: ex. 2 no Combo Casal — o cliente monta cada açaí separado, com os complementos grátis do tamanho em CADA um. Produto normal: 1)</small></label>
         <input type="number" id="form-copos" min="1" max="6" step="1" value="1">
       </div>
@@ -3178,10 +3203,10 @@ const _npUnit = () => (Number(_npTam().preco) || 0) + _npExtras() * _npPrecoExtr
 // → ["400ml", "400ml", "300ml"]. Sem composição no nome, repete o tamanho único em todos.
 const _tamanhosDosCopos = (nome, copos) => {
     let lista = [];
-    [...String(nome || "").matchAll(/(\d+)\s*(?:a[çc]a[ií]s?\s*)?de\s*(\d+)\s*ml/gi)]
-        .forEach((m) => { for (let k = 0; k < Number(m[1]); k++) lista.push(`${m[2]}ml`); });
+    [...String(nome || "").matchAll(/(\d+)\s*(?:a[çc]a[ií]s?\s*)?de\s*(\d+)\s*(ml|l)\b/gi)]
+        .forEach((m) => { for (let k = 0; k < Number(m[1]); k++) lista.push(m[2] + (m[3].toLowerCase() === "l" ? "L" : "ml")); });
     if (lista.length !== copos) {
-        const unico = (String(nome || "").match(/\d+\s*ml/i) || [""])[0].replace(/\s+/g, "");
+        const unico = (String(nome || "").match(/\d+\s*ml|\b\d+\s*l\b/i) || [""])[0].replace(/\s+/g, "").replace(/^(\d+)l$/i, "$1L");
         lista = Array(copos).fill(unico);
     }
     return lista;
@@ -4198,6 +4223,77 @@ function removerTamanhoLinha(btn) {
   if (cont.children.length <= 1) { toast("O produto precisa de pelo menos um preço.", "err"); return; }
   btn.closest(".tam-linha").remove();
 }
+// ── COMBO: tamanho de cada açaí escolhido numa lista (o nome do tamanho é montado sozinho)
+const COMBO_TAMANHOS_PADRAO = ["250ml", "300ml", "400ml", "500ml", "700ml", "1L"];
+function _comboOpcoesTamanho() {
+  // Tamanhos que a loja vende (dos produtos de açaí normais) + os padrões
+  const vistos = new Set(), lista = [];
+  const add = (t) => { const k = String(t || "").replace(/\s+/g, "").replace(/litro/i, "L"); if (/^\d+(ml|L)$/i.test(k) && !vistos.has(k.toLowerCase())) { vistos.add(k.toLowerCase()); lista.push(k); } };
+  COMBO_TAMANHOS_PADRAO.forEach(add);
+  todosProdutos.filter(p => (Number(p.copos) || 1) === 1).forEach(p => (p.tamanhos || []).forEach(t => { const m = String(t.nome || "").match(/\d+\s*ml|\b1\s*l\b/i); if (m) add(m[0]); }));
+  const ml = (t) => /L$/i.test(t) ? parseFloat(t) * 1000 : parseFloat(t);
+  return lista.sort((a, b) => ml(a) - ml(b));
+}
+let _comboCopos = ["400ml", "400ml"];
+function alternarCombo() {
+  const on = document.getElementById("form-eh-combo").checked;
+  document.getElementById("form-combo-area").hidden = !on;
+  document.getElementById("form-tamanhos-area").hidden = on;
+  if (on) {
+    // Puxa o preço/grátis que já estiver na 1ª linha de tamanhos
+    const t = lerTamanhosLinhas()[0];
+    if (t && !document.getElementById("form-combo-preco").value && t.preco) document.getElementById("form-combo-preco").value = _fmtPreco(t.preco);
+    renderCombo();
+  }
+}
+function renderCombo() {
+  const n = Number(document.getElementById("form-combo-qtd").value) || 2;
+  while (_comboCopos.length < n) _comboCopos.push(_comboCopos[_comboCopos.length - 1] || "400ml");
+  _comboCopos = _comboCopos.slice(0, n);
+  const ops = _comboOpcoesTamanho();
+  _comboCopos.forEach(t => { if (t && !ops.includes(t)) ops.push(t); });
+  document.getElementById("form-combo-copos").innerHTML = _comboCopos.map((t, i) => `
+    <label class="combo-copo"><i class="fa-solid fa-ice-cream"></i> ${i + 1}º açaí
+      <select onchange="_comboCopos[${i}]=this.value;renderComboResumo()">${ops.map(o => `<option ${o === t ? "selected" : ""}>${o}</option>`).join("")}</select></label>`).join("");
+  renderComboResumo();
+}
+// "2 açaís de 400ml + 1 de 300ml" (mantém a ordem em que os tamanhos aparecem)
+function nomeDoCombo(copos) {
+  const grupos = [];
+  copos.forEach(t => { const g = grupos.find(x => x.t === t); if (g) g.n++; else grupos.push({ t, n: 1 }); });
+  return grupos.map((g, i) => i === 0 ? `${g.n} ${g.n > 1 ? "açaís" : "açaí"} de ${g.t}` : `${g.n} de ${g.t}`).join(" + ");
+}
+function renderComboResumo() {
+  const g = Number(document.getElementById("form-combo-gratis").value) || 0;
+  document.getElementById("form-combo-resumo").innerHTML = `Na loja aparece: <strong>${_escAttr(nomeDoCombo(_comboCopos))}</strong>${g ? ` · ${g} complementos grátis em cada açaí` : ""}`;
+}
+function carregarComboNoForm(p) {
+  const copos = Math.max(1, Number(p?.copos) || 1);
+  const on = copos > 1;
+  document.getElementById("form-eh-combo").checked = on;
+  document.getElementById("form-combo-area").hidden = !on;
+  document.getElementById("form-tamanhos-area").hidden = on;
+  const t = (p?.tamanhos || [])[0] || {};
+  document.getElementById("form-combo-preco").value = on && t.preco ? _fmtPreco(t.preco) : "";
+  document.getElementById("form-combo-custo").value = on && t.custo ? _fmtPreco(t.custo) : "";
+  document.getElementById("form-combo-gratis").value = on ? (Number(t.complementosGratis) || 0) : 3;
+  if (on) {
+    const lista = Array.isArray(p.tamanhosCopos) && p.tamanhosCopos.length === copos ? p.tamanhosCopos : _tamanhosDosCopos(t.nome, copos);
+    _comboCopos = lista.map(x => x || "400ml");
+    document.getElementById("form-combo-qtd").value = String(Math.min(6, copos));
+    renderCombo();
+  } else _comboCopos = ["400ml", "400ml"];
+}
+// Lê o combo do formulário → { copos, tamanhosCopos, tamanhos } (ou null se não for combo)
+function lerCombo() {
+  if (!document.getElementById("form-eh-combo").checked) return null;
+  const preco = _lerPreco(document.getElementById("form-combo-preco").value);
+  return {
+    copos: _comboCopos.length, tamanhosCopos: [..._comboCopos],
+    tamanhos: [{ nome: nomeDoCombo(_comboCopos), preco, complementosGratis: Math.max(0, parseInt(document.getElementById("form-combo-gratis").value, 10) || 0), custo: _lerPreco(document.getElementById("form-combo-custo").value) }],
+  };
+}
+
 function lerTamanhosLinhas() {
   return [...document.querySelectorAll("#form-tamanhos-linhas .tam-linha")].map(l => ({
     nome: l.querySelector(".tam-nome").value.trim(),
@@ -4303,6 +4399,7 @@ function abrirModalCriar() {
   document.getElementById("form-ativo").checked  = true;
   document.getElementById("form-selo").value = ""; renderCombinaCom("", []);
   document.getElementById("form-copos").value = 1;
+  carregarComboNoForm(null);
   document.getElementById("form-promo-ate").value = "";
   definirBannerPromo("");
   alternarAreaPromo();
@@ -4333,6 +4430,7 @@ function abrirModalEditar(docId) {
   document.getElementById("form-selo").value       = _seloDoProduto(p);
   renderCombinaCom(docId, p.combinaCom);
   document.getElementById("form-copos").value        = Math.max(1, Number(p.copos) || 1);
+  carregarComboNoForm(p);
   document.getElementById("form-promo-ate").value    = (_seloDoProduto(p) === "novidade" ? p.seloAte : p.promoAte) || "";
   definirBannerPromo(p.banner || "");
   alternarAreaPromo();
@@ -4348,7 +4446,9 @@ async function salvarProduto() {
   const nome      = document.getElementById("form-nome").value.trim();
   const codigo    = document.getElementById("form-codigo").value.trim();
   const categoria = document.getElementById("form-categoria").value;
-  const tamanhos  = lerTamanhosLinhas();
+  const combo     = lerCombo();
+  if (combo && !(combo.tamanhos[0].preco > 0)) { toast("Coloque o preço do combo.", "err"); return; }
+  const tamanhos  = combo ? combo.tamanhos : lerTamanhosLinhas();
   const opcaoInclusaLabel  = document.getElementById("form-opcao-inclusa-label").value.trim();
   const opcaoInclusaOpcoes = parseListaLinhas(document.getElementById("form-opcao-inclusa-opcoes").value);
   let opcaoInclusa = (opcaoInclusaLabel && opcaoInclusaOpcoes.length) ? { label: opcaoInclusaLabel, opcoes: opcaoInclusaOpcoes } : null;
@@ -4374,7 +4474,8 @@ async function salvarProduto() {
   const dataSelo  = document.getElementById("form-promo-ate").value || null;
   const promoAte  = selo === "promocao" ? dataSelo : null;
   const seloAte   = selo === "novidade" ? dataSelo : null;
-  const copos     = Math.min(6, Math.max(1, parseInt(document.getElementById("form-copos").value, 10) || 1));
+  const copos     = combo ? combo.copos : 1;
+  const tamanhosCopos = combo ? combo.tamanhosCopos : null;
   const banner    = _bannerPromo || null;
 
   if (!nome || !categoria || isNaN(preco) || !tamanhos.length) { toast("Preencha nome, categoria e ao menos um tamanho com preço.", "err"); return; }
@@ -4398,7 +4499,7 @@ async function salvarProduto() {
     }
   }
 
-  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, selo, seloAte, combinaCom, promoAte, banner, copos,
+  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, selo, seloAte, combinaCom, promoAte, banner, copos, tamanhosCopos,
     usaComplementosLoja: listas.usaComplementosLoja, complementosExceto: listas.complementosExceto,
     usaAdicionaisLoja: listas.usaAdicionaisLoja, adicionaisExceto: listas.adicionaisExceto };
   try {
@@ -5715,7 +5816,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261103g"></script>
-<script src="post-do-dia.js?v=20261103g"></script>
+<script src="estoque-loja.js?v=20261103i"></script>
+<script src="post-do-dia.js?v=20261103i"></script>
 </body>
 </html>
