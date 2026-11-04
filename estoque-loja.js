@@ -137,8 +137,16 @@ function _vinculosSugeridos(d) {
       if (_ehBebida(p) || /sorvete|kit/i.test(`${p.nome} ${p.categoria}`)) return;
       const tams = (Array.isArray(p.tamanhos) && p.tamanhos.length) ? p.tamanhos : [];
       tams.forEach(t => {
+        const tamanho = tams.length > 1 ? t.nome : "*";
+        // Combo com copos de tamanhos diferentes: "2 açaís de 400ml + 1 de 300ml"
+        const partes = [...String(t.nome || "").matchAll(/(\d+)\s*(?:a[çc]a[ií]s?\s*)?de\s*(\d+)\s*ml/gi)];
+        if (partes.length) {
+          const q = partes.filter(m => m[2] + "ml" === d.tam).reduce((s, m) => s + Number(m[1]), 0);
+          if (q) v.push({ produto: p.docId, tamanho, opcao: "*", qtd: q });
+          return;
+        }
         const tc = _tamCopoEst(t.nome) || (tams.length === 1 ? _tamCopoEst(p.nome) : null);
-        if (tc === d.tam) v.push({ produto: p.docId, tamanho: tams.length > 1 ? t.nome : "*", opcao: "*", qtd: Number(p.copos) || 1 });
+        if (tc === d.tam) v.push({ produto: p.docId, tamanho, opcao: "*", qtd: Number(p.copos) || 1 });
       });
     });
   }
