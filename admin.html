@@ -3174,11 +3174,24 @@ const _npPrecoExtra = () => { const v = _np.prod.precoComplementoExtra ?? _cfgLo
 const _npExtras = () => { const lim = Number(_npTam().complementosGratis) || 0; return _np.comp.reduce((s, sel) => s + Math.max(0, sel.length - lim), 0); };
 const _npUnit = () => (Number(_npTam().preco) || 0) + _npExtras() * _npPrecoExtra() + _np.adic.flat().reduce((s, a) => s + (Number(a.preco) || 0), 0);
 
+// Tamanho de cada copo de um combo pelo nome do tamanho: "2 açaís de 400ml + 1 de 300ml"
+// → ["400ml", "400ml", "300ml"]. Sem composição no nome, repete o tamanho único em todos.
+const _tamanhosDosCopos = (nome, copos) => {
+    let lista = [];
+    [...String(nome || "").matchAll(/(\d+)\s*(?:a[çc]a[ií]s?\s*)?de\s*(\d+)\s*ml/gi)]
+        .forEach((m) => { for (let k = 0; k < Number(m[1]); k++) lista.push(`${m[2]}ml`); });
+    if (lista.length !== copos) {
+        const unico = (String(nome || "").match(/\d+\s*ml/i) || [""])[0].replace(/\s+/g, "");
+        lista = Array(copos).fill(unico);
+    }
+    return lista;
+};
 function npRenderConfig() {
   const p = _np.prod, tam = _npTam(), lim = Number(tam.complementosGratis) || 0, pe = _npPrecoExtra();
   const copos = _np.comp.length;
   const tams = p.tamanhos || [];
   const temComp = p.complementosLista.length && lim > 0, temAdic = p.adicionaisPagos.length > 0;
+  const tamCopos = _tamanhosDosCopos(tam.nome, copos);
   const bloco = (i) => {
     const sel = _np.comp[i], extras = Math.max(0, sel.length - lim);
     const compHtml = temComp ? `<p class="copo-subtitulo">Complementos <span class="detail-option-counter${sel.length >= lim ? " limite-atingido" : ""}">${extras ? `${lim}/${lim} grátis + ${extras} extra${extras > 1 ? "s" : ""}` : `${sel.length}/${lim} grátis`}</span></p>
@@ -3192,7 +3205,7 @@ function npRenderConfig() {
         return `<label class="ingr-check"><input type="checkbox" ${on ? "checked" : ""} onchange="npAlterna('adic',${i},${_escAttr(JSON.stringify(a.nome))},this.checked)"> ${_escAttr(a.nome)} <small>+${_brl(a.preco)}</small></label>`;
       }).join("")}</div>` : "";
     if (!compHtml && !adicHtml) return "";
-    return copos > 1 ? `<div class="copo-bloco"><p class="copo-titulo"><i class="fa-solid fa-ice-cream"></i> ${i + 1}º açaí</p>${compHtml}${adicHtml}</div>` : compHtml + adicHtml;
+    return copos > 1 ? `<div class="copo-bloco"><p class="copo-titulo"><i class="fa-solid fa-ice-cream"></i> ${i + 1}º açaí${tamCopos[i] ? ` (${tamCopos[i]})` : ""}</p>${compHtml}${adicHtml}</div>` : compHtml + adicHtml;
   };
   const cont = document.getElementById("np-config");
   cont.innerHTML = `
@@ -3230,9 +3243,10 @@ function npAdicionarItem() {
   const partes = [];
   if ((p.tamanhos || []).length > 1 && tam.nome) partes.push(tam.nome);
   if (temOpcao) partes.push(`${p.opcaoInclusa.label || "Opção"}: ${_np.opcao}`);
+  const tamCopos = _tamanhosDosCopos(tam.nome, copos);
   if (copos > 1) _np.comp.forEach((sel, i) => {
     const ad = _np.adic[i].map(a => `+ ${a.nome}`);
-    partes.push(`${i + 1}º açaí: ${sel.length ? sel.join(", ") : "sem complementos"}${ad.length ? ` (${ad.join(", ")})` : ""}`);
+    partes.push(`${i + 1}º açaí${tamCopos[i] ? ` (${tamCopos[i]})` : ""}: ${sel.length ? sel.join(", ") : "sem complementos"}${ad.length ? ` (${ad.join(", ")})` : ""}`);
   });
   else if (_np.comp[0].length) partes.push(`Complementos: ${_np.comp[0].join(", ")}`);
   const extras = _npExtras();
@@ -5701,7 +5715,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261103f"></script>
-<script src="post-do-dia.js?v=20261103f"></script>
+<script src="estoque-loja.js?v=20261103g"></script>
+<script src="post-do-dia.js?v=20261103g"></script>
 </body>
 </html>

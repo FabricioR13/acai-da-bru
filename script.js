@@ -1,3 +1,16 @@
+// Tamanho de cada copo de um combo pelo nome do tamanho: "2 açaís de 400ml + 1 de 300ml"
+// → ["400ml", "400ml", "300ml"]. Sem composição no nome, repete o tamanho único em todos.
+const tamanhosDosCopos = (nome, copos) => {
+    let lista = [];
+    [...String(nome || "").matchAll(/(\d+)\s*(?:a[çc]a[ií]s?\s*)?de\s*(\d+)\s*ml/gi)]
+        .forEach((m) => { for (let k = 0; k < Number(m[1]); k++) lista.push(`${m[2]}ml`); });
+    if (lista.length !== copos) {
+        const unico = (String(nome || "").match(/\d+\s*ml/i) || [""])[0].replace(/\s+/g, "");
+        lista = Array(copos).fill(unico);
+    }
+    return lista;
+};
+
 // ─── FIREBASE CONFIG ──────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyCLBk9GA0kisT7aCm5HFBuRBqvShaycfys",
@@ -763,11 +776,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         const temAdicionais = Array.isArray(detailProdutoAtual?.adicionaisPagos) && detailProdutoAtual.adicionaisPagos.length > 0;
         if (copos > 1) {
             detailComplementosContador.textContent = "";
-            const nomeTamanho = detailTamanhoAtual()?.nome || "";
-            const tamanhoCopo = (nomeTamanho.match(/\d+\s*ml/i) || [""])[0];
+            const tamCopos = tamanhosDosCopos(detailTamanhoAtual()?.nome || "", copos);
             detailComplementosLista.innerHTML = detailComplementosPorCopo.map((sel, i) => `
                 <div class="copo-bloco">
-                    <p class="copo-titulo"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i> ${i + 1}º açaí${tamanhoCopo ? ` (${tamanhoCopo})` : ""}</p>
+                    <p class="copo-titulo"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i> ${i + 1}º açaí${tamCopos[i] ? ` (${tamCopos[i]})` : ""}</p>
                     <p class="copo-subtitulo">Complementos
                         <span class="detail-option-counter${sel.length >= limite ? " limite-atingido" : ""}">${contador(sel)}</span></p>
                     <div class="detail-checklist">${itensHtml(sel, i)}</div>
@@ -1373,9 +1385,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (item.tamanhoSelecionado) partes.push(item.tamanhoSelecionado);
         if (item.opcaoInclusaSelecionada) partes.push(item.opcaoInclusaSelecionada);
         if (item.complementosPorCopo?.length > 1) {
+            const tamCopos = tamanhosDosCopos(item.tamanhoSelecionado, item.complementosPorCopo.length);
             item.complementosPorCopo.forEach((sel, i) => {
                 const adic = (item.adicionaisPorCopo?.[i] || []).map((a) => `+ ${a.nome}`);
-                partes.push(`${i + 1}º açaí: ${sel.length ? sel.join(", ") : "sem complementos"}${adic.length ? ` (${adic.join(", ")})` : ""}`);
+                partes.push(`${i + 1}º açaí${tamCopos[i] ? ` (${tamCopos[i]})` : ""}: ${sel.length ? sel.join(", ") : "sem complementos"}${adic.length ? ` (${adic.join(", ")})` : ""}`);
             });
         } else if (item.complementosSelecionados?.length) {
             partes.push(`Complementos: ${item.complementosSelecionados.join(", ")}`);
@@ -1556,7 +1569,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const limite = Number(item.limiteGratis) || 0;
         const precoExtra = Number(item.precoExtra) || 0;
         const blocos = item.complementosPorCopo?.length > 1
-            ? item.complementosPorCopo.map((sel, i) => ({ rotulo: `${i + 1}º açaí — `, sel }))
+            ? (() => { const tc = tamanhosDosCopos(item.tamanhoSelecionado, item.complementosPorCopo.length);
+                return item.complementosPorCopo.map((sel, i) => ({ rotulo: `${i + 1}º açaí${tc[i] ? ` (${tc[i]})` : ""} — `, sel })); })()
             : (item.complementosSelecionados?.length ? [{ rotulo: "", sel: item.complementosSelecionados }] : []);
         blocos.forEach(({ rotulo, sel }, copoIdx) => {
             const gratis = limite ? sel.slice(0, limite) : sel;
