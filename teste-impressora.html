@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Teste da impressora – Açaí da Bru</title>
+  <!--
+    Página de TESTE (não aparece na loja nem no painel). Serve para descobrir como a
+    impressora térmica da Bru (Celark CE-O1501B, 58 mm, Bluetooth) imprime a partir do
+    celular Android, antes de colocar o botão "Imprimir" nos pedidos do painel.
+    Teste 1: app RawBT (Bluetooth comum).  Teste 2: Bluetooth direto do Chrome (só BLE).
+  -->
+  <style>
+    :root { --vinho:#7A1F4B; --escuro:#2B0D1E; --ouro:#D4A24C; --borda:#EEDDE3; --ok:#16a34a; --erro:#e11d48; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #FFF9F2; color: #2B1420; padding: 16px; line-height: 1.45; }
+    main { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+    h1 { font-size: 1.25rem; color: var(--escuro); }
+    .sub { font-size: .88rem; color: #6b5a63; }
+    .card { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .card h2 { font-size: 1rem; display: flex; gap: 8px; align-items: center; }
+    .n { background: var(--ouro); color: var(--escuro); width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 800; flex-shrink: 0; }
+    ol { padding-left: 20px; font-size: .88rem; display: flex; flex-direction: column; gap: 4px; }
+    button { font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 12px 14px; cursor: pointer; background: var(--vinho); color: #fff; }
+    button.claro { background: #f3e9ee; color: var(--escuro); }
+    .botoes { display: flex; flex-direction: column; gap: 8px; }
+    pre { background: #fff; border: 1px dashed #bbb; border-radius: 8px; padding: 10px; font-size: 12px; line-height: 1.3; overflow-x: auto; width: max-content; max-width: 100%; margin: 0 auto; }
+    #log { font-size: .8rem; font-family: ui-monospace, monospace; background: #1a1a1a; color: #ddd; border-radius: 10px; padding: 10px; min-height: 60px; white-space: pre-wrap; }
+    .ok { color: #7ee2a0; } .erro { color: #ff8a9b; }
+    small { color: #6b5a63; }
+    label { font-size: .85rem; display: flex; gap: 8px; align-items: center; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>🖨️ Teste da impressora térmica</h1>
+  <p class="sub">Página só para testar. Não mexe na loja, no painel nem nos pedidos. Use no <strong>celular Android</strong> da Bru, com o Bluetooth ligado e a impressora ligada e com papel.</p>
+
+  <div class="card">
+    <h2>Como a comanda vai sair (58 mm)</h2>
+    <pre id="previa"></pre>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">1</span> Teste pelo app RawBT <small>(o mais provável de funcionar)</small></h2>
+    <ol>
+      <li>No celular, instale o app <strong>RawBT</strong> (Play Store: "RawBT print service").</li>
+      <li>Abra o RawBT → <strong>Configurações</strong> → Tipo de conexão: <strong>Bluetooth</strong> → escolha a impressora na lista (pareie se pedir; a senha costuma ser <strong>0000</strong> ou <strong>1234</strong>).</li>
+      <li>Ainda no RawBT, em <strong>Configurações → Impressora</strong>, deixe largura do papel <strong>58 mm (32 caracteres)</strong>.</li>
+      <li>Volte para esta página e toque nos botões abaixo, um de cada vez. Anote qual sai certo.</li>
+    </ol>
+    <div class="botoes">
+      <button onclick="imprimirRawbtTexto()">A) Imprimir — texto simples (RawBT cuida dos acentos)</button>
+      <button onclick="imprimirRawbtEscpos(true)">B) Imprimir — modo impressora, com acentos</button>
+      <button class="claro" onclick="imprimirRawbtEscpos(false)">C) Imprimir — modo impressora, sem acentos</button>
+    </div>
+    <small>Se o celular perguntar "Abrir com RawBT?", marque <strong>Sempre</strong>.</small>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span> Teste pelo Bluetooth direto <small>(sem app — só algumas impressoras aceitam)</small></h2>
+    <p class="sub">Funciona só no <strong>Chrome do Android</strong> e só se a impressora tiver "Bluetooth de baixa energia". Se não aparecer na lista ou der erro, tudo bem: usamos o caminho 1.</p>
+    <div class="botoes">
+      <button onclick="imprimirBluetoothDireto()">Procurar a impressora e imprimir</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>O que aconteceu</h2>
+    <div id="log">Aguardando o teste…</div>
+    <small>Tire um print desta parte e da comanda impressa e mande para a TF Solutions.</small>
+  </div>
+</main>
+
+<script>
+// ── Comanda de exemplo (32 colunas = papel de 58 mm) ─────────────────────────
+const COLS = 32;
+const linha = (c = "-") => c.repeat(COLS);
+const centro = (t) => { t = String(t); const e = Math.max(0, Math.floor((COLS - t.length) / 2)); return " ".repeat(e) + t; };
+const lado = (a, b) => { a = String(a); b = String(b); const esp = COLS - a.length - b.length; return esp >= 1 ? a + " ".repeat(esp) + b : a + "\n" + " ".repeat(Math.max(0, COLS - b.length)) + b; };
+const quebra = (t, rec = 0) => {
+  const pal = String(t).split(" "), out = []; let at = "";
+  pal.forEach(p => { if ((at + " " + p).trim().length > COLS - rec) { out.push(at); at = p; } else at = (at + " " + p).trim(); });
+  if (at) out.push(at);
+  return out.map(l => " ".repeat(rec) + l).join("\n");
+};
+const agora = new Date();
+const COMANDA = [
+  centro("ACAI DA BRU"),
+  centro("Pedido Nº 12 (TESTE)"),
+  centro(agora.toLocaleDateString("pt-BR") + " " + agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })),
+  linha("="),
+  "1x Combo Família",
+  quebra("1º açaí (400ml): Granola, Paçoca, Leite em pó", 3),
+  quebra("2º açaí (400ml): Banana, Morango, Leite condensado (+ Nutella)", 3),
+  quebra("3º açaí (300ml): Sucrilhos, Amendoim, Ovomaltine", 3),
+  lado("", "R$ 49,90"),
+  "1x Açaí no Copo 250ml Kids",
+  quebra("Complementos: Granola, M&M's, Chocoball", 3),
+  lado("", "R$ 9,90"),
+  linha("-"),
+  lado("Adicionais", "R$ 4,00"),
+  lado("Entrega (Parque da Matriz)", "R$ 5,00"),
+  lado("TOTAL", "R$ 68,80"),
+  linha("-"),
+  "Pagamento: PIX",
+  "Cliente: Maria (teste)",
+  "Fone: (51) 99999-0000",
+  quebra("Entrega: Rua Exemplo, 123 - Parque da Matriz"),
+  quebra("Obs: sem colher, por favor"),
+  linha("="),
+  centro("Obrigado pela preferência!"),
+  "", "", "",
+].join("\n");
+document.getElementById("previa").textContent = COMANDA;
+
+// ── Registro do teste ────────────────────────────────────────────────────────
+const logEl = document.getElementById("log");
+const log = (msg, cls = "") => {
+  if (logEl.textContent === "Aguardando o teste…") logEl.textContent = "";
+  const s = document.createElement("div"); if (cls) s.className = cls;
+  s.textContent = `[${new Date().toLocaleTimeString("pt-BR")}] ${msg}`; logEl.appendChild(s);
+};
+log(`Navegador: ${navigator.userAgent.includes("Android") ? "Android" : "não é Android (o teste é para o celular Android)"} · Bluetooth direto: ${"bluetooth" in navigator ? "disponível" : "não disponível neste navegador"}`);
+
+// ── Texto → bytes da impressora (página de código 860, português) ────────────
+const CP860 = { "á":0xA0,"à":0x85,"â":0x83,"ã":0x84,"é":0x82,"ê":0x88,"í":0xA1,"ó":0xA2,"ô":0x93,"õ":0x94,"ú":0xA3,"ü":0x81,"ç":0x87,
+  "Á":0x86,"À":0x91,"Â":0x8F,"Ã":0x8E,"É":0x90,"Ê":0x89,"Í":0x8B,"Ó":0x9F,"Ô":0x8C,"Õ":0x99,"Ú":0x96,"Ç":0x80,"º":0xA7,"ª":0xA6 };
+const semAcento = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/º/g, "o").replace(/ª/g, "a");
+function bytesEscpos(texto, comAcentos) {
+  const out = [0x1B, 0x40]; // inicia a impressora
+  if (comAcentos) out.push(0x1B, 0x74, 0x03); // tabela de caracteres 860 (português)
+  const t = comAcentos ? texto : semAcento(texto);
+  for (const ch of t) {
+    if (ch === "\n") out.push(0x0A);
+    else if (CP860[ch] !== undefined && comAcentos) out.push(CP860[ch]);
+    else { const c = ch.charCodeAt(0); out.push(c < 128 ? c : 0x3F); }
+  }
+  out.push(0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x42, 0x00); // avança o papel (+ corte, se tiver)
+  return new Uint8Array(out);
+}
+const base64 = (bytes) => { let s = ""; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s); };
+
+// ── Teste 1: RawBT ───────────────────────────────────────────────────────────
+const SUFIXO_RAWBT = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+function abrirRawbt(url, rotulo) {
+  log(`${rotulo}: chamando o RawBT…`);
+  try { window.location.href = url; }
+  catch (e) { log(`${rotulo}: erro — ${e.message}`, "erro"); return; }
+  setTimeout(() => log(`${rotulo}: se nada aconteceu, confira se o RawBT está instalado e com a impressora escolhida.`), 2500);
+}
+function imprimirRawbtTexto() {
+  abrirRawbt("intent:" + encodeURIComponent(COMANDA) + SUFIXO_RAWBT, "A) Texto simples");
+}
+function imprimirRawbtEscpos(comAcentos) {
+  const b64 = base64(bytesEscpos(COMANDA, comAcentos));
+  abrirRawbt("intent:base64," + b64 + SUFIXO_RAWBT, comAcentos ? "B) Modo impressora com acentos" : "C) Modo impressora sem acentos");
+}
+
+// ── Teste 2: Bluetooth direto (Web Bluetooth, só BLE) ────────────────────────
+const SERVICOS = [
+  "000018f0-0000-1000-8000-00805f9b34fb", "0000ff00-0000-1000-8000-00805f9b34fb",
+  "0000fee7-0000-1000-8000-00805f9b34fb", "49535343-fe7d-4ae5-8fa9-9fafd205e455",
+  "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
+];
+async function imprimirBluetoothDireto() {
+  if (!("bluetooth" in navigator)) { log("Bluetooth direto: este navegador não permite. Use o Chrome no Android, ou o teste 1.", "erro"); return; }
+  try {
+    log("Bluetooth direto: escolha a impressora na lista que vai abrir…");
+    const dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SERVICOS });
+    log(`Bluetooth direto: escolhida "${dev.name || "sem nome"}". Conectando…`);
+    const srv = await dev.gatt.connect();
+    let carac = null;
+    for (const uuid of SERVICOS) {
+      try {
+        const s = await srv.getPrimaryService(uuid);
+        for (const c of await s.getCharacteristics()) if (c.properties.write || c.properties.writeWithoutResponse) { carac = c; break; }
+      } catch (e) { /* serviço não existe nesta impressora */ }
+      if (carac) { log(`Bluetooth direto: canal de impressão encontrado (${uuid.slice(4, 8)}).`); break; }
+    }
+    if (!carac) { log("Bluetooth direto: conectou, mas a impressora não tem canal de impressão por aqui. Use o teste 1 (RawBT).", "erro"); dev.gatt.disconnect(); return; }
+    const dados = bytesEscpos(COMANDA, true);
+    for (let i = 0; i < dados.length; i += 100) {
+      const parte = dados.slice(i, i + 100);
+      if (carac.properties.writeWithoutResponse) await carac.writeValueWithoutResponse(parte); else await carac.writeValue(parte);
+      await new Promise(r => setTimeout(r, 30));
+    }
+    log("Bluetooth direto: enviado! Conferiu a comanda impressa?", "ok");
+    setTimeout(() => dev.gatt.disconnect(), 1500);
+  } catch (e) {
+    log(`Bluetooth direto: ${e.name === "NotFoundError" ? "nenhuma impressora escolhida (ou ela não aparece por esse modo)." : e.message}`, "erro");
+  }
+}
+</script>
+</body>
+</html>
