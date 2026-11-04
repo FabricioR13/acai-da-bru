@@ -535,6 +535,9 @@
     @media (max-width: 600px) { .pdv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; } }
     @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .stats-row .stat-card { min-width: 100px; } .modal { padding: 20px; } }
     /* ── RECORTE MANUAL DE FOTO ── */
+    .crop-aviso { font-size: .8rem; background: rgba(212,162,76,.15); color: var(--text); border: 1px solid var(--gold); border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
+    .crop-aviso i { color: var(--gold); }
+    .crop-rodape { justify-content: space-between; flex-wrap: wrap; gap: 10px; }
     .crop-container { max-height: 360px; overflow: hidden; background: #000; border-radius: 8px; }
     .crop-container img { display: block; max-width: 100%; }
     /* ── GALERIA DE FOTOS EXTRAS DO PRODUTO ── */
@@ -1715,12 +1718,14 @@
     <button class="modal-close" onclick="cancelarCrop()">&times;</button>
     <h2><i class="fa-solid fa-crop-simple"></i> Ajustar foto</h2>
     <div class="crop-container"><img id="crop-image" src="" alt="Ajustar recorte"></div>
-    <p style="font-size:.78rem;color:var(--muted);margin-top:10px">Arraste para posicionar e use as alças para escolher a área quadrada da foto. Dá pra dar zoom rolando o mouse (ou com dois dedos no celular).</p>
-    <div class="modal-footer" style="justify-content:space-between">
-      <button class="btn btn-ghost btn-sm" onclick="resetarCropAutomatico()"><i class="fa-solid fa-arrows-to-circle"></i> Recorte automático (centro)</button>
-      <div style="display:flex;gap:10px">
+    <p id="crop-aviso" class="crop-aviso" hidden><i class="fa-solid fa-circle-info"></i> Esta foto não é quadrada. Se for uma <strong>arte com escrita ou preço</strong>, use <strong>Foto inteira</strong> para não cortar nada.</p>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:10px">Para recortar: arraste e use as alças para escolher a área quadrada. Dá pra dar zoom rolando o mouse (ou com dois dedos no celular).</p>
+    <div class="modal-footer crop-rodape">
+      <button class="btn btn-primary" onclick="confirmarFotoInteira()" title="Mostra a foto completa; o espaço que sobra é preenchido com a própria foto desfocada"><i class="fa-solid fa-expand"></i> Foto inteira (sem cortar)</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="resetarCropAutomatico()"><i class="fa-solid fa-arrows-to-circle"></i> Centralizar</button>
         <button class="btn btn-ghost" onclick="cancelarCrop()">Cancelar</button>
-        <button class="btn btn-primary" onclick="confirmarCrop()"><i class="fa-solid fa-check"></i> Usar esta foto</button>
+        <button class="btn btn-ghost" onclick="confirmarCrop()"><i class="fa-solid fa-crop-simple"></i> Usar o recorte</button>
       </div>
     </div>
   </div>
@@ -3847,6 +3852,8 @@ function abrirCrop(file, callback) {
     const img = document.getElementById("crop-image");
     abrirModal("modal-crop");
     img.onload = () => {
+      const r = img.naturalWidth / img.naturalHeight;
+      document.getElementById("crop-aviso").hidden = r > 0.92 && r < 1.08;
       if (_cropperInstance) _cropperInstance.destroy();
       _cropperInstance = new Cropper(img, {
         aspectRatio: 1, viewMode: 1, autoCropArea: 1,
@@ -3868,6 +3875,35 @@ function confirmarCrop() {
   const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
   _cropperInstance.destroy();
   _cropperInstance = null;
+  fecharModal("modal-crop");
+  const cb = _cropCallback;
+  _cropCallback = null;
+  if (cb) cb(dataUrl);
+}
+
+// Foto quadrada SEM cortar: a imagem inteira no meio e, atrás, ela mesma ampliada e desfocada
+// (como o Instagram faz com fotos em pé). Ideal para artes com escrita e preço.
+function quadradoInteiro(img, lado = 900, qualidade = 0.8) {
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = lado;
+  const ctx = cv.getContext("2d");
+  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+  const cobre = Math.max(lado / w, lado / h) * 1.15;
+  ctx.fillStyle = "#F7EFE3"; ctx.fillRect(0, 0, lado, lado);
+  ctx.save(); ctx.filter = "blur(28px) brightness(1.05)";
+  ctx.drawImage(img, (lado - w * cobre) / 2, (lado - h * cobre) / 2, w * cobre, h * cobre);
+  ctx.restore();
+  ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.fillRect(0, 0, lado, lado);
+  const cabe = Math.min(lado / w, lado / h);
+  ctx.save(); ctx.shadowColor = "rgba(0,0,0,.25)"; ctx.shadowBlur = 24;
+  ctx.drawImage(img, (lado - w * cabe) / 2, (lado - h * cabe) / 2, w * cabe, h * cabe);
+  ctx.restore();
+  return cv.toDataURL("image/jpeg", qualidade);
+}
+function confirmarFotoInteira() {
+  const img = document.getElementById("crop-image");
+  const dataUrl = quadradoInteiro(img, 900, 0.78);
+  if (_cropperInstance) { _cropperInstance.destroy(); _cropperInstance = null; }
   fecharModal("modal-crop");
   const cb = _cropCallback;
   _cropCallback = null;
@@ -3922,7 +3958,7 @@ document.getElementById("galeria-file").addEventListener("change", (e) => {
       renderGaleriaThumbs();
     });
   } else {
-    fazerUploadImagem(file, 800, true, 0.7)
+    fazerUploadImagem(file, 800, "inteira", 0.7)
       .then(dataUrl => { _galeriaAtual.push(dataUrl); renderGaleriaThumbs(); })
       .catch(err => toast("Erro ao processar a foto: " + err.message, "err"));
   }
@@ -3952,6 +3988,7 @@ async function fazerUploadImagem(file, maxDim, quadrado, qualidade, formato) {
     i.src = dataUrl;
   });
 
+  if (quadrado === "inteira") return quadradoInteiro(img, MAX_DIM, QUALIDADE);
   let sx = 0, sy = 0, sw = img.width, sh = img.height;
   if (quadrado) {
     const lado = Math.min(img.width, img.height);
@@ -4492,7 +4529,7 @@ async function salvarProduto() {
     imagem = _imagemProdutoDataUrl;
   } else if (_arquivoSelecionado) {
     try {
-      imagem = await fazerUploadImagem(_arquivoSelecionado, 900, true);
+      imagem = await fazerUploadImagem(_arquivoSelecionado, 900, "inteira");
     } catch(e) {
       toast("Erro ao processar a imagem: " + e.message, "err");
       return;
@@ -5816,7 +5853,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261103i"></script>
-<script src="post-do-dia.js?v=20261103i"></script>
+<script src="estoque-loja.js?v=20261103j"></script>
+<script src="post-do-dia.js?v=20261103j"></script>
 </body>
 </html>

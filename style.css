@@ -151,7 +151,7 @@ header{
   border:1px solid #eef2f7;
 }
 .product-card:hover{transform:translateY(-6px);box-shadow:0 16px 36px rgba(2,6,23,.12)}
-.product-img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#f8fafc}
+.product-img{width:100%;aspect-ratio:1/1;object-fit:contain;background:#F7EFE3}
 .product-badge-destaque{
   position:absolute;top:12px;left:12px;z-index:2;
   display:flex;align-items:center;gap:.3rem;
@@ -512,7 +512,7 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 }
 .promo-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(43,13,30,.2)}
 .promo-card:focus-visible{outline-color:var(--accent-color)}
-.promo-card-arte{width:100%;aspect-ratio:9/14;object-fit:cover;object-position:center;background:#F7EFE3;display:block}
+.promo-card-arte{width:100%;aspect-ratio:4/5;object-fit:contain;object-position:center;background:#F7EFE3;display:block}
 .promo-card-rodape{
   display:flex;align-items:center;justify-content:space-between;gap:.6rem;
   padding:.8rem 1rem;background:var(--secondary-color);color:#fff;
