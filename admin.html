@@ -2012,7 +2012,14 @@ const _horaDe = (p) => {
   const dt = p.criadoEm?.toDate ? p.criadoEm.toDate() : null;
   return dt ? dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--";
 };
-const _nomePedido = (p) => p.numero ? `Nº ${p.numero}` : `#${p.codigo || p.docId.slice(0, 6)}`;
+// Para a loja: "Nº 2 · #KP7Q2". Para o cliente: só o código (o número do dia não vai para ele).
+const _nomePedido = (p) => p.numero ? `Nº ${p.numero}${p.codigo ? ` · #${p.codigo}` : ""}` : `#${p.codigo || p.docId.slice(0, 6)}`;
+const _codigoCliente = (p) => p.codigo ? `#${p.codigo}` : "";
+function _gerarCodigoPedido() {
+  const L = "ABCDEFGHJKLMNPQRSTUVWXYZ", A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const r = (c) => c[Math.floor(Math.random() * c.length)];
+  return r(L) + r(L) + r(A) + r(A) + r(A);
+}
 const _ehEntrega = (p) => !p.tipo || p.tipo === "entrega";
 const _etapaDe = (p) => ETAPAS[p.status] ? p.status : "recebido";
 
@@ -2020,18 +2027,18 @@ const _etapaDe = (p) => ETAPAS[p.status] ? p.status : "recebido";
 function mensagemEtapa(p, etapa) {
   const nome = String(p.cliente || "").trim().split(/\s+/)[0] || "tudo bem";
   const loja = _cfgLoja.nomeLoja || "Açaí da Bru";
-  const n = _nomePedido(p);
+  const c = _codigoCliente(p), n = c ? `${c} ` : ""; // "seu pedido #KP7Q2 …" (ou só "seu pedido …")
   const tempo = _cfgLoja.tempoEntrega ? ` Previsão: ${_cfgLoja.tempoEntrega}.` : "";
   return {
-    recebido: `Oi, ${nome}! 💜 Recebemos seu pedido ${n} aqui no ${loja}. Já já começamos a preparar!`,
-    preparo: `${nome}, seu pedido ${n} já está sendo preparado! 🍧${_ehEntrega(p) ? tempo : ""}`,
+    recebido: `Oi, ${nome}! 💜 Recebemos seu pedido ${n}aqui no ${loja}. Já já começamos a preparar!`,
+    preparo: `${nome}, seu pedido ${n}já está sendo preparado! 🍧${_ehEntrega(p) ? tempo : ""}`,
     saiu: _ehEntrega(p)
-      ? `Seu pedido ${n} saiu para entrega! 🛵 Logo logo chega aí, ${nome}.`
-      : `${nome}, seu pedido ${n} está pronto para retirada! 🍧`,
-    entregue: `Pedido ${n} entregue! Obrigada pela preferência, ${nome} 💜 Bom açaí!`
+      ? `Seu pedido ${n}saiu para entrega! 🛵 Logo logo chega aí, ${nome}.`
+      : `${nome}, seu pedido ${n}está pronto para retirada! 🍧`,
+    entregue: `Pedido ${n}entregue! Obrigada pela preferência, ${nome} 💜 Bom açaí!`
       + (linkAvaliacao(p) ? `\n\nConta pra gente como foi? Leva 10 segundinhos ⭐\n${linkAvaliacao(p)}` : "")
       + (_cfgLoja.googleReviewUrl ? `\n\nSe puder, deixa também sua opinião no Google — ajuda muito a gente: ${_cfgLoja.googleReviewUrl}` : ""),
-    cancelado: `Oi, ${nome}. Seu pedido ${n} foi cancelado. Qualquer dúvida, é só chamar a gente por aqui.`,
+    cancelado: `Oi, ${nome}. Seu pedido ${n}foi cancelado. Qualquer dúvida, é só chamar a gente por aqui.`,
   }[etapa];
 }
 function linkWhatsCliente(p, etapa) {
@@ -2612,7 +2619,7 @@ function excluirAvaliacao(docId) {
 function linkAvaliacao(p) {
   if (!p.token) return "";
   const base = location.href.split("#")[0].split("?")[0].replace(/[^/]*$/, "");
-  return `${base}avaliar.html?id=${encodeURIComponent(p.docId)}&t=${p.token}${p.numero ? `&n=${p.numero}` : ""}`;
+  return `${base}avaliar.html?id=${encodeURIComponent(p.docId)}&t=${p.token}${p.codigo ? `&c=${p.codigo}` : ""}`;
 }
 
 // ── RELATÓRIO MENSAL COMENTADO (Fase 5) ─────────────────────────────────────
@@ -3484,7 +3491,7 @@ async function npSalvar() {
     const token = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, "0")).join("");
     const r2 = (v) => Math.round(v * 100) / 100;
     const dados = {
-      numero, codigo: null, dia: iso,
+      numero, codigo: _gerarCodigoPedido(), dia: iso,
       criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
       origem: _np.tipo === "balcao" ? "balcao" : "whatsapp",
       tipo: _np.tipo,
@@ -6211,7 +6218,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261104g"></script>
-<script src="post-do-dia.js?v=20261104g"></script>
+<script src="estoque-loja.js?v=20261104h"></script>
+<script src="post-do-dia.js?v=20261104h"></script>
 </body>
 </html>

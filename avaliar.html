@@ -100,8 +100,8 @@ const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const pedidoId = (params.get("id") || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 60);
 const token = (params.get("t") || "").replace(/[^a-f0-9]/gi, "").slice(0, 64);
-const numero = (params.get("n") || "").replace(/\D/g, "").slice(0, 5);
-if (numero) $("titulo").textContent = `Como foi seu pedido Nº ${numero}?`;
+const codigoPed = (params.get("c") || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 12);
+if (codigoPed) $("titulo").textContent = `Como foi seu pedido #${codigoPed}?`;
 
 const finalizar = (titulo, html) => { $("tela-form").hidden = true; $("final-titulo").textContent = titulo; $("final-msg").innerHTML = html; $("tela-final").hidden = false; };
 if (!pedidoId || !token) finalizar("Link incompleto", "Abra o link de avaliação direto da mensagem que você recebeu no WhatsApp.");

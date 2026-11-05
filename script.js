@@ -480,8 +480,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const sorteia = (chars) => chars[Math.floor(Math.random() * chars.length)];
         let id;
         do {
+            // Código curto que o cliente vê (ex.: KP7Q2) — não revela quantos pedidos a loja fez no dia
             id = sorteia(LETRAS) + sorteia(LETRAS);
-            for (let i = 0; i < 6; i++) id += sorteia(ALFANUM);
+            for (let i = 0; i < 3; i++) id += sorteia(ALFANUM);
         } while (idsPedidoGerados.has(id));
         idsPedidoGerados.add(id);
         return id;
@@ -1719,7 +1720,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const arred = (v) => Math.round((Number(v) || 0) * 100) / 100;
             await db.collection("pedidos").add({
                 numero: d.numeroDoDia || null,
-                codigo: d.numeroDoDia ? null : String(d.pedidoId || "").slice(0, 12),
+                codigo: String(d.codigo || "").slice(0, 12),
                 dia: hojeEmSaoPaulo().iso,
                 criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
                 origem: "site",
@@ -1830,10 +1831,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         finishOrderBtn.innerHTML = textoBotao;
         delete finishOrderBtn.dataset.enviando;
 
-        const pedidoId = numeroDoDia ? String(numeroDoDia) : gerarIdPedido();
-        const cabecalhoPedido = numeroDoDia
-            ? `*Pedido nº ${numeroDoDia}* — ${hojeEmSaoPaulo().br}`
-            : `*Nº do Pedido:* #${pedidoId}`;
+        // O número do dia (1, 2, 3…) fica só para a loja (painel); o cliente vê o código curto
+        const codigo = gerarIdPedido();
+        const pedidoId = codigo;
+        const cabecalhoPedido = `*Pedido #${codigo}* — ${hojeEmSaoPaulo().br}`;
         const numeroWhatsApp = configLoja.whatsapp;
         const itensPedido = carrinho.map((item, i) => itemDetalhadoWhatsApp(item, i + 1)).join("\n\n");
         const subtotal = carrinho.reduce(
@@ -1896,7 +1897,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
         // Grava o pedido no banco (para o relatório de horários no admin). Não trava o envio:
         // se a gravação falhar ou demorar, o pedido segue normalmente pelo WhatsApp.
-        const gravacao = gravarPedido({ numeroDoDia, pedidoId, subtotal, discountAmount, taxaEntrega, total, paymentMethod, nome });
+        const gravacao = gravarPedido({ numeroDoDia, pedidoId, codigo, subtotal, discountAmount, taxaEntrega, total, paymentMethod, nome });
         if (janelaWhats && !janelaWhats.closed) janelaWhats.location.href = url;
         else {
             // Sem aba nova, a página vai sair daqui: espera a gravação (no máximo 2,5s) antes
@@ -1904,7 +1905,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             window.location.href = url;
         }
         salvarCliente();
-        mostrarSucesso(numeroDoDia ? `Nº ${numeroDoDia}` : pedidoId);
+        mostrarSucesso(`#${codigo}`);
     };
 
     // --- EVENT LISTENERS ---
