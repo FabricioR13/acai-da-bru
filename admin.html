@@ -553,6 +553,24 @@
     .barra-h-valor { text-align: right; font-weight: 700; }
     .barra-h-valor small { color: var(--muted); font-weight: 400; margin-left: 4px; }
     @media (max-width: 600px) { .barra-h { grid-template-columns: 1fr; gap: 3px; } .barra-h-valor { text-align: left; } }
+    .chart-bar.is-sel { fill: var(--gold) !important; filter: drop-shadow(0 0 6px rgba(240,192,64,.6)); }
+    .hora-dica { font-size: .75rem; color: var(--muted); margin: 4px 0 8px; text-align: center; }
+    .hora-pedidos { border-top: 1px solid var(--border); margin-top: 8px; padding: 12px 0 8px; display: flex; flex-direction: column; gap: 8px; }
+    .hp-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .9rem; }
+    .hp-topo i { color: var(--gold); }
+    .hp-resumo { font-size: .8rem; color: var(--text); line-height: 1.5; }
+    .hp-resumo span { color: var(--muted); }
+    .hp-resumo b { color: var(--gold); }
+    .hp-lista { display: flex; flex-direction: column; gap: 6px; max-height: 460px; overflow-y: auto; }
+    .hp-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+    .hp-item.hp-cancelado { opacity: .55; }
+    .hp-cab { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: .85rem; }
+    .hp-hora { color: var(--gold); font-weight: 700; }
+    .hp-quem { font-weight: 600; flex: 1; min-width: 100px; }
+    .hp-origem { font-size: .7rem; color: var(--muted); background: var(--card); border-radius: 999px; padding: 1px 8px; }
+    .hp-total { font-weight: 700; }
+    .hp-item ul { list-style: none; margin: 4px 0 0; padding: 0; font-size: .8rem; display: flex; flex-direction: column; gap: 2px; }
+    .hp-item li small { display: block; color: var(--muted); font-size: .72rem; line-height: 1.35; }
     .hora-filtros { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
     .hora-filtros label { display: flex; flex-direction: column; gap: 4px; font-size: .75rem; color: var(--muted); }
     .hora-filtros select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--text); font-size: .85rem; }
@@ -1118,6 +1136,8 @@
           <svg id="relatorio-horario" viewBox="0 0 800 220" role="img" aria-label="Gráfico de pedidos por horário"></svg>
           <div class="chart-tooltip" id="relatorio-horario-tooltip" hidden></div>
         </div>
+        <p class="hora-dica" id="hora-dica"><i class="fa-solid fa-hand-pointer"></i> Toque numa barra para ver os pedidos daquele horário.</p>
+        <div id="hora-pedidos" class="hora-pedidos" hidden></div>
       </div>
       <div class="chart-card">
         <h3><i class="fa-solid fa-table-cells"></i> Dia da semana × horário <small style="color:var(--muted);font-weight:400">(quantidade de pedidos no mês — quanto mais forte a cor, mais movimento)</small></h3>
@@ -5624,17 +5644,62 @@ function eventosRelatorio(origem) {
   const lista = [];
   if (origem !== "balcao") pedidosSiteRelatorio.forEach(p => {
     const dt = p.criadoEm?.toDate ? p.criadoEm.toDate() : null;
-    if (dt) lista.push({ dt, total: Number(p.total || 0), origem: "site" });
+    if (dt) lista.push({ dt, total: Number(p.total || 0), origem: "site", doc: p });
   });
   if (origem !== "site") vendasRelatorio.forEach(v => {
     const dt = v.criadoEm?.toDate ? v.criadoEm.toDate() : null;
-    if (dt) lista.push({ dt, total: Number(v.total || 0), origem: "balcao" });
+    if (dt) lista.push({ dt, total: Number(v.total || 0), origem: "balcao", doc: v });
   });
   return lista;
 }
 
 const _brl = (v) => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const _faixaHora = (h) => `${String(h).padStart(2, "0")}h–${String((h + 1) % 24).padStart(2, "0")}h`;
+
+let _horaSel = null; // hora escolhida no gráfico (mostra os pedidos dela)
+function escolherHora(h) {
+  _horaSel = _horaSel === h ? null : h;
+  renderRelatorioHorarios();
+  if (_horaSel !== null) setTimeout(() => document.getElementById("hora-pedidos")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+}
+function _renderPedidosDaHora(eventos, rotuloPeriodo) {
+  const box = document.getElementById("hora-pedidos");
+  document.getElementById("hora-dica").hidden = _horaSel !== null;
+  if (_horaSel === null) { box.hidden = true; box.innerHTML = ""; return; }
+  const lista = eventos.filter(e => e.dt.getHours() === _horaSel).sort((a, b) => a.dt - b.dt);
+  const total = lista.reduce((s, e) => s + e.total, 0);
+  // O que mais saiu nessa hora
+  const prods = {}, comps = {};
+  lista.filter(e => e.doc.status !== "cancelado").forEach(e => (e.doc.itens || []).forEach(it => {
+    const q = Number(it.quantidade ?? it.qtd ?? 1) || 1;
+    const nome = it.nome + (it.tamanho && !/\+|açaís/.test(it.tamanho) ? ` ${it.tamanho}` : "");
+    prods[nome] = (prods[nome] || 0) + q;
+    _complementosDoItem(it).forEach(c => comps[c] = (comps[c] || 0) + q);
+  }));
+  const top = (o, n) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => `${_escAttr(k)} <b>${v}×</b>`).join(" · ");
+  const hora = (d) => d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const origemTxt = (e) => e.origem === "balcao" ? "PDV" : (e.doc.origem === "whatsapp" ? "WhatsApp" : e.doc.origem === "balcao" ? "Balcão" : "Site");
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="hp-topo">
+      <strong><i class="fa-solid fa-clock"></i> ${_faixaHora(_horaSel)} ${rotuloPeriodo} — ${lista.length} pedido${lista.length === 1 ? "" : "s"} · ${_brl(total)}</strong>
+      <button class="btn btn-ghost btn-sm" onclick="escolherHora(${_horaSel})"><i class="fa-solid fa-xmark"></i> Fechar</button>
+    </div>
+    ${lista.length ? `
+      ${Object.keys(prods).length ? `<p class="hp-resumo"><span>Mais pedidos:</span> ${top(prods, 5)}</p>` : ""}
+      ${Object.keys(comps).length ? `<p class="hp-resumo"><span>Complementos:</span> ${top(comps, 6)}</p>` : ""}
+      <div class="hp-lista">${lista.map(e => {
+        const d = e.doc, cancel = d.status === "cancelado";
+        const quem = e.origem === "balcao" ? (d.cliente || "Venda no balcão") : `${d.numero ? "Nº " + d.numero + " · " : ""}${d.cliente || "Cliente"}`;
+        return `<div class="hp-item${cancel ? " hp-cancelado" : ""}">
+          <div class="hp-cab"><span class="hp-hora">${selDiaAtual() === "" ? e.dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " " : ""}${hora(e.dt)}</span>
+            <span class="hp-quem">${_escAttr(quem)}</span><span class="hp-origem">${origemTxt(e)}${cancel ? " · cancelado" : ""}</span>
+            <span class="hp-total">${_brl(e.total)}</span></div>
+          <ul>${(d.itens || []).map(it => `<li>${Number(it.quantidade ?? it.qtd ?? 1)}x ${_escAttr(it.nome)}${it.tamanho && !it.detalhes ? ` (${_escAttr(it.tamanho)})` : ""}${it.detalhes ? `<small>${_escAttr(it.detalhes)}</small>` : ""}</li>`).join("")}</ul>
+        </div>`;
+      }).join("")}</div>` : `<p class="ingr-vazio">Nenhum pedido nesse horário.</p>`}`;
+}
+const selDiaAtual = () => document.getElementById("horario-dia").value;
 
 function renderRelatorioHorarios() {
   const svg = document.getElementById("relatorio-horario");
@@ -5706,7 +5771,12 @@ function renderRelatorioHorarios() {
     parts += `<text class="chart-axis-label" x="${(padL + i * slot + slot / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">${d.h}h</text>`;
   });
   svg.innerHTML = parts;
+  if (_horaSel !== null) document.getElementById("hora-bar-" + _horaSel)?.classList.add("is-sel");
+  _renderPedidosDaHora(eventos, selDia.value ? `do dia ${String(selDia.value).padStart(2, "0")}/${String(mes).padStart(2, "0")}` : "no mês");
   svg.querySelectorAll(".chart-bar-hit").forEach(hit => {
+    hit.style.cursor = Number(hit.dataset.qtd) ? "pointer" : "default";
+    hit.addEventListener("click", () => { if (Number(hit.dataset.qtd) || _horaSel === Number(hit.dataset.h)) escolherHora(Number(hit.dataset.h)); });
+    hit.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); hit.dispatchEvent(new Event("click")); } });
     const mostrar = () => {
       const qtd = Number(hit.dataset.qtd), total = Number(hit.dataset.total);
       tooltip.innerHTML = `<strong>${_faixaHora(Number(hit.dataset.h))}</strong> — ${qtd} pedido${qtd === 1 ? "" : "s"} · ${_brl(total)}`;
@@ -6141,7 +6211,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261104f"></script>
-<script src="post-do-dia.js?v=20261104f"></script>
+<script src="estoque-loja.js?v=20261104g"></script>
+<script src="post-do-dia.js?v=20261104g"></script>
 </body>
 </html>
