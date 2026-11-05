@@ -656,3 +656,9 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
   .promo-card-cta{font-size:.78rem;padding:.3rem .6rem}
   .promo-card-selo{top:7px;left:7px;font-size:.62rem;padding:.22rem .5rem}
 }
+
+/* ===== Loja fechada (horário de funcionamento) ===== */
+.aviso-fechado{position:relative;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:.7rem 1rem;background:#2B0D1E;color:#FFF9F2;font-size:.88rem;line-height:1.35;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.aviso-fechado i{color:#D4A24C;font-size:1rem}
+.aviso-fechado strong{color:#F3D58E}
+.finish-order-btn.loja-fechada{filter:grayscale(.7);opacity:.75}

@@ -200,6 +200,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         sobreTexto: "Açaí de qualidade, feito com carinho e montado do seu jeito. Siga a gente no Instagram e fique de olho nas promoções da semana!",
         sobreFoto: "assets/copo-quadrado.jpg",
         sobreLink: "https://www.instagram.com/acaidabru_cb/",
+        // Horário de funcionamento (admin → Configurações). Desligado = sempre aberto.
+        horarioAtivo: false,
+        horarios: [], // [{ aberto, abre: "14:00", fecha: "22:00" }] — índice 0 = domingo
+        lojaPausada: false, // "Pausar pedidos" no admin (ex.: acabou o açaí)
     };
     let configLoja = { ...CONFIG_PADRAO };
     try {
@@ -1747,7 +1751,56 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
+    // --- HORÁRIO DE FUNCIONAMENTO ---
+    // Fora do horário (ou com os pedidos pausados) o cliente vê o cardápio e monta o carrinho,
+    // mas não consegue enviar — assim não chega pedido que ninguém vai atender.
+    const DIAS_SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+    const minutos = (h) => { const [a, b] = String(h || "").split(":").map(Number); return Number.isFinite(a) ? a * 60 + (b || 0) : null; };
+    const horaBonita = (h) => { const [a, b] = String(h).split(":"); return `${Number(a)}h${b && b !== "00" ? b : ""}`; };
+    const statusLoja = () => {
+        if (configLoja.lojaPausada) return { aberta: false, msg: "Pausamos os pedidos por um momento. Já já voltamos! 💜" };
+        const hs = Array.isArray(configLoja.horarios) ? configLoja.horarios : [];
+        if (!configLoja.horarioAtivo || hs.length !== 7) return { aberta: true };
+        const agora = new Date(), d = agora.getDay(), m = agora.getHours() * 60 + agora.getMinutes();
+        const dia = (i) => { const h = hs[(i + 7) % 7] || {}; const a = minutos(h.abre), f = minutos(h.fecha); return h.aberto && a !== null && f !== null ? { a, f, abre: h.abre } : null; };
+        const hoje = dia(d), ontem = dia(d - 1);
+        if (hoje && (hoje.f > hoje.a ? m >= hoje.a && m < hoje.f : m >= hoje.a)) return { aberta: true };
+        if (ontem && ontem.f <= ontem.a && m < ontem.f) return { aberta: true }; // passou da meia-noite
+        // Próxima abertura
+        for (let k = 0; k < 8; k++) {
+            const x = dia(d + k);
+            if (!x || (k === 0 && x.a <= m)) continue;
+            const quando = k === 0 ? "hoje" : k === 1 ? "amanhã" : DIAS_SEMANA[(d + k) % 7];
+            return { aberta: false, msg: `Estamos fechados agora. Abrimos ${quando} às ${horaBonita(x.abre)} 💜` };
+        }
+        return { aberta: false, msg: "Estamos fechados no momento." };
+    };
+    const avisoFechado = document.createElement("div");
+    avisoFechado.className = "aviso-fechado";
+    avisoFechado.setAttribute("role", "status");
+    avisoFechado.hidden = true;
+    document.querySelector("header")?.insertAdjacentElement("afterend", avisoFechado);
+    const atualizarStatusLoja = () => {
+        const st = statusLoja();
+        avisoFechado.hidden = st.aberta;
+        if (!st.aberta) avisoFechado.innerHTML = `<i class="fa-solid fa-moon" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Você pode olhar o cardápio e montar seu pedido.</span>`;
+        finishOrderBtn.classList.toggle("loja-fechada", !st.aberta);
+        return st;
+    };
+    atualizarStatusLoja();
+    setInterval(atualizarStatusLoja, 60000);
+
     const finalizarPedido = async () => {
+        // Confere de novo o horário/pausa no banco (a dona pode ter pausado com a página já aberta)
+        try {
+            const doc = await db.collection("configuracoes").doc("geral").get();
+            if (doc.exists) {
+                const d = doc.data();
+                ["lojaPausada", "horarioAtivo", "horarios"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
+            }
+        } catch (e) { /* sem internet: segue com o que já tinha */ }
+        const st = atualizarStatusLoja();
+        if (!st.aberta) { alert(st.msg + "\n\nSeu carrinho fica guardado — é só enviar quando estivermos abertos."); return; }
         // Rede de segurança: os campos já foram validados etapa a etapa, mas confere
         // de novo aqui (ex: caso o cliente volte numa etapa pelos pontinhos e apague algo).
         if (carrinho.length === 0) {

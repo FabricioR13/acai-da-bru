@@ -339,6 +339,12 @@
     .comp-linha:not(.top) .comp-barra span { opacity: .55; }
     .comp-num { font-weight: 700; white-space: nowrap; text-align: right; min-width: 64px; }
     .comp-num small { color: var(--muted); font-weight: 500; }
+    .clientes-fieis { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; margin-bottom: 8px; }
+    .cliente-fiel { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid var(--border); }
+    .cliente-fiel.top .comp-pos { color: var(--gold); font-weight: 800; }
+    .cf-nome { display: flex; flex-direction: column; min-width: 0; font-size: .88rem; }
+    .cf-nome strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cf-nome small { color: var(--muted); font-size: .75rem; }
     .comp-acoes { display: flex; justify-content: flex-end; margin: 10px 0 8px; }
     @media (max-width: 600px) { .comp-linha { grid-template-columns: 26px 1fr auto; } .comp-barra { grid-column: 2 / 4; grid-row: 2; } }
     .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 8px; margin-bottom: 20px; }
@@ -588,6 +594,12 @@
     /* ── RECORTE MANUAL DE FOTO ── */
     .pdv-cart-item-det { font-size: .72rem; color: var(--muted); line-height: 1.35; margin: 2px 0; white-space: normal; }
     #pdvm-modal .np-config { border: 0; padding: 0; background: none; max-height: none; overflow: visible; }
+    .horarios-area { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+    .horario-linha { display: grid; grid-template-columns: 120px 1fr auto 1fr; align-items: center; gap: 8px; font-size: .85rem; }
+    .horario-linha input[type=time] { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; color: var(--text); min-width: 0; }
+    .horario-linha .hor-fechado-txt { display: none; color: var(--muted); grid-column: 2 / 5; }
+    .horario-linha.fechado input[type=time], .horario-linha.fechado > span:not(.hor-fechado-txt) { display: none; }
+    .horario-linha.fechado .hor-fechado-txt { display: block; }
     .crop-aviso { font-size: .8rem; background: rgba(212,162,76,.15); color: var(--text); border: 1px solid var(--gold); border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
     .crop-aviso i { color: var(--gold); }
     .crop-rodape { justify-content: space-between; flex-wrap: wrap; gap: 10px; }
@@ -681,6 +693,7 @@
         <div class="ped-controles">
           <input type="date" id="ped-dia" onchange="assinarPedidos()" aria-label="Dia dos pedidos">
           <label class="toggle-row" title="Toca um som quando chega pedido novo"><input type="checkbox" id="ped-som" checked onchange="salvarPrefSom()"> <i class="fa-solid fa-bell"></i> Som</label>
+          <button class="btn btn-ghost btn-sm" id="btn-pausa" onclick="alternarPausaLoja()" title="Para de receber pedidos pelo site agora (ex.: acabou o açaí) — o cardápio continua aparecendo"><i class="fa-solid fa-pause"></i> Pausar pedidos</button>
           <button class="btn btn-primary btn-sm" onclick="abrirNovoPedido()" title="Pedido que chegou pelo WhatsApp, telefone ou no balcão"><i class="fa-solid fa-plus"></i> Novo pedido</button>
         </div>
       </div>
@@ -1122,6 +1135,11 @@
         <div class="comp-acoes"><button class="btn btn-ghost btn-sm" onclick="compUsadosWhats()"><i class="fa-brands fa-whatsapp"></i> Mandar no WhatsApp</button></div>
       </div>
       <div class="chart-card">
+        <h3><i class="fa-solid fa-heart"></i> Clientes que mais compraram no mês</h3>
+        <p class="comp-ajuda">Pedidos com telefone (site, WhatsApp e balcão), sem os cancelados. Que tal mandar um cupom ou um mimo para quem mais compra?</p>
+        <div id="clientes-fieis" class="clientes-fieis"></div>
+      </div>
+      <div class="chart-card">
         <h3><i class="fa-solid fa-credit-card"></i> Vendas por forma de pagamento</h3>
         <div class="chart-wrap" id="relatorio-grafico-pagamento-wrap">
           <svg id="relatorio-grafico-pagamento" viewBox="0 0 800 180" role="img" aria-label="Gráfico de faturamento por forma de pagamento"></svg>
@@ -1141,6 +1159,12 @@
         <div class="form-group full">
           <label>Nome da loja</label>
           <input type="text" id="config-nome-loja" placeholder="Ex: Açaí da Bru">
+        </div>
+        <div class="form-group full">
+          <label>Horário de funcionamento</label>
+          <label class="toggle-row"><input type="checkbox" id="config-horario-ativo" onchange="document.getElementById('horarios-area').hidden=!this.checked"> Só aceitar pedidos pelo site dentro do horário</label>
+          <small style="color:var(--muted);display:block;margin:4px 0 8px">Fora do horário, o cliente vê o aviso "Estamos fechados — abrimos às…", pode olhar o cardápio e montar o carrinho, mas não consegue enviar. Fecha depois da meia-noite? Coloque, por exemplo, das 18:00 às 00:30.</small>
+          <div id="horarios-area" class="horarios-area" hidden></div>
         </div>
         <div class="form-group full">
           <label>WhatsApp para receber pedidos <small style="color:var(--muted)">(DDI + DDD + número, só números, ex: 5581999999999)</small></label>
@@ -5413,6 +5437,35 @@ function compUsadosWhats() {
   window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank");
 }
 
+// ── CLIENTES QUE MAIS COMPRARAM (pelo telefone) ───────────────────────────
+function renderClientesFieis() {
+  const el = document.getElementById("clientes-fieis");
+  if (!el) return;
+  const mapa = new Map();
+  pedidosSiteRelatorio.filter(p => p.status !== "cancelado").forEach(p => {
+    const tel = String(p.telefone || "").replace(/\D/g, "");
+    if (tel.length < 10) return;
+    const c = mapa.get(tel) || { tel, nome: "", pedidos: 0, total: 0, ultimo: 0 };
+    c.pedidos++; c.total += Number(p.total || 0);
+    const t = p.criadoEm?.toMillis ? p.criadoEm.toMillis() : 0;
+    if (t >= c.ultimo) { c.ultimo = t; c.nome = p.cliente || c.nome; }
+    mapa.set(tel, c);
+  });
+  const lista = [...mapa.values()].sort((a, b) => b.pedidos - a.pedidos || b.total - a.total).slice(0, 15);
+  if (!lista.length) { el.innerHTML = `<p class="ingr-vazio">Nenhum pedido com telefone neste mês ainda.</p>`; return; }
+  const loja = _cfgLoja.nomeLoja || "Açaí da Bru";
+  el.innerHTML = lista.map((c, i) => {
+    const primeiro = String(c.nome || "").trim().split(/\s+/)[0] || "";
+    const msg = `Oi${primeiro ? ", " + primeiro : ""}! Aqui é do ${loja} 💜 Obrigada por pedir com a gente${c.pedidos > 1 ? ` (já foram ${c.pedidos} pedidos este mês!)` : ""}.`;
+    const tel = c.tel.length <= 11 ? "55" + c.tel : c.tel;
+    return `<div class="cliente-fiel${i < 3 ? " top" : ""}">
+      <span class="comp-pos">${i + 1}º</span>
+      <span class="cf-nome"><strong>${_escAttr(c.nome || "Cliente")}</strong><small>${c.pedidos} pedido${c.pedidos > 1 ? "s" : ""} · ${_brl(c.total)}</small></span>
+      <a class="btn btn-ghost btn-sm" href="https://wa.me/${tel}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+    </div>`;
+  }).join("");
+}
+
 function renderRelatorio() {
   const totalMes = vendasRelatorio.reduce((s,v) => s + Number(v.total||0), 0);
   document.getElementById("relatorio-stat-qtd").textContent   = vendasRelatorio.length;
@@ -5427,6 +5480,7 @@ function renderRelatorio() {
   renderRelatorioHorarios();
   renderRelatorioGraficoPagamento();
   renderCompUsados();
+  renderClientesFieis();
 
   const tbody = document.getElementById("relatorio-tabela");
   if (!vendasRelatorio.length) {
@@ -5829,6 +5883,41 @@ function alternarDegradeHero() {
   document.getElementById("config-hero-degrade-area").style.display = ativo ? "block" : "none";
 }
 
+// ── HORÁRIO DE FUNCIONAMENTO + PAUSAR PEDIDOS ─────────────────────────────
+const DIAS_NOME = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+function renderHorarios(lista) {
+  const hs = Array.isArray(lista) && lista.length === 7 ? lista : DIAS_NOME.map(() => ({ aberto: true, abre: "14:00", fecha: "22:00" }));
+  document.getElementById("horarios-area").innerHTML = hs.map((h, i) => `
+    <div class="horario-linha${h.aberto ? "" : " fechado"}" data-dia="${i}">
+      <label class="toggle-row"><input type="checkbox" class="hor-aberto" ${h.aberto ? "checked" : ""} onchange="this.closest('.horario-linha').classList.toggle('fechado', !this.checked)"> ${DIAS_NOME[i]}</label>
+      <input type="time" class="hor-abre" value="${h.abre || "14:00"}" aria-label="${DIAS_NOME[i]}: abre">
+      <span>às</span>
+      <input type="time" class="hor-fecha" value="${h.fecha || "22:00"}" aria-label="${DIAS_NOME[i]}: fecha">
+      <span class="hor-fechado-txt">Fechado</span>
+    </div>`).join("");
+}
+function lerHorarios() {
+  return [...document.querySelectorAll("#horarios-area .horario-linha")].map(l => ({
+    aberto: l.querySelector(".hor-aberto").checked, abre: l.querySelector(".hor-abre").value || "14:00", fecha: l.querySelector(".hor-fecha").value || "22:00",
+  }));
+}
+function atualizarBotaoPausa() {
+  const b = document.getElementById("btn-pausa");
+  if (!b) return;
+  const p = !!_cfgLoja.lojaPausada;
+  b.className = `btn btn-sm ${p ? "btn-danger" : "btn-ghost"}`;
+  b.innerHTML = p ? `<i class="fa-solid fa-play"></i> Pedidos pausados — retomar` : `<i class="fa-solid fa-pause"></i> Pausar pedidos`;
+}
+async function alternarPausaLoja() {
+  const novo = !_cfgLoja.lojaPausada;
+  try {
+    await db.collection("configuracoes").doc("geral").set({ lojaPausada: novo }, { merge: true });
+    _cfgLoja.lojaPausada = novo;
+    atualizarBotaoPausa();
+    toast(novo ? "Pedidos pausados: o site mostra que vocês voltam já já" : "Pedidos liberados de novo no site", "ok");
+  } catch (e) { toast("Não consegui salvar: " + e.message, "err"); }
+}
+
 async function carregarConfiguracoes() {
   try {
     const doc = await db.collection("configuracoes").doc("geral").get();
@@ -5842,6 +5931,10 @@ async function carregarConfiguracoes() {
     sincronizarIngredientesPeloEstoque();
     if (document.getElementById("tab-disponivel").classList.contains("active")) renderDisponivel();
     document.getElementById("config-nome-loja").value  = cfg.nomeLoja;
+  document.getElementById("config-horario-ativo").checked = !!cfg.horarioAtivo;
+  document.getElementById("horarios-area").hidden = !cfg.horarioAtivo;
+  renderHorarios(cfg.horarios);
+  atualizarBotaoPausa();
     document.getElementById("config-whatsapp").value   = cfg.whatsapp;
     document.getElementById("config-hero-tag").value       = cfg.heroTag || "";
     document.getElementById("config-hero-titulo").value    = cfg.heroTitulo || "";
@@ -5943,6 +6036,9 @@ async function salvarConfiguracoes() {
   const entregaDisponivel  = document.getElementById("config-entrega-disponivel").checked;
   const taxasEntrega = _bairrosParaSalvar();
   const aceitarOutrosBairros = document.getElementById("config-aceitar-outros-bairros").checked;
+  const horarioAtivo = document.getElementById("config-horario-ativo").checked;
+  const horarios = lerHorarios();
+  if (horarioAtivo && !horarios.some(h => h.aberto)) { toast("Marque pelo menos um dia aberto no horário de funcionamento.", "err"); return; }
   const entregaGratis = document.getElementById("config-entrega-gratis").value.split("\n").map(t => t.trim()).filter(Boolean).slice(0, 20);
   const tempoEntrega = document.getElementById("config-tempo-entrega").value.trim();
   const googleReviewUrl = document.getElementById("config-google-review").value.trim();
@@ -6011,7 +6107,7 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, entregaGratis, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
+      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, lojaPausada: !!_cfgLoja.lojaPausada, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
       // campos do Estoque e do Post do dia (salvos fora desta tela)
@@ -6045,7 +6141,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261104e"></script>
-<script src="post-do-dia.js?v=20261104e"></script>
+<script src="estoque-loja.js?v=20261104f"></script>
+<script src="post-do-dia.js?v=20261104f"></script>
 </body>
 </html>
