@@ -150,6 +150,9 @@
       .bn-badge { position: absolute; top: 2px; right: 22%; background: var(--red); color: #fff; font-size: .66rem; min-width: 18px; height: 18px; border-radius: 9px; display: grid; place-items: center; padding: 0 4px; }
       .bn-badge[hidden] { display: none; }
       body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+      /* Janelas (Novo pedido, Resumo do estoque…) ficam por cima do menu de baixo e cabem na tela */
+      .modal-overlay { padding: 8px; align-items: flex-end; }
+      .modal, .np-modal { max-height: calc(100dvh - 16px - env(safe-area-inset-bottom)); max-width: 100%; padding: 20px 16px calc(16px + env(safe-area-inset-bottom)); }
       #toast { bottom: calc(80px + env(safe-area-inset-bottom)); right: 12px; left: 12px; max-width: none; }
       #tab-mais .mais-grupo { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 14px 2px 6px; }
       #topbar-count, .logout-btn { display: none; }
@@ -191,7 +194,7 @@
     .badge-inativo  { background: #2a1010; color: var(--red); }
     .badge-destaque { background: #2a1f00; color: var(--gold); }
     .actions-cell { display: flex; gap: 6px; }
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.72); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.72); z-index: 700; align-items: center; justify-content: center; }
     .modal-overlay.show { display: flex; }
     .modal { background: var(--card); border: 1px solid var(--border); border-radius: 14px; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 28px; position: relative; }
     .modal h2 { font-size: 1.1rem; margin-bottom: 20px; color: var(--gold); display: flex; align-items: center; gap: 8px; }
@@ -325,6 +328,19 @@
     .pdv-troco-resultado { font-size: .85rem; font-weight: 600; margin-top: 4px; display: block; }
     .pdv-troco-resultado.ok { color: var(--green); }
     .pdv-troco-resultado.falta { color: var(--red); }
+    .comp-ajuda { color: var(--muted); font-size: .78rem; margin: -4px 0 10px; }
+    .comp-usados { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+    .comp-linha { display: grid; grid-template-columns: 32px minmax(90px, 1.2fr) 2fr auto; align-items: center; gap: 8px; font-size: .85rem; }
+    .comp-pos { color: var(--muted); font-size: .75rem; text-align: right; }
+    .comp-linha.top .comp-pos { color: var(--gold); font-weight: 800; }
+    .comp-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .comp-barra { height: 10px; background: var(--surface); border-radius: 999px; overflow: hidden; }
+    .comp-barra span { display: block; height: 100%; background: var(--gold); border-radius: 999px; }
+    .comp-linha:not(.top) .comp-barra span { opacity: .55; }
+    .comp-num { font-weight: 700; white-space: nowrap; text-align: right; min-width: 64px; }
+    .comp-num small { color: var(--muted); font-weight: 500; }
+    .comp-acoes { display: flex; justify-content: flex-end; margin: 10px 0 8px; }
+    @media (max-width: 600px) { .comp-linha { grid-template-columns: 26px 1fr auto; } .comp-barra { grid-column: 2 / 4; grid-row: 2; } }
     .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 8px; margin-bottom: 20px; }
     .chart-card h3 { font-size: .95rem; color: var(--gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     /* Estoque */
@@ -1094,6 +1110,16 @@
         <h3><i class="fa-solid fa-table-cells"></i> Dia da semana × horário <small style="color:var(--muted);font-weight:400">(quantidade de pedidos no mês — quanto mais forte a cor, mais movimento)</small></h3>
         <p class="hora-destaque" id="semana-destaque"></p>
         <div class="mapa-wrap" id="relatorio-mapa"></div>
+      </div>
+      <div class="chart-card">
+        <h3><i class="fa-solid fa-ranking-star"></i> Complementos e adicionais mais usados</h3>
+        <p class="comp-ajuda">Quantas vezes cada um foi escolhido no mês (site, WhatsApp, balcão e PDV; pedidos cancelados não contam). Ajuda a planejar as compras.</p>
+        <div class="ped-filtros" id="comp-filtro" style="margin:0 0 10px">
+          <button class="ped-filtro ativo" data-comp="comp" onclick="filtrarCompUsados('comp')">Complementos</button>
+          <button class="ped-filtro" data-comp="adic" onclick="filtrarCompUsados('adic')">Adicionais</button>
+        </div>
+        <div id="comp-usados" class="comp-usados"></div>
+        <div class="comp-acoes"><button class="btn btn-ghost btn-sm" onclick="compUsadosWhats()"><i class="fa-brands fa-whatsapp"></i> Mandar no WhatsApp</button></div>
       </div>
       <div class="chart-card">
         <h3><i class="fa-solid fa-credit-card"></i> Vendas por forma de pagamento</h3>
@@ -5327,6 +5353,66 @@ async function carregarRelatorio() {
   }
 }
 
+// ── COMPLEMENTOS E ADICIONAIS MAIS USADOS ─────────────────────────────────
+// Lê o texto "detalhes" de cada item ("Complementos: A, B" ou "1º açaí (400ml): A, B (+ Nutella)")
+// e a lista "adicionais". Vale para pedidos do site, pedidos manuais e vendas do PDV.
+let _compFiltro = "comp";
+function _complementosDoItem(it) {
+  const lista = [];
+  String(it.detalhes || "").split(" · ").forEach(parte => {
+    let m = parte.match(/^Complementos:\s*(.+)$/i) || parte.match(/^\d+º\s*açaí[^:]*:\s*(.+)$/i);
+    if (!m) return;
+    let t = m[1].replace(/\s*\(\+[^)]*\)\s*$/, "").trim();
+    if (!t || /^sem complementos$/i.test(t)) return;
+    t.split(",").map(x => x.trim()).filter(Boolean).forEach(x => lista.push(x));
+  });
+  return lista;
+}
+function _contarCompUsados() {
+  const comp = {}, adic = {};
+  const somar = (obj, nome, q) => { const k = String(nome).trim(); if (k) obj[k] = (obj[k] || 0) + q; };
+  const itens = [
+    ...pedidosSiteRelatorio.filter(p => p.status !== "cancelado").flatMap(p => p.itens || []),
+    ...vendasRelatorio.flatMap(v => v.itens || []),
+  ];
+  itens.forEach(it => {
+    const q = Number(it.quantidade ?? it.qtd ?? 1) || 1;
+    _complementosDoItem(it).forEach(n => somar(comp, n, q));
+    (Array.isArray(it.adicionais) ? it.adicionais : []).forEach(n => somar(adic, n, q));
+  });
+  const ord = (o) => Object.entries(o).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"));
+  return { comp: ord(comp), adic: ord(adic) };
+}
+function filtrarCompUsados(f) {
+  _compFiltro = f;
+  document.querySelectorAll("#comp-filtro [data-comp]").forEach(b => b.classList.toggle("ativo", b.dataset.comp === f));
+  renderCompUsados();
+}
+function renderCompUsados() {
+  const el = document.getElementById("comp-usados");
+  if (!el) return;
+  const lista = _contarCompUsados()[_compFiltro];
+  if (!lista.length) { el.innerHTML = `<p class="ingr-vazio">Nada registrado neste mês ainda.</p>`; return; }
+  const max = lista[0][1], total = lista.reduce((s, x) => s + x[1], 0);
+  el.innerHTML = lista.map(([nome, n], i) => `
+    <div class="comp-linha${i < 3 ? " top" : ""}">
+      <span class="comp-pos">${i + 1}º</span>
+      <span class="comp-nome">${_escAttr(nome)}</span>
+      <span class="comp-barra"><span style="width:${Math.max(4, Math.round(n / max * 100))}%"></span></span>
+      <span class="comp-num">${n}× <small>${Math.round(n / total * 100)}%</small></span>
+    </div>`).join("");
+}
+function compUsadosWhats() {
+  const { comp, adic } = _contarCompUsados();
+  const mesStr = document.getElementById("relatorio-mes").value || mesAtualStr();
+  const [ano, mes] = mesStr.split("-").map(Number);
+  const linha = ([nome, n], i) => `${i + 1}. ${nome} — ${n}×`;
+  const txt = [`🥄 *${_cfgLoja.nomeLoja || "Açaí da Bru"} — mais usados em ${NOMES_MES[mes - 1]}/${ano}*`, "",
+    "*Complementos*", ...(comp.length ? comp.map(linha) : ["(nenhum)"]), "",
+    "*Adicionais*", ...(adic.length ? adic.map(linha) : ["(nenhum)"])].join("\n");
+  window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank");
+}
+
 function renderRelatorio() {
   const totalMes = vendasRelatorio.reduce((s,v) => s + Number(v.total||0), 0);
   document.getElementById("relatorio-stat-qtd").textContent   = vendasRelatorio.length;
@@ -5340,6 +5426,7 @@ function renderRelatorio() {
   renderRelatorioGrafico();
   renderRelatorioHorarios();
   renderRelatorioGraficoPagamento();
+  renderCompUsados();
 
   const tbody = document.getElementById("relatorio-tabela");
   if (!vendasRelatorio.length) {
@@ -5958,7 +6045,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261104d"></script>
-<script src="post-do-dia.js?v=20261104d"></script>
+<script src="estoque-loja.js?v=20261104e"></script>
+<script src="post-do-dia.js?v=20261104e"></script>
 </body>
 </html>
