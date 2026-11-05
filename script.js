@@ -1071,6 +1071,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         promocao:   { nome: "Promoção",    icone: "fa-tag" },
         novidade:   { nome: "Novidade",    icone: "fa-wand-magic-sparkles" },
         maisPedido: { nome: "Mais pedido", icone: "fa-fire" },
+        kids:       { nome: "Kids",        icone: "fa-child-reaching" },
     };
     const seloDe = (p) => {
         const s = p.selo !== undefined && p.selo !== null ? p.selo : (p.destaque ? "promocao" : "");
@@ -1173,6 +1174,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const virtuais = [
             { id: "__promocao", nome: "Promoções", icone: "fa-tag" },
             { id: "__novidade", nome: "Novidades", icone: "fa-wand-magic-sparkles" },
+            { id: "__kids", nome: "Kids", icone: "fa-child-reaching" },
         ].filter((v) => produtos.some((p) => seloDe(p) === v.id.slice(2)));
         const chip = (id, nome, icone) => `
             <button class="category-chip${(categoriaAtiva || "all") === id ? " active" : ""}" type="button" data-category="${id}">
@@ -1213,12 +1215,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             || (Array.isArray(p.complementosLista) && p.complementosLista.length && tamanhos.some(t => Number(t.complementosGratis) > 0))
             || (Array.isArray(p.adicionaisPagos) && p.adicionaisPagos.length);
         return `
-            <div class="product-card${esgotado ? " produto-esgotado" : ""}" data-id="${p.id}" data-precisa-detalhe="${precisaDetalhe ? "1" : ""}">
+            <div class="product-card${esgotado ? " produto-esgotado" : ""}${seloDe(p) === "kids" ? " product-card--kids" : ""}" data-id="${p.id}" data-precisa-detalhe="${precisaDetalhe ? "1" : ""}">
                 ${badgeDestaque}
                 <img class="product-img" src="${p.imagem}" alt="${p.nome}" loading="lazy">
                 <div class="product-info">
                     <h3 class="product-name">${p.nome}</h3>
-                    <p class="product-description">${p.descricao}</p>
+                    <p class="product-description">${p.descricao || ""}</p>
                     ${esgotado ? tagEsgotado : tagEncomenda}
                     <p class="product-price">${precoTexto}</p>
                     <button class="product-button"${esgotado ? " disabled" : ""}>${esgotado ? "Esgotado" : (precisaDetalhe ? "Escolher" : "Adicionar")}</button>
@@ -1253,6 +1255,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         produtosFiltrados = [...produtosFiltrados].sort(
             (a, b) => (seloDe(b) ? 1 : 0) - (seloDe(a) ? 1 : 0),
         );
+        // "Mostrar ao lado de" (ex.: Açaí Kids logo depois do Açaí no Copo)
+        produtosFiltrados.filter((p) => p.aposProduto).forEach((p) => {
+            const irmao = produtosFiltrados.findIndex((x) => String(x.id) === String(p.aposProduto));
+            if (irmao < 0) return;
+            produtosFiltrados = produtosFiltrados.filter((x) => x !== p);
+            produtosFiltrados.splice(produtosFiltrados.findIndex((x) => String(x.id) === String(p.aposProduto)) + 1, 0, p);
+        });
 
         if (produtosFiltrados.length === 0) {
             container.innerHTML = `
@@ -1763,9 +1772,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         const hs = Array.isArray(configLoja.horarios) ? configLoja.horarios : [];
         if (!configLoja.horarioAtivo || hs.length !== 7) return { aberta: true };
         const agora = new Date(), d = agora.getDay(), m = agora.getHours() * 60 + agora.getMinutes();
-        const dia = (i) => { const h = hs[(i + 7) % 7] || {}; const a = minutos(h.abre), f = minutos(h.fecha); return h.aberto && a !== null && f !== null ? { a, f, abre: h.abre } : null; };
+        const dia = (i) => {
+            const h = hs[(i + 7) % 7] || {}; const a = minutos(h.abre), f = minutos(h.fecha);
+            const pi = minutos(h.pausaIni), pf = minutos(h.pausaFim);
+            return h.aberto && a !== null && f !== null ? { a, f, abre: h.abre, pi, pf, volta: h.pausaFim } : null;
+        };
         const hoje = dia(d), ontem = dia(d - 1);
-        if (hoje && (hoje.f > hoje.a ? m >= hoje.a && m < hoje.f : m >= hoje.a)) return { aberta: true };
+        if (hoje && (hoje.f > hoje.a ? m >= hoje.a && m < hoje.f : m >= hoje.a)) {
+            // Intervalo do dia (ex.: fecha das 17h às 18h)
+            if (hoje.pi !== null && hoje.pf !== null && hoje.pf > hoje.pi && m >= hoje.pi && m < hoje.pf)
+                return { aberta: false, msg: `Estamos no intervalo agora. Voltamos hoje às ${horaBonita(hoje.volta)} 💜` };
+            return { aberta: true };
+        }
         if (ontem && ontem.f <= ontem.a && m < ontem.f) return { aberta: true }; // passou da meia-noite
         // Próxima abertura
         for (let k = 0; k < 8; k++) {

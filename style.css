@@ -663,3 +663,8 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 .aviso-fechado strong{color:#F3D58E}
 .finish-order-btn.loja-fechada{filter:grayscale(.7);opacity:.75}
 .pedido-sucesso-pix{background:#FFF4DC;border:1px solid #F3D58E;color:#5C1638;border-radius:12px;padding:.7rem .9rem;font-size:.85rem;line-height:1.45;margin:.2rem 0 .8rem;text-align:left}
+
+/* ===== Selo Kids (Açaí Kids) ===== */
+.product-badge-destaque.selo-kids,.detail-badge-destaque.selo-kids,.promo-card-selo.selo-kids{background:linear-gradient(135deg,#ff7ab6,#8b5cf6);color:#fff;box-shadow:0 6px 14px rgba(139,92,246,.35)}
+.product-card--kids{border:2px solid transparent;background:linear-gradient(#fff,#fff) padding-box,linear-gradient(135deg,#ff7ab6,#8b5cf6,#38bdf8) border-box}
+.product-card--kids .product-name::after{content:" 🧒"}
