@@ -43,7 +43,22 @@
   </div>
 
   <div class="card">
-    <h2><span class="n">1</span> Teste pelo app RawBT <small>(o mais provável de funcionar)</small></h2>
+    <h2><span class="n">1</span> Bluetooth direto <small>(sem app — funcionou com a impressora da Bru ✔)</small></h2>
+    <p class="sub">Funciona só no <strong>Chrome do Android</strong> e só se a impressora tiver "Bluetooth de baixa energia". Se não aparecer na lista ou der erro, tudo bem: usamos o caminho 1.</p>
+    <ol>
+      <li><strong>Desligue e ligue</strong> a impressora antes do primeiro teste (para ela aparecer na lista).</li>
+      <li>Toque em <strong>Procurar a impressora e imprimir</strong> e escolha <strong>CE-O1501B</strong>.</li>
+      <li>Depois, toque em <strong>Imprimir de novo</strong> 2 ou 3 vezes — não precisa escolher de novo.</li>
+    </ol>
+    <div class="botoes">
+      <button onclick="imprimirBluetoothDireto(false)">Procurar a impressora e imprimir</button>
+      <button id="bt-novamente" onclick="imprimirBluetoothDireto(true)" hidden>Imprimir de novo (mesma impressora)</button>
+      <button id="bt-desconectar" class="claro" onclick="desconectarImpressora()" hidden>Desconectar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span> Teste pelo app RawBT <small>(só se o Bluetooth direto não der certo — precisa instalar o app)</small></h2>
     <ol>
       <li>No celular, instale o app <strong>RawBT</strong> (Play Store: "RawBT print service").</li>
       <li>Abra o RawBT → <strong>Configurações</strong> → Tipo de conexão: <strong>Bluetooth</strong> → escolha a impressora na lista (pareie se pedir; a senha costuma ser <strong>0000</strong> ou <strong>1234</strong>).</li>
@@ -56,14 +71,6 @@
       <button class="claro" onclick="imprimirRawbtEscpos(false)">C) Imprimir — modo impressora, sem acentos</button>
     </div>
     <small>Se o celular perguntar "Abrir com RawBT?", marque <strong>Sempre</strong>.</small>
-  </div>
-
-  <div class="card">
-    <h2><span class="n">2</span> Teste pelo Bluetooth direto <small>(sem app — só algumas impressoras aceitam)</small></h2>
-    <p class="sub">Funciona só no <strong>Chrome do Android</strong> e só se a impressora tiver "Bluetooth de baixa energia". Se não aparecer na lista ou der erro, tudo bem: usamos o caminho 1.</p>
-    <div class="botoes">
-      <button onclick="imprimirBluetoothDireto()">Procurar a impressora e imprimir</button>
-    </div>
   </div>
 
   <div class="card">
@@ -159,38 +166,76 @@ function imprimirRawbtEscpos(comAcentos) {
 }
 
 // ── Teste 2: Bluetooth direto (Web Bluetooth, só BLE) ────────────────────────
+// A impressora fica CONECTADA depois da 1ª vez: as próximas impressões usam a mesma
+// conexão (sem abrir a lista de novo). Os dados vão em pedaços pequenos (20 bytes),
+// esperando a impressora confirmar cada um — assim a comanda sai inteira.
 const SERVICOS = [
   "000018f0-0000-1000-8000-00805f9b34fb", "0000ff00-0000-1000-8000-00805f9b34fb",
   "0000fee7-0000-1000-8000-00805f9b34fb", "49535343-fe7d-4ae5-8fa9-9fafd205e455",
   "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
 ];
-async function imprimirBluetoothDireto() {
-  if (!("bluetooth" in navigator)) { log("Bluetooth direto: este navegador não permite. Use o Chrome no Android, ou o teste 1.", "erro"); return; }
-  try {
-    log("Bluetooth direto: escolha a impressora na lista que vai abrir…");
-    const dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SERVICOS });
-    log(`Bluetooth direto: escolhida "${dev.name || "sem nome"}". Conectando…`);
-    const srv = await dev.gatt.connect();
-    let carac = null;
-    for (const uuid of SERVICOS) {
-      try {
-        const s = await srv.getPrimaryService(uuid);
-        for (const c of await s.getCharacteristics()) if (c.properties.write || c.properties.writeWithoutResponse) { carac = c; break; }
-      } catch (e) { /* serviço não existe nesta impressora */ }
-      if (carac) { log(`Bluetooth direto: canal de impressão encontrado (${uuid.slice(4, 8)}).`); break; }
-    }
-    if (!carac) { log("Bluetooth direto: conectou, mas a impressora não tem canal de impressão por aqui. Use o teste 1 (RawBT).", "erro"); dev.gatt.disconnect(); return; }
-    const dados = bytesEscpos(COMANDA, true);
-    for (let i = 0; i < dados.length; i += 100) {
-      const parte = dados.slice(i, i + 100);
-      if (carac.properties.writeWithoutResponse) await carac.writeValueWithoutResponse(parte); else await carac.writeValue(parte);
-      await new Promise(r => setTimeout(r, 30));
-    }
-    log("Bluetooth direto: enviado! Conferiu a comanda impressa?", "ok");
-    setTimeout(() => dev.gatt.disconnect(), 1500);
-  } catch (e) {
-    log(`Bluetooth direto: ${e.name === "NotFoundError" ? "nenhuma impressora escolhida (ou ela não aparece por esse modo)." : e.message}`, "erro");
+let impDev = null, impCarac = null;
+const pausa = (ms) => new Promise(r => setTimeout(r, ms));
+function mostrarBotoesConectado(on) {
+  document.getElementById("bt-novamente").hidden = !on;
+  document.getElementById("bt-desconectar").hidden = !on;
+}
+async function acharCanal(srv) {
+  for (const uuid of SERVICOS) {
+    try {
+      const s = await srv.getPrimaryService(uuid);
+      for (const c of await s.getCharacteristics()) if (c.properties.write || c.properties.writeWithoutResponse) return c;
+    } catch (e) { /* serviço não existe nesta impressora */ }
   }
+  return null;
+}
+async function conectar(dev) {
+  if (!dev.gatt.connected) { log(`Conectando em "${dev.name || "impressora"}"…`); await dev.gatt.connect(); }
+  impCarac = await acharCanal(dev.gatt);
+  if (!impCarac) throw new Error("a impressora não tem canal de impressão por aqui");
+  impDev = dev;
+  dev.addEventListener("gattserverdisconnected", () => { log("A impressora desconectou (desligou ou ficou longe). Toque em \"Imprimir de novo\" que ela reconecta."); }, { once: true });
+  mostrarBotoesConectado(true);
+}
+async function enviarBytes(dados) {
+  const comResposta = impCarac.properties.write;
+  for (let i = 0; i < dados.length; i += 20) {
+    const parte = dados.slice(i, i + 20);
+    if (comResposta) await impCarac.writeValueWithResponse(parte);
+    else { await impCarac.writeValueWithoutResponse(parte); await pausa(25); }
+  }
+}
+async function imprimirBluetoothDireto(novamente) {
+  if (!("bluetooth" in navigator)) { log("Bluetooth direto: este navegador não permite. Use o Chrome no Android.", "erro"); return; }
+  try {
+    if (novamente && impDev) {
+      await conectar(impDev);
+    } else {
+      // Já autorizada antes? Tenta reconectar sem abrir a lista
+      let dev = null;
+      if (navigator.bluetooth.getDevices) {
+        try { dev = (await navigator.bluetooth.getDevices()).find(d => /CE-|printer|impress|MPT|PT-|RPP/i.test(d.name || "")) || null; } catch (e) { dev = null; }
+      }
+      if (!dev) {
+        log("Escolha a impressora na lista que vai abrir…");
+        dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SERVICOS });
+      }
+      await conectar(dev);
+      log(`Conectada: "${dev.name || "impressora"}".`, "ok");
+    }
+    log("Imprimindo… (a comanda inteira leva alguns segundos)");
+    const t0 = Date.now();
+    await enviarBytes(bytesEscpos(COMANDA, true));
+    log(`Enviado por completo em ${((Date.now() - t0) / 1000).toFixed(1)}s! Saiu inteira, até "Obrigado pela preferência"?`, "ok");
+  } catch (e) {
+    if (e.name === "NotFoundError") log("Nenhuma impressora escolhida. Se ela não aparece na lista: DESLIGUE e LIGUE a impressora e tente de novo.", "erro");
+    else log(`Bluetooth direto: ${e.message}. Desligue e ligue a impressora e tente de novo.`, "erro");
+  }
+}
+function desconectarImpressora() {
+  try { impDev?.gatt?.disconnect(); } catch (e) {}
+  impDev = null; impCarac = null; mostrarBotoesConectado(false);
+  log("Desconectada.");
 }
 </script>
 </body>
