@@ -570,6 +570,8 @@
     @media (max-width: 600px) { .pdv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; } }
     @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .stats-row .stat-card { min-width: 100px; } .modal { padding: 20px; } }
     /* ── RECORTE MANUAL DE FOTO ── */
+    .pdv-cart-item-det { font-size: .72rem; color: var(--muted); line-height: 1.35; margin: 2px 0; white-space: normal; }
+    #pdvm-modal .np-config { border: 0; padding: 0; background: none; max-height: none; overflow: visible; }
     .crop-aviso { font-size: .8rem; background: rgba(212,162,76,.15); color: var(--text); border: 1px solid var(--gold); border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
     .crop-aviso i { color: var(--gold); }
     .crop-rodape { justify-content: space-between; flex-wrap: wrap; gap: 10px; }
@@ -1580,6 +1582,16 @@
         <button class="btn btn-primary" id="ped-modal-salvar"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- PDV: montar o item (tamanho, complementos de cada açaí, adicionais) -->
+<div class="modal-overlay" id="pdvm-modal">
+  <div class="modal np-modal">
+    <button class="modal-close" onclick="fecharModal('pdvm-modal')">&times;</button>
+    <h2 id="pdvm-titulo"><i class="fa-solid fa-ice-cream"></i> Montar</h2>
+    <p style="color:var(--muted);font-size:.8rem;margin:-4px 0 12px">Marque o que vai em cada açaí — fica no comprovante e no relatório, e o estoque baixa o copo certo.</p>
+    <div id="pdvm-config" class="np-config"></div>
   </div>
 </div>
 
@@ -2739,7 +2751,7 @@ function _consumoDeItens(itens, ehPdv) {
     const prod = _produtoDoItem(it);
     if (!prod) return;
     const q = Number(it.quantidade ?? it.qtd ?? 1) || 1;
-    const tam = ehPdv ? null : (it.tamanho || "");
+    const tam = it.tamanho !== undefined ? (it.tamanho || "") : (ehPdv ? null : "");
     _estoque.forEach(e => {
       if (!_estTemQtd(e)) return;
       (e.vinculos || []).forEach(v => {
@@ -3174,6 +3186,7 @@ function salvarBairros() {
 // complemento extra pago, adicionais por copo no combo, itens em falta escondidos) e grava
 // em "pedidos" — aparece na lista com as mesmas etapas, avisos, caixa e relatórios.
 let _np = null;
+let _npAlvo = "np-config";   // onde a montagem do item aparece: "np-config" (Novo pedido) ou "pdvm-config" (PDV)
 
 // Produto com as listas resolvidas (lista da loja − exceções − itens em falta), igual à loja
 function produtoParaVenda(p) {
@@ -3192,6 +3205,8 @@ function produtoParaVenda(p) {
 }
 
 function abrirNovoPedido() {
+  _npAlvo = "np-config";
+  document.getElementById("pdvm-config").innerHTML = "";
   _np = { itens: [], prod: null, tamIdx: 0, comp: [[]], adic: [[]], qtd: 1, tipo: "entrega" };
   const sel = document.getElementById("np-produto");
   const ativos = todosProdutos.filter(p => p.ativo !== false && !_promoVencida(p)).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
@@ -3279,7 +3294,7 @@ function npRenderConfig() {
     if (!compHtml && !adicHtml) return "";
     return copos > 1 ? `<div class="copo-bloco"><p class="copo-titulo"><i class="fa-solid fa-ice-cream"></i> ${i + 1}º açaí${tamCopos[i] ? ` (${tamCopos[i]})` : ""}</p>${compHtml}${adicHtml}</div>` : compHtml + adicHtml;
   };
-  const cont = document.getElementById("np-config");
+  const cont = document.getElementById(_npAlvo);
   cont.innerHTML = `
     ${tams.length > 1 ? `<label class="np-campo">Tamanho<select onchange="_np.tamIdx=Number(this.value);npRenderConfig()">${tams.map((t, i) => { const esg = (p.tamanhosEsgotados || []).includes(t.nome); return `<option value="${i}" ${i === _np.tamIdx ? "selected" : ""} ${esg ? "disabled" : ""}>${_escAttr(t.nome)} — ${_brl(t.preco)}${Number(t.complementosGratis) ? ` (${t.complementosGratis} grátis)` : ""}${esg ? " — esgotado" : ""}</option>`; }).join("")}</select></label>` : ""}
     ${p.opcaoInclusa && (p.opcaoInclusa.opcoes || []).length ? `<label class="np-campo">${_escAttr(p.opcaoInclusa.label || "Opção")}<select onchange="_np.opcao=this.value"><option value="">Escolha…</option>${p.opcaoInclusa.opcoes.map(o => { const esg = (p.opcoesEsgotadas || []).includes(o); return `<option value="${_escAttr(o)}" ${o === _np.opcao ? "selected" : ""} ${esg ? "disabled" : ""}>${_escAttr(o)}${esg ? " — esgotado" : ""}</option>`; }).join("")}</select></label>` : ""}
@@ -3287,7 +3302,7 @@ function npRenderConfig() {
     <div class="np-add">
       <label class="np-campo">Qtd<input type="number" min="1" max="50" value="${_np.qtd}" oninput="_np.qtd=Math.max(1,parseInt(this.value)||1);npPrecoItem()"></label>
       <span class="np-preco-item" id="np-preco-item"></span>
-      <button class="btn btn-primary btn-sm" onclick="npAdicionarItem()"><i class="fa-solid fa-cart-plus"></i> Adicionar ao pedido</button>
+      <button class="btn btn-primary btn-sm" onclick="npAdicionarItem()"><i class="fa-solid fa-cart-plus"></i> ${_npAlvo === "pdvm-config" ? "Adicionar à venda" : "Adicionar ao pedido"}</button>
     </div>`;
   cont.hidden = false;
   npPrecoItem();
@@ -3303,9 +3318,10 @@ function npAlterna(tipo, i, nome, on) {
     const a = _np.prod.adicionaisPagos.find(x => x.nome === nome);
     _np.adic[i] = on ? [..._np.adic[i].filter(x => x.nome !== nome), a] : _np.adic[i].filter(x => x.nome !== nome);
   }
-  const rol = document.getElementById("np-config").scrollTop;
+  const caixa = _npAlvo === "pdvm-config" ? document.querySelector("#pdvm-modal .modal") : document.getElementById(_npAlvo);
+  const rol = caixa.scrollTop;
   npRenderConfig();
-  document.getElementById("np-config").scrollTop = rol;
+  caixa.scrollTop = rol;
 }
 
 function npAdicionarItem() {
@@ -3324,12 +3340,14 @@ function npAdicionarItem() {
   const extras = _npExtras();
   if (extras) partes.push(`${extras} complemento${extras > 1 ? "s" : ""} extra${extras > 1 ? "s" : ""}`);
   if (copos === 1 && _np.adic[0].length) partes.push(`Adicionais: ${_np.adic[0].map(a => a.nome).join(", ")}`);
-  _np.itens.push({
+  const novoItem = {
     nome: p.nome, tamanho: tam.nome || "", quantidade: _np.qtd, opcao: temOpcao ? _np.opcao : "",
     preco: Math.round(_npUnit() * 100) / 100,
     detalhes: partes.join(" · "), produtoId: Number(p.id) || null, extras,
     adicionais: _np.adic.flat().map(a => a.nome),
-  });
+  };
+  if (_npAlvo === "pdvm-config") { pdvReceberItemMontado(p, novoItem); return; }
+  _np.itens.push(novoItem);
   document.getElementById("np-produto").value = "";
   document.getElementById("np-config").hidden = true;
   npRenderItens();
@@ -4795,7 +4813,7 @@ function confirmarExclusao(tipo, docId, nome) {
 }
 
 // ── PDV ───────────────────────────────────────────────────────────────────
-let pdvCarrinho = [];       // [{ docId, nome, preco, qtd }]
+let pdvCarrinho = [];       // [{ chave, docId, nome, preco, qtd, tamanho?, opcao?, detalhes?, extras?, adicionais? }]
 let pdvCupomAplicado = null;
 let vendasHoje = [];
 let vendasRelatorio = [];
@@ -4823,37 +4841,74 @@ function renderPdvGrid() {
   }).join("");
 }
 
+// Produto que precisa de escolhas (tamanho, opção, complementos, adicionais ou combo) abre a montagem
+function _pdvPrecisaMontar(p) {
+  const pv = produtoParaVenda(p);
+  const tams = pv.tamanhos || [];
+  const gratis = tams.some(t => Number(t.complementosGratis) > 0);
+  return tams.length > 1 || (Number(pv.copos) || 1) > 1
+    || (pv.opcaoInclusa && (pv.opcaoInclusa.opcoes || []).length)
+    || (gratis && pv.complementosLista.length) || pv.adicionaisPagos.length;
+}
+const _pdvQtdProduto = (docId) => pdvCarrinho.filter(i => i.docId === docId).reduce((s, i) => s + i.qtd, 0);
+function _pdvTemEstoque(p, mais) {
+  if (p.estoque === undefined || p.estoque === null) return true;
+  if (_pdvQtdProduto(p.docId) + mais <= Number(p.estoque)) return true;
+  toast(`Estoque insuficiente: só há ${p.estoque} unidade(s) de "${p.nome}".`, "err");
+  return false;
+}
+
 function pdvAdicionarItem(docId) {
   const p = todosProdutos.find(x => x.docId === docId);
   if (!p) return;
-  const item = pdvCarrinho.find(i => i.docId === docId);
-  const qtdAtual = item ? item.qtd : 0;
-  if (p.estoque !== undefined && p.estoque !== null && qtdAtual + 1 > Number(p.estoque)) {
-    toast(`Estoque insuficiente: só há ${p.estoque} unidade(s) de "${p.nome}".`, "err");
-    return;
-  }
+  if (!_pdvTemEstoque(p, 1)) return;
+  if (_pdvPrecisaMontar(p)) { pdvAbrirMontagem(p); return; }
+  const item = pdvCarrinho.find(i => i.chave === docId);
   if (item) item.qtd += 1;
-  else pdvCarrinho.push({ docId, nome: p.nome, preco: Number(p.preco||0), qtd: 1 });
+  else pdvCarrinho.push({ chave: docId, docId, nome: p.nome, preco: Number(p.preco||0), qtd: 1 });
   renderPdvCart();
 }
 
-function pdvAlterarQtd(docId, delta) {
-  const item = pdvCarrinho.find(i => i.docId === docId);
+function pdvAbrirMontagem(p) {
+  const prod = produtoParaVenda(p);
+  const copos = Math.max(1, Number(prod.copos) || 1);
+  _npAlvo = "pdvm-config";
+  document.getElementById("np-config").innerHTML = "";
+  _np = { itens: [], prod, tamIdx: 0, qtd: 1, opcao: "", comp: Array.from({ length: copos }, () => []), adic: Array.from({ length: copos }, () => []) };
+  document.getElementById("pdvm-titulo").innerHTML = `<i class="fa-solid fa-ice-cream"></i> ${_escAttr(p.nome)}`;
+  npRenderConfig();
+  abrirModal("pdvm-modal");
+  document.querySelector("#pdvm-modal .modal").scrollTop = 0;
+}
+
+// Chamado pela montagem (npAdicionarItem) quando ela está no PDV
+function pdvReceberItemMontado(p, it) {
+  if (!_pdvTemEstoque(p, it.quantidade)) return;
+  const chave = [p.docId, it.tamanho, it.opcao, it.detalhes].join("|");
+  const igual = pdvCarrinho.find(i => i.chave === chave);
+  if (igual) igual.qtd += it.quantidade;
+  else pdvCarrinho.push({ chave, docId: p.docId, nome: p.nome, preco: it.preco, qtd: it.quantidade,
+    tamanho: it.tamanho, opcao: it.opcao, detalhes: it.detalhes, extras: it.extras, adicionais: it.adicionais });
+  fecharModal("pdvm-modal");
+  _npAlvo = "np-config";
+  renderPdvCart();
+  toast(`${p.nome} na venda`, "ok");
+}
+
+function pdvAlterarQtd(chave, delta) {
+  const item = pdvCarrinho.find(i => i.chave === chave);
   if (!item) return;
   if (delta > 0) {
-    const p = todosProdutos.find(x => x.docId === docId);
-    if (p && p.estoque !== undefined && p.estoque !== null && item.qtd + delta > Number(p.estoque)) {
-      toast(`Estoque insuficiente: só há ${p.estoque} unidade(s) de "${item.nome}".`, "err");
-      return;
-    }
+    const p = todosProdutos.find(x => x.docId === item.docId);
+    if (p && !_pdvTemEstoque(p, delta)) return;
   }
   item.qtd += delta;
-  if (item.qtd <= 0) pdvCarrinho = pdvCarrinho.filter(i => i.docId !== docId);
+  if (item.qtd <= 0) pdvCarrinho = pdvCarrinho.filter(i => i.chave !== chave);
   renderPdvCart();
 }
 
-function pdvRemoverItem(docId) {
-  pdvCarrinho = pdvCarrinho.filter(i => i.docId !== docId);
+function pdvRemoverItem(chave) {
+  pdvCarrinho = pdvCarrinho.filter(i => i.chave !== chave);
   renderPdvCart();
 }
 
@@ -4912,19 +4967,20 @@ function renderPdvCart() {
   if (!pdvCarrinho.length) {
     cont.innerHTML = `<div class="pdv-cart-empty">Carrinho vazio. Clique em um produto para adicionar.</div>`;
   } else {
-    cont.innerHTML = pdvCarrinho.map(i => `
+    cont.innerHTML = pdvCarrinho.map((i, idx) => `
       <div class="pdv-cart-item">
         <div class="pdv-cart-item-info">
-          <div class="pdv-cart-item-nome">${i.nome}</div>
+          <div class="pdv-cart-item-nome">${_escAttr(i.nome)}${i.tamanho && !i.detalhes ? ` (${_escAttr(i.tamanho)})` : ""}</div>
+          ${i.detalhes ? `<div class="pdv-cart-item-det">${_escAttr(i.detalhes)}</div>` : ""}
           <div class="pdv-cart-item-preco">R$ ${i.preco.toFixed(2).replace('.',',')} un.</div>
         </div>
         <div class="pdv-qty">
-          <button class="pdv-qty-btn" onclick="pdvAlterarQtd('${i.docId}',-1)">−</button>
+          <button class="pdv-qty-btn" onclick="pdvAlterarQtd(pdvCarrinho[${idx}].chave,-1)">−</button>
           <span>${i.qtd}</span>
-          <button class="pdv-qty-btn" onclick="pdvAlterarQtd('${i.docId}',1)">+</button>
+          <button class="pdv-qty-btn" onclick="pdvAlterarQtd(pdvCarrinho[${idx}].chave,1)">+</button>
         </div>
         <div class="pdv-cart-item-total">R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}</div>
-        <button class="pdv-remove-btn" onclick="pdvRemoverItem('${i.docId}')"><i class="fa-solid fa-trash"></i></button>
+        <button class="pdv-remove-btn" onclick="pdvRemoverItem(pdvCarrinho[${idx}].chave)"><i class="fa-solid fa-trash"></i></button>
       </div>`).join("");
   }
   const subtotal  = pdvCalcularSubtotal();
@@ -5024,7 +5080,11 @@ async function pdvFinalizarVenda() {
   });
 
   const venda = {
-    itens: pdvCarrinho.map(i => ({ nome: i.nome, preco: i.preco, qtd: i.qtd, docId: i.docId })),
+    itens: pdvCarrinho.map(i => {
+      const it = { nome: i.nome, preco: i.preco, qtd: i.qtd, docId: i.docId };
+      if (i.tamanho !== undefined) Object.assign(it, { tamanho: i.tamanho || "", opcao: i.opcao || "", detalhes: i.detalhes || "", extras: i.extras || 0, adicionais: i.adicionais || [] });
+      return it;
+    }),
     subtotal, desconto, total,
     pagamentos: pagamentosComTroco,
     pagamento: pagamentos.map(p => PAG_LABEL[p.forma] || p.forma).join(" + "),
@@ -5101,7 +5161,7 @@ function abrirDetalhesVenda(docId, origem) {
 
   const itensHtml = (v.itens || []).map(i => `
     <tr>
-      <td>${i.qtd}x ${i.nome}</td>
+      <td>${i.qtd}x ${_escAttr(i.nome)}${i.tamanho && !i.detalhes ? ` (${_escAttr(i.tamanho)})` : ""}${i.detalhes ? `<div style="font-size:.75rem;color:var(--muted);line-height:1.35">${_escAttr(i.detalhes)}</div>` : ""}</td>
       <td style="text-align:right">R$ ${Number(i.preco||0).toFixed(2).replace('.',',')}</td>
       <td style="text-align:right;font-weight:700">R$ ${(Number(i.preco||0) * Number(i.qtd||0)).toFixed(2).replace('.',',')}</td>
     </tr>`).join("");
@@ -5898,7 +5958,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261104c"></script>
-<script src="post-do-dia.js?v=20261104c"></script>
+<script src="estoque-loja.js?v=20261104d"></script>
+<script src="post-do-dia.js?v=20261104d"></script>
 </body>
 </html>
