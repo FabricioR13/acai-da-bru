@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="Bru Painel">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="assets/app-icone-apple.png">
-  <script>try { if (localStorage.getItem("admin:tema") === "claro") document.documentElement.dataset.tema = "claro"; } catch (e) {}</script>
+  <script>document.documentElement.classList.add("tela-login"); try { if (localStorage.getItem("admin:tema") === "claro") document.documentElement.dataset.tema = "claro"; } catch (e) {}</script>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <!-- Fontes da loja, usadas na imagem do Post do dia -->
@@ -75,7 +75,11 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
     /* Tela de login com as cores da Bru (igual no tema claro e no escuro) */
-    #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; gap: 18px; padding: 28px 16px 18px;
+    /* Fixa na tela inteira: sem rolagem e sem faixa branca embaixo no celular.
+       Só rola por dentro se não couber (ex.: teclado aberto em celular pequeno). */
+    html.tela-login, html.tela-login body { background: #1c0613; overflow: hidden; overscroll-behavior: none; height: 100%; padding-bottom: 0 !important; }
+    #login-screen { position: fixed; inset: 0; z-index: 2000; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+      display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 18px; padding: max(28px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
       background: radial-gradient(120% 70% at 50% 0%, #7A1F4B 0%, #3a0f27 55%, #1c0613 100%); color: #FFF9F2; font-family: "Inter", system-ui, sans-serif; }
     .login-marca { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .login-logo { background: #fff; border-radius: 28px; padding: 12px 18px; box-shadow: 0 14px 40px rgba(0,0,0,.45), 0 0 0 3px rgba(212,162,76,.55); margin-bottom: 12px; }
@@ -92,6 +96,13 @@
     .login-box .login-lembrar input { accent-color: #7A1F4B; }
     .login-box .login-esqueci { color: #7A1F4B; }
     .login-box .login-esqueci:hover { color: #5C1638; }
+    @media (max-height: 700px) {
+      #login-screen { gap: 12px; }
+      .login-logo { padding: 8px 12px; border-radius: 20px; margin-bottom: 6px; }
+      .login-logo img { width: 120px; }
+      #login-screen h1 { font-size: 1.25rem; }
+      .login-box { padding: 18px 18px; gap: 10px; }
+    }
     .login-tf { display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; font-size: .74rem; color: rgba(255,249,242,.55); text-decoration: none; transition: .2s; }
     .login-tf img { width: 22px; height: 22px; border-radius: 6px; object-fit: cover; opacity: .85; }
     .login-tf strong { font-weight: 600; color: rgba(255,249,242,.75); }
@@ -1872,10 +1883,12 @@ auth.onAuthStateChanged(async user => {
       return;
     }
     document.getElementById("login-screen").style.display = "none";
+    document.documentElement.classList.remove("tela-login");
     document.getElementById("app").style.display = "block";
     inicializar();
   } else {
     document.getElementById("login-screen").style.display = "flex";
+    document.documentElement.classList.add("tela-login");
     document.getElementById("app").style.display = "none";
   }
 });
@@ -5885,7 +5898,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261104b"></script>
-<script src="post-do-dia.js?v=20261104b"></script>
+<script src="estoque-loja.js?v=20261104c"></script>
+<script src="post-do-dia.js?v=20261104c"></script>
 </body>
 </html>
