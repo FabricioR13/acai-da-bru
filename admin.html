@@ -2054,7 +2054,7 @@ function mensagemEtapa(p, etapa) {
     preparo: `${nome}, seu pedido ${n}já está sendo preparado! 🍧${_ehEntrega(p) ? tempo : ""}`,
     saiu: _ehEntrega(p)
       ? `🛵 Seu pedido ${n}saiu para entrega!\n\nOba! Logo logo seu açaí chega aí, ${nome}! 💜\n\nEnquanto isso, aproveite para seguir nossas redes sociais e ficar por dentro das novidades e promoções do ${loja}! 🍧✨`
-        + (/instagram\.com/i.test(_cfgLoja.sobreLink || "") ? `\n${_cfgLoja.sobreLink}` : "")
+        + `\n${/instagram\.com/i.test(_cfgLoja.sobreLink || "") ? String(_cfgLoja.sobreLink).split("?")[0] : "https://www.instagram.com/acaidabru_cb"}`
         + `\n\nObrigada pela preferência! 💜`
       : `${nome}, seu pedido ${n}está pronto para retirada! 🍧`,
     entregue: `Pedido ${n}entregue! Obrigada pela preferência, ${nome} 💜 Bom açaí!`
