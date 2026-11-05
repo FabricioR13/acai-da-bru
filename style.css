@@ -662,3 +662,4 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 .aviso-fechado i{color:#D4A24C;font-size:1rem}
 .aviso-fechado strong{color:#F3D58E}
 .finish-order-btn.loja-fechada{filter:grayscale(.7);opacity:.75}
+.pedido-sucesso-pix{background:#FFF4DC;border:1px solid #F3D58E;color:#5C1638;border-radius:12px;padding:.7rem .9rem;font-size:.85rem;line-height:1.45;margin:.2rem 0 .8rem;text-align:left}

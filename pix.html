@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Pagar com PIX – Açaí da Bru</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!--
+    Página de pagamento PIX do pedido. Chega pelo link da mensagem "Em preparo".
+    Lê a chave, o nome e a cidade em configuracoes/geral (públicos) e monta o PIX
+    "copia e cola" com o valor e o código do pedido. Não confirma o pagamento sozinha:
+    a loja confere no app do banco e marca "Pago" no painel.
+  -->
+  <style>
+    :root { --vinho:#7A1F4B; --vinho-escuro:#2B0D1E; --dourado:#D4A24C; --borda:#EEDDE3; --ok:#16a34a; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #FFF9F2; color: #2B1420; min-height: 100vh; padding: 20px 16px 32px; display: flex; justify-content: center; }
+    main { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+    .topo { text-align: center; }
+    .topo img { height: 76px; width: auto; }
+    h1 { font-family: 'Montserrat', sans-serif; font-size: 1.25rem; color: var(--vinho-escuro); margin-top: 4px; }
+    .sub { font-size: .88rem; color: #6b5a63; }
+    .card { background: #fff; border: 1px solid var(--borda); border-radius: 18px; padding: 18px; box-shadow: 0 12px 30px rgba(43,13,30,.08); display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; }
+    .valor { font-family: 'Montserrat', sans-serif; font-size: 2rem; font-weight: 800; color: var(--vinho); }
+    .valor small { display: block; font-family: 'Inter', sans-serif; font-size: .8rem; font-weight: 600; color: #6b5a63; }
+    #qr { background: #fff; padding: 8px; border-radius: 12px; border: 1px solid var(--borda); }
+    #qr img, #qr canvas { display: block; width: 210px !important; height: 210px !important; }
+    button, .btn { font: inherit; font-weight: 700; border: 0; border-radius: 12px; padding: 14px; width: 100%; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+    .copiar { background: var(--vinho); color: #fff; font-size: 1rem; }
+    .copiar.ok { background: var(--ok); }
+    .claro { background: #f3e9ee; color: var(--vinho-escuro); }
+    .whats { background: #25D366; color: #fff; }
+    .dados { width: 100%; font-size: .85rem; text-align: left; border-top: 1px dashed var(--borda); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .dados div { display: flex; justify-content: space-between; gap: 10px; }
+    .dados span { color: #6b5a63; }
+    .dados strong { text-align: right; }
+    .passos { font-size: .82rem; color: #6b5a63; text-align: left; line-height: 1.5; padding-left: 18px; }
+    .aviso { font-size: .78rem; color: #6b5a63; text-align: center; line-height: 1.45; }
+    .erro { font-size: .9rem; color: #b91c1c; }
+    .rodape { text-align: center; font-size: .72rem; color: #a08f98; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topo">
+      <img src="assets/logo.jpg" alt="Açaí da Bru">
+      <h1 id="titulo">Pagamento com PIX</h1>
+      <p class="sub" id="subtitulo">Carregando…</p>
+    </div>
+
+    <div class="card" id="card" hidden>
+      <div class="valor" id="valor"></div>
+      <div id="qr" aria-label="QR Code do PIX"></div>
+      <button class="copiar" id="btn-copiar"><i class="fa-regular fa-copy"></i> Copiar código PIX</button>
+      <ol class="passos">
+        <li>Toque em <strong>Copiar código PIX</strong></li>
+        <li>No app do seu banco, escolha <strong>PIX → Pix Copia e Cola</strong></li>
+        <li>Cole, confira o valor e o nome do recebedor, e confirme</li>
+      </ol>
+      <div class="dados" id="dados"></div>
+      <button class="claro" id="btn-chave"><i class="fa-solid fa-key"></i> Copiar só a chave PIX</button>
+      <a class="btn whats" id="btn-comprovante" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Enviar o comprovante</a>
+      <p class="aviso">O pagamento é conferido pela loja no app do banco. Depois de pagar, é só mandar o comprovante pelo WhatsApp 💜</p>
+    </div>
+    <p class="erro" id="erro" hidden></p>
+    <p class="rodape">Açaí da Bru · pagamento direto para a loja</p>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="pix.js?v=20261105c"></script>
+  <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCLBk9GA0kisT7aCm5HFBuRBqvShaycfys",
+  authDomain: "acai-da-bru-41a8d.firebaseapp.com",
+  projectId: "acai-da-bru-41a8d",
+  storageBucket: "acai-da-bru-41a8d.firebasestorage.app",
+  messagingSenderId: "356703842862",
+  appId: "1:356703842862:web:d3de3f91843e4cfaf625bf"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const codigo = (params.get("c") || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 12);
+const valor = Math.round(Number(String(params.get("v") || "").replace(",", ".")) * 100) / 100;
+const brl = (v) => "R$ " + Number(v || 0).toFixed(2).replace(".", ",");
+const erro = (t) => { $("subtitulo").textContent = ""; $("erro").textContent = t; $("erro").hidden = false; };
+
+async function copiar(texto, btn, rotuloOk) {
+  try { await navigator.clipboard.writeText(texto); }
+  catch (e) {
+    const ta = document.createElement("textarea"); ta.value = texto; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e2) {} ta.remove();
+  }
+  const antes = btn.innerHTML;
+  btn.classList.add("ok"); btn.innerHTML = `<i class="fa-solid fa-check"></i> ${rotuloOk}`;
+  setTimeout(() => { btn.classList.remove("ok"); btn.innerHTML = antes; }, 2500);
+}
+
+(async () => {
+  let cfg = {};
+  // Padrão da Bru (vale até alguém salvar outros dados em Configurações → PIX)
+  const PADRAO = { pixChave: "69.878.196/0001-18", pixNome: "Bruna Ferreira da Silva", pixBanco: "InfinitePay (CloudWalk)", pixCidade: "Cachoeirinha", whatsapp: "5551993126436", nomeLoja: "Açaí da Bru" };
+  try { const d = await db.collection("configuracoes").doc("geral").get(); cfg = { ...PADRAO, ...(d.exists ? d.data() : {}) }; }
+  catch (e) { erro("Não consegui carregar os dados do PIX. Confira sua internet e abra o link de novo."); return; }
+  if (!cfg.pixChave || !cfg.pixNome) { erro("O pagamento por PIX ainda não está disponível. Fale com a gente pelo WhatsApp 💜"); return; }
+
+  const pix = gerarPixCopiaECola({ chave: cfg.pixChave, nome: cfg.pixNome, cidade: cfg.pixCidade, valor: valor > 0 ? valor : 0, txid: codigo });
+  $("titulo").textContent = codigo ? `Pagamento do pedido #${codigo}` : "Pagamento com PIX";
+  $("subtitulo").textContent = cfg.nomeLoja || "Açaí da Bru";
+  $("valor").innerHTML = valor > 0 ? `${brl(valor)}<small>valor do pedido</small>` : `<small>Digite no app do banco o valor combinado</small>`;
+  new QRCode($("qr"), { text: pix, width: 210, height: 210, correctLevel: QRCode.CorrectLevel.M });
+  $("dados").innerHTML = `
+    <div><span>Recebedor</span><strong>${String(cfg.pixNome).replace(/</g, "&lt;")}</strong></div>
+    ${cfg.pixBanco ? `<div><span>Banco</span><strong>${String(cfg.pixBanco).replace(/</g, "&lt;")}</strong></div>` : ""}
+    <div><span>Chave PIX${/^\d{14}$/.test(String(cfg.pixChave).replace(/\D/g, "")) ? " (CNPJ)" : ""}</span><strong>${formatarChavePix(cfg.pixChave)}</strong></div>`;
+  $("btn-copiar").onclick = () => copiar(pix, $("btn-copiar"), "Código copiado! Cole no app do banco");
+  $("btn-chave").onclick = () => copiar(String(cfg.pixChave).replace(/[^\w@.+-]/g, ""), $("btn-chave"), "Chave copiada!");
+  const tel = String(cfg.whatsapp || "").replace(/\D/g, "");
+  $("btn-comprovante").href = `https://wa.me/${tel}?text=${encodeURIComponent(`Oi! Segue o comprovante do PIX do pedido${codigo ? " #" + codigo : ""}${valor > 0 ? " (" + brl(valor) + ")" : ""} 💜`)}`;
+  $("card").hidden = false;
+})();
+  </script>
+</body>
+</html>

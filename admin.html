@@ -613,6 +613,9 @@
     /* ── RECORTE MANUAL DE FOTO ── */
     .pdv-cart-item-det { font-size: .72rem; color: var(--muted); line-height: 1.35; margin: 2px 0; white-space: normal; }
     #pdvm-modal .np-config { border: 0; padding: 0; background: none; max-height: none; overflow: visible; }
+    .pix-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pix-grid label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); }
+    @media (max-width: 600px) { .pix-grid { grid-template-columns: 1fr; } }
     .horarios-area { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
     .horario-linha { display: grid; grid-template-columns: 120px 1fr auto 1fr; align-items: center; gap: 8px; font-size: .85rem; }
     .horario-linha input[type=time] { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; color: var(--text); min-width: 0; }
@@ -1187,6 +1190,16 @@
           <label class="toggle-row"><input type="checkbox" id="config-horario-ativo" onchange="document.getElementById('horarios-area').hidden=!this.checked"> Só aceitar pedidos pelo site dentro do horário</label>
           <small style="color:var(--muted);display:block;margin:4px 0 8px">Fora do horário, o cliente vê o aviso "Estamos fechados — abrimos às…", pode olhar o cardápio e montar o carrinho, mas não consegue enviar. Fecha depois da meia-noite? Coloque, por exemplo, das 18:00 às 00:30.</small>
           <div id="horarios-area" class="horarios-area" hidden></div>
+        </div>
+        <div class="form-group full">
+          <label>PIX para o cliente pagar <small style="color:var(--muted)">(vai na mensagem de "Em preparo" quando o pagamento é PIX — com link para copiar o código com o valor já preenchido ou ler o QR Code)</small></label>
+          <div class="pix-grid">
+            <label>Chave PIX<input type="text" id="config-pix-chave" placeholder="CNPJ, e-mail, telefone ou chave aleatória"></label>
+            <label>Nome do recebedor <small style="color:var(--muted)">(igual ao do banco)</small><input type="text" id="config-pix-nome" maxlength="60" placeholder="Ex: Bruna Ferreira"></label>
+            <label>Banco <small style="color:var(--muted)">(o cliente vê para conferir)</small><input type="text" id="config-pix-banco" maxlength="40" placeholder="Ex: Nubank"></label>
+            <label>Cidade da conta<input type="text" id="config-pix-cidade" maxlength="40" placeholder="Cachoeirinha"></label>
+          </div>
+          <small style="color:var(--muted);display:block;margin-top:6px">Sem a chave e o nome, a mensagem segue sem o PIX. O pagamento <strong>não</strong> é confirmado sozinho: confira no app do banco (não só pelo print do comprovante) e marque "Pago" no pedido.</small>
         </div>
         <div class="form-group full">
           <label>WhatsApp para receber pedidos <small style="color:var(--muted)">(DDI + DDD + número, só números, ex: 5581999999999)</small></label>
@@ -2051,7 +2064,7 @@ function mensagemEtapa(p, etapa) {
   const tempo = _cfgLoja.tempoEntrega ? ` Previsão: ${_cfgLoja.tempoEntrega}.` : "";
   return {
     recebido: `Oi, ${nome}! 💜 Recebemos seu pedido ${n}aqui no ${loja}. Já já começamos a preparar!`,
-    preparo: `${nome}, seu pedido ${n}já está sendo preparado! 🍧${_ehEntrega(p) ? tempo : ""}`,
+    preparo: `${nome}, seu pedido ${n}já está sendo preparado! 🍧${_ehEntrega(p) ? tempo : ""}` + _textoPix(p),
     saiu: _ehEntrega(p)
       ? `🛵 Seu pedido ${n}saiu para entrega!\n\nOba! Logo logo seu açaí chega aí, ${nome}! 💜\n\nEnquanto isso, aproveite para seguir nossas redes sociais e ficar por dentro das novidades e promoções do ${loja}! 🍧✨`
         + `\n${/instagram\.com/i.test(_cfgLoja.sobreLink || "") ? String(_cfgLoja.sobreLink).split("?")[0] : "https://www.instagram.com/acaidabru_cb"}`
@@ -2062,6 +2075,20 @@ function mensagemEtapa(p, etapa) {
       + (_cfgLoja.googleReviewUrl ? `\n\nSe puder, deixa também sua opinião no Google — ajuda muito a gente: ${_cfgLoja.googleReviewUrl}` : ""),
     cancelado: `Oi, ${nome}. Seu pedido ${n}foi cancelado. Qualquer dúvida, é só chamar a gente por aqui.`,
   }[etapa];
+}
+// PIX na mensagem de "Em preparo" (só quando o pagamento escolhido é PIX e ainda não foi pago)
+function _textoPix(p) {
+  if (!/pix/i.test(p.pagamento || "") || p.pago || !_cfgLoja.pixChave || !_cfgLoja.pixNome) return "";
+  // Bairro fora da lista = taxa combinada pelo WhatsApp → o PIX vai sem valor
+  const lista = (Array.isArray(_cfgLoja.taxasEntrega) ? _cfgLoja.taxasEntrega : []).map(t => _normNome(t.bairro));
+  const semValor = _ehEntrega(p) && p.bairro && !lista.includes(_normNome(p.bairro)) && !Number(p.taxaEntrega);
+  const base = location.href.split("#")[0].split("?")[0].replace(/[^/]*$/, "");
+  const link = `${base}pix.html?c=${encodeURIComponent(p.codigo || "")}${semValor ? "" : `&v=${Number(p.total || 0).toFixed(2)}`}`;
+  return `\n\n💳 *Pagamento via PIX${semValor ? "" : ` — ${_brl(p.total)}`}*`
+    + `\nToque no link para copiar o código (já com o valor) ou ver o QR Code:\n${link}`
+    + `\n\nOu use a chave PIX: ${formatarChavePix(_cfgLoja.pixChave)}`
+    + `\nRecebedor: ${_cfgLoja.pixNome}${_cfgLoja.pixBanco ? ` (${_cfgLoja.pixBanco})` : ""}`
+    + `\n\nDepois é só mandar o comprovante aqui 😉`;
 }
 function linkWhatsCliente(p, etapa) {
   let tel = String(p.telefone || "").replace(/\D/g, "");
@@ -5964,6 +5991,7 @@ const CONFIG_PADRAO = {
   ],
   aceitarOutrosBairros: true,
   entregaGratis: ["Rua 37", "94971-300"],
+  pixChave: "69.878.196/0001-18", pixNome: "Bruna Ferreira da Silva", pixBanco: "InfinitePay (CloudWalk)", pixCidade: "Cachoeirinha",
   tempoEntrega: "40 a 45 minutos",
   precoComplementoExtra: 2,
   corPrimaria: "#7A1F4B",
@@ -6037,6 +6065,10 @@ async function carregarConfiguracoes() {
     if (document.getElementById("tab-disponivel").classList.contains("active")) renderDisponivel();
     document.getElementById("config-nome-loja").value  = cfg.nomeLoja;
   document.getElementById("config-horario-ativo").checked = !!cfg.horarioAtivo;
+  document.getElementById("config-pix-chave").value  = cfg.pixChave || "";
+  document.getElementById("config-pix-nome").value   = cfg.pixNome || "";
+  document.getElementById("config-pix-banco").value  = cfg.pixBanco || "";
+  document.getElementById("config-pix-cidade").value = cfg.pixCidade || "";
   document.getElementById("horarios-area").hidden = !cfg.horarioAtivo;
   renderHorarios(cfg.horarios);
   atualizarBotaoPausa();
@@ -6142,6 +6174,10 @@ async function salvarConfiguracoes() {
   const taxasEntrega = _bairrosParaSalvar();
   const aceitarOutrosBairros = document.getElementById("config-aceitar-outros-bairros").checked;
   const horarioAtivo = document.getElementById("config-horario-ativo").checked;
+  const pixChave  = document.getElementById("config-pix-chave").value.trim().slice(0, 80);
+  const pixNome   = document.getElementById("config-pix-nome").value.trim().slice(0, 60);
+  const pixBanco  = document.getElementById("config-pix-banco").value.trim().slice(0, 40);
+  const pixCidade = document.getElementById("config-pix-cidade").value.trim().slice(0, 40);
   const horarios = lerHorarios();
   if (horarioAtivo && !horarios.some(h => h.aberto)) { toast("Marque pelo menos um dia aberto no horário de funcionamento.", "err"); return; }
   const entregaGratis = document.getElementById("config-entrega-gratis").value.split("\n").map(t => t.trim()).filter(Boolean).slice(0, 20);
@@ -6212,7 +6248,7 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, lojaPausada: !!_cfgLoja.lojaPausada, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
+      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, lojaPausada: !!_cfgLoja.lojaPausada, pixChave, pixNome, pixBanco, pixCidade, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
       // campos do Estoque e do Post do dia (salvos fora desta tela)
@@ -6246,8 +6282,9 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261105b"></script>
-<script src="post-do-dia.js?v=20261105b"></script>
-<script src="impressora.js?v=20261105b"></script>
+<script src="estoque-loja.js?v=20261105c"></script>
+<script src="post-do-dia.js?v=20261105c"></script>
+<script src="impressora.js?v=20261105c"></script>
+<script src="pix.js?v=20261105c"></script>
 </body>
 </html>

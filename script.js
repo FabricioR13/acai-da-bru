@@ -1905,6 +1905,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             window.location.href = url;
         }
         salvarCliente();
+        document.getElementById("pedido-sucesso-pix").hidden = !/pix/i.test(paymentMethod || "");
         mostrarSucesso(`#${codigo}`);
     };
 
