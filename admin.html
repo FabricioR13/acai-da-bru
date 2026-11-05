@@ -200,7 +200,8 @@
     .modal h2 { font-size: 1.1rem; margin-bottom: 20px; color: var(--gold); display: flex; align-items: center; gap: 8px; }
     .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--muted); font-size: 1.3rem; cursor: pointer; transition: .2s; }
     .modal-close:hover { color: var(--text); }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; }
+    .form-grid > * { min-width: 0; }
     .form-grid .full { grid-column: 1 / -1; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-group label { font-size: .8rem; color: var(--muted); }
@@ -445,7 +446,7 @@
     .bairro-item { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 6px 8px; }
     .bairro-item .bairro-nome { flex: 1; min-width: 0; background: transparent !important; border-color: transparent !important; font-weight: 600; }
     .bairro-item .bairro-nome:focus { border-color: var(--gold) !important; background: var(--surface) !important; }
-    @media (max-width: 600px) { .bairros-lista { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { .bairros-lista { grid-template-columns: minmax(0,1fr); } .bairro-item { min-width: 0; } }
     /* Novo pedido manual */
     .np-modal { max-width: 760px; width: 100%; max-height: 92vh; overflow-y: auto; }
     .np-sec { font-size: .9rem; color: var(--gold); margin: 16px 0 8px; }
@@ -609,7 +610,7 @@
     @media (max-width: 900px) { .pdv-layout { grid-template-columns: 1fr; } .pdv-cart { position: static; max-height: none; } }
     .pdv-layout > *, .app-body > * { min-width: 0; }
     @media (max-width: 600px) { .pdv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; } }
-    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .stats-row .stat-card { min-width: 100px; } .modal { padding: 20px; } }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: minmax(0,1fr); } .stats-row .stat-card { min-width: 100px; } .modal { padding: 20px; } }
     /* ── RECORTE MANUAL DE FOTO ── */
     .pdv-cart-item-det { font-size: .72rem; color: var(--muted); line-height: 1.35; margin: 2px 0; white-space: normal; }
     #pdvm-modal .np-config { border: 0; padding: 0; background: none; max-height: none; overflow: visible; }
@@ -621,7 +622,7 @@
     .horario-linha:last-child { border-bottom: 0; }
     .horario-linha .hor-dia { width: 110px; font-weight: 600; }
     .horario-linha .hor-faixa, .horario-linha .hor-pausa { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
-    .horario-linha input[type=time] { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; color: var(--text); min-width: 0; width: 110px; }
+    .horario-linha input[type=time] { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; color: var(--text); min-width: 0; width: 104px; }
     .horario-linha .hor-tem-pausa { font-size: .8rem; color: var(--muted); }
     .horario-linha .hor-pausa { display: none; width: 100%; padding-left: 116px; }
     .horario-linha.com-pausa .hor-pausa { display: inline-flex; }
