@@ -6,9 +6,7 @@ Catálogo online com pedido pelo WhatsApp para o **Açaí da Bru** — desenvolv
 
 - `index.html`, `script.js`, `style.css` — a loja (categorias, produtos, carrinho e envio do pedido pelo WhatsApp)
 - `admin.html` — painel da loja (produtos, categorias, cupons, PDV, relatório e configurações)
-- `seed-firebase.html` — cadastra o cardápio inicial no Firestore (rodar uma única vez — SOBRESCREVE os produtos)
-- `atualizar-novembro.html` — promoções de novembro (Combo Casal R$ 32,90 e Combo Família R$ 49,90 até 30/11, com as artes nos Destaques) e o tamanho Açaí Kids 250ml; não apaga nada
-- `atualizar-firebase.html` — aplica a atualização de 21/10 (combo com 2 açaís, taxas por bairro, fotos novas) sem apagar edições feitas no admin
+- Páginas de manutenção (cadastro inicial e atualizações em lote) foram tiradas do site por segurança em 04/11/2026 — estão no histórico do Git se precisar.
 - `CNAME` — endereço do site: acaidabru.tfsolutions.com.br
 - `regras.md` — regras de segurança do Firestore
 - `assets/` — fotos dos produtos (recortes das artes da loja) e logo da TF Solutions
@@ -31,5 +29,5 @@ Coleções do Firestore: `produtos`, `categorias`, `cupons`, `configuracoes`, `v
 1. Criar o projeto no Firebase, ativar Firestore e Authentication (e-mail/senha) e criar o usuário admin.
 2. O `firebaseConfig` (projeto `acai-da-bru-41a8d`) já está em `script.js`, `admin.html` e `seed-firebase.html`.
 3. Publicar as regras do `regras.md`.
-4. Abrir `seed-firebase.html`, entrar com o admin e enviar os produtos.
+4. Cadastrar os produtos pelo painel (a página de cadastro inicial está no histórico do Git).
 5. Publicar no GitHub Pages.
