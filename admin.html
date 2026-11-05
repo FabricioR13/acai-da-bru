@@ -2053,7 +2053,9 @@ function mensagemEtapa(p, etapa) {
     recebido: `Oi, ${nome}! 💜 Recebemos seu pedido ${n}aqui no ${loja}. Já já começamos a preparar!`,
     preparo: `${nome}, seu pedido ${n}já está sendo preparado! 🍧${_ehEntrega(p) ? tempo : ""}`,
     saiu: _ehEntrega(p)
-      ? `Seu pedido ${n}saiu para entrega! 🛵 Logo logo chega aí, ${nome}.`
+      ? `🛵 Seu pedido ${n}saiu para entrega!\n\nOba! Logo logo seu açaí chega aí, ${nome}! 💜\n\nEnquanto isso, aproveite para seguir nossas redes sociais e ficar por dentro das novidades e promoções do ${loja}! 🍧✨`
+        + (/instagram\.com/i.test(_cfgLoja.sobreLink || "") ? `\n${_cfgLoja.sobreLink}` : "")
+        + `\n\nObrigada pela preferência! 💜`
       : `${nome}, seu pedido ${n}está pronto para retirada! 🍧`,
     entregue: `Pedido ${n}entregue! Obrigada pela preferência, ${nome} 💜 Bom açaí!`
       + (linkAvaliacao(p) ? `\n\nConta pra gente como foi? Leva 10 segundinhos ⭐\n${linkAvaliacao(p)}` : "")
@@ -6244,8 +6246,8 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261105a"></script>
-<script src="post-do-dia.js?v=20261105a"></script>
-<script src="impressora.js?v=20261105a"></script>
+<script src="estoque-loja.js?v=20261105b"></script>
+<script src="post-do-dia.js?v=20261105b"></script>
+<script src="impressora.js?v=20261105b"></script>
 </body>
 </html>
