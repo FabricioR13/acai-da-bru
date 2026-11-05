@@ -1743,7 +1743,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     bairro: String(bairroEscolhido() || "").slice(0, 60),
                     cep: v("delivery-cep").slice(0, 9),
                 } : null,
-                observacoes: v("observacoes-input").slice(0, 500),
+                observacoes: (notaIntervalo + v("observacoes-input")).trim().slice(0, 500),
                 talher: !!document.getElementById("talher-checkbox")?.checked,
                 troco: d.paymentMethod === "Dinheiro" ? v("troco-para").slice(0, 10) : "",
                 pagamento: String(d.paymentMethod || "").slice(0, 60),
@@ -1767,6 +1767,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const DIAS_SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
     const minutos = (h) => { const [a, b] = String(h || "").split(":").map(Number); return Number.isFinite(a) ? a * 60 + (b || 0) : null; };
     const horaBonita = (h) => { const [a, b] = String(h).split(":"); return `${Number(a)}h${b && b !== "00" ? b : ""}`; };
+    let notaIntervalo = ""; // preenchida quando o cliente envia durante o intervalo
     const statusLoja = () => {
         if (configLoja.lojaPausada) return { aberta: false, msg: "Pausamos os pedidos por um momento. Já já voltamos! 💜" };
         const hs = Array.isArray(configLoja.horarios) ? configLoja.horarios : [];
@@ -1781,7 +1782,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (hoje && (hoje.f > hoje.a ? m >= hoje.a && m < hoje.f : m >= hoje.a)) {
             // Intervalo do dia (ex.: fecha das 17h às 18h)
             if (hoje.pi !== null && hoje.pf !== null && hoje.pf > hoje.pi && m >= hoje.pi && m < hoje.pf)
-                return { aberta: false, msg: `Estamos no intervalo agora. Voltamos hoje às ${horaBonita(hoje.volta)} 💜` };
+                return { aberta: false, intervalo: configLoja.aceitarNoIntervalo !== false, volta: horaBonita(hoje.volta),
+                    msg: `Estamos no intervalo agora. Voltamos hoje às ${horaBonita(hoje.volta)} 💜` };
             return { aberta: true };
         }
         if (ontem && ontem.f <= ontem.a && m < ontem.f) return { aberta: true }; // passou da meia-noite
@@ -1802,8 +1804,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const atualizarStatusLoja = () => {
         const st = statusLoja();
         avisoFechado.hidden = st.aberta;
-        if (!st.aberta) avisoFechado.innerHTML = `<i class="fa-solid fa-moon" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Você pode olhar o cardápio e montar seu pedido.</span>`;
-        finishOrderBtn.classList.toggle("loja-fechada", !st.aberta);
+        if (!st.aberta) avisoFechado.innerHTML = st.intervalo
+            ? `<i class="fa-solid fa-mug-hot" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Se quiser, já pode enviar seu pedido: ele fica na fila e preparamos assim que voltarmos.</span>`
+            : `<i class="fa-solid fa-moon" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Você pode olhar o cardápio e montar seu pedido.</span>`;
+        finishOrderBtn.classList.toggle("loja-fechada", !st.aberta && !st.intervalo);
         return st;
     };
     atualizarStatusLoja();
@@ -1815,11 +1819,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             const doc = await db.collection("configuracoes").doc("geral").get();
             if (doc.exists) {
                 const d = doc.data();
-                ["lojaPausada", "horarioAtivo", "horarios"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
+                ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
             }
         } catch (e) { /* sem internet: segue com o que já tinha */ }
         const st = atualizarStatusLoja();
-        if (!st.aberta) { alert(st.msg + "\n\nSeu carrinho fica guardado — é só enviar quando estivermos abertos."); return; }
+        notaIntervalo = "";
+        if (!st.aberta && st.intervalo) {
+            // Intervalo: o cliente decide se já manda (fica na fila) ou envia mais tarde
+            const ok = confirm(`Estamos no intervalo e voltamos hoje às ${st.volta}.\n\nVocê pode enviar seu pedido agora: ele fica na fila e começamos a preparar assim que voltarmos.\n\nOK = enviar agora\nCancelar = enviar mais tarde (seu carrinho fica guardado)`);
+            if (!ok) return;
+            notaIntervalo = `⏰ Pedido feito no intervalo — preparar a partir das ${st.volta}. `;
+        } else if (!st.aberta) { alert(st.msg + "\n\nSeu carrinho fica guardado — é só enviar quando estivermos abertos."); return; }
         // Rede de segurança: os campos já foram validados etapa a etapa, mas confere
         // de novo aqui (ex: caso o cliente volte numa etapa pelos pontinhos e apague algo).
         if (carrinho.length === 0) {
@@ -1894,6 +1904,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const precisaTalher = document.getElementById("talher-checkbox")?.checked;
         const observacoes = document.getElementById("observacoes-input")?.value.trim();
         if (precisaTalher) paymentInfo += `\n*Colher/canudo descartável:* Sim`;
+        if (notaIntervalo) paymentInfo += `\n*${notaIntervalo.trim()}*`;
         if (observacoes) paymentInfo += `\n*Observações:* ${observacoes}`;
 
         const nome = document.getElementById("identificacao-nome").value;

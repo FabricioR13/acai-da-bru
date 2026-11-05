@@ -1201,6 +1201,7 @@
           <label class="toggle-row"><input type="checkbox" id="config-horario-ativo" onchange="document.getElementById('horarios-area').hidden=!this.checked"> Só aceitar pedidos pelo site dentro do horário</label>
           <small style="color:var(--muted);display:block;margin:4px 0 8px">Fora do horário, o cliente vê o aviso "Estamos fechados — abrimos às…", pode olhar o cardápio e montar o carrinho, mas não consegue enviar. Fecha depois da meia-noite? Coloque, por exemplo, das 18:00 às 00:30. Tem uma pausa no meio do dia? Marque <strong>Intervalo</strong> (ex.: fecha das 17:00 às 18:00).</small>
           <div id="horarios-area" class="horarios-area" hidden></div>
+          <label class="toggle-row" style="margin-top:8px"><input type="checkbox" id="config-aceitar-intervalo" checked> No <strong>intervalo</strong>, deixar o cliente escolher enviar o pedido mesmo assim (ele fica na fila, com o aviso "preparar a partir das …")</label>
         </div>
         <div class="form-group full">
           <label>PIX para o cliente pagar <small style="color:var(--muted)">(vai na mensagem de "Em preparo" quando o pagamento é PIX — com link para copiar o código com o valor já preenchido ou ler o QR Code)</small></label>
@@ -6116,6 +6117,7 @@ async function carregarConfiguracoes() {
     if (document.getElementById("tab-disponivel").classList.contains("active")) renderDisponivel();
     document.getElementById("config-nome-loja").value  = cfg.nomeLoja;
   document.getElementById("config-horario-ativo").checked = !!cfg.horarioAtivo;
+  document.getElementById("config-aceitar-intervalo").checked = cfg.aceitarNoIntervalo !== false;
   document.getElementById("config-pix-chave").value  = cfg.pixChave || "";
   document.getElementById("config-pix-nome").value   = cfg.pixNome || "";
   document.getElementById("config-pix-banco").value  = cfg.pixBanco || "";
@@ -6225,6 +6227,7 @@ async function salvarConfiguracoes() {
   const taxasEntrega = _bairrosParaSalvar();
   const aceitarOutrosBairros = document.getElementById("config-aceitar-outros-bairros").checked;
   const horarioAtivo = document.getElementById("config-horario-ativo").checked;
+  const aceitarNoIntervalo = document.getElementById("config-aceitar-intervalo").checked;
   const pixChave  = document.getElementById("config-pix-chave").value.trim().slice(0, 80);
   const pixNome   = document.getElementById("config-pix-nome").value.trim().slice(0, 60);
   const pixBanco  = document.getElementById("config-pix-banco").value.trim().slice(0, 40);
@@ -6299,7 +6302,7 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, lojaPausada: !!_cfgLoja.lojaPausada, pixChave, pixNome, pixBanco, pixCidade, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
+      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, lojaPausada: !!_cfgLoja.lojaPausada, pixChave, pixNome, pixBanco, pixCidade, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
       // campos do Estoque e do Post do dia (salvos fora desta tela)
@@ -6333,9 +6336,9 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261105d"></script>
-<script src="post-do-dia.js?v=20261105d"></script>
-<script src="impressora.js?v=20261105d"></script>
-<script src="pix.js?v=20261105d"></script>
+<script src="estoque-loja.js?v=20261105e"></script>
+<script src="post-do-dia.js?v=20261105e"></script>
+<script src="impressora.js?v=20261105e"></script>
+<script src="pix.js?v=20261105e"></script>
 </body>
 </html>
