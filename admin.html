@@ -507,6 +507,7 @@
     .ped-card footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
     .ped-acoes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
     .ped-acoes a.btn { text-decoration: none; }
+    .btn-ok-imp { background: rgba(76,175,80,.15); color: var(--green); border: 1px solid var(--green); }
     @media (max-width: 600px) { .ped-lista { grid-template-columns: 1fr; } }
     /* Avaliações */
     .aval-resumo { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 12px; }
@@ -711,6 +712,7 @@
         <div class="ped-controles">
           <input type="date" id="ped-dia" onchange="assinarPedidos()" aria-label="Dia dos pedidos">
           <label class="toggle-row" title="Toca um som quando chega pedido novo"><input type="checkbox" id="ped-som" checked onchange="salvarPrefSom()"> <i class="fa-solid fa-bell"></i> Som</label>
+          <button class="btn btn-ghost btn-sm" id="btn-impressora" onclick="conectarImpressora()"><i class="fa-solid fa-print"></i> Conectar impressora</button>
           <button class="btn btn-ghost btn-sm" id="btn-pausa" onclick="alternarPausaLoja()" title="Para de receber pedidos pelo site agora (ex.: acabou o açaí) — o cardápio continua aparecendo"><i class="fa-solid fa-pause"></i> Pausar pedidos</button>
           <button class="btn btn-primary btn-sm" onclick="abrirNovoPedido()" title="Pedido que chegou pelo WhatsApp, telefone ou no balcão"><i class="fa-solid fa-plus"></i> Novo pedido</button>
         </div>
@@ -1655,6 +1657,24 @@
   </div>
 </div>
 
+<!-- Impressora térmica: opções -->
+<div class="modal-overlay" id="imp-modal">
+  <div class="modal" style="max-width:420px">
+    <button class="modal-close" onclick="fecharModal('imp-modal')">&times;</button>
+    <h2><i class="fa-solid fa-print"></i> Impressora</h2>
+    <p style="color:var(--muted);font-size:.85rem;margin-bottom:12px">Conectada: <strong id="imp-nome">-</strong></p>
+    <label class="toggle-row"><input type="checkbox" id="imp-auto" onchange="alternarImpAuto(this.checked)"> Imprimir sozinho ao tocar em <strong>"Em preparo"</strong></label>
+    <small style="color:var(--muted);display:block;margin:6px 0 14px">Vale só neste aparelho. Ao reabrir o painel, toque em "Conectar impressora" uma vez.</small>
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="desconectarImpressora()"><i class="fa-solid fa-link-slash"></i> Desconectar</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="fecharModal('imp-modal');_impConectar(true).then(()=>toast('Impressora trocada','ok')).catch(_impErro)"><i class="fa-solid fa-arrows-rotate"></i> Trocar</button>
+        <button class="btn btn-primary btn-sm" onclick="imprimirTesteImpressora()"><i class="fa-solid fa-receipt"></i> Imprimir teste</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PDV: montar o item (tamanho, complementos de cada açaí, adicionais) -->
 <div class="modal-overlay" id="pdvm-modal">
   <div class="modal np-modal">
@@ -2173,6 +2193,7 @@ function cardPedido(p) {
       <label class="toggle-row ped-pago"><input type="checkbox" ${p.pago ? "checked" : ""} onchange="marcarPago('${p.docId}', this.checked)"> Pago</label>
       <div class="ped-acoes">
         ${temTel && etapa !== "cancelado" ? `<a class="btn btn-ghost btn-sm" href="${linkWhatsCliente(p, etapa)}" target="_blank" rel="noopener" title="Reenviar o aviso desta etapa"><i class="fa-brands fa-whatsapp"></i> Avisar</a>` : ""}
+        <button class="btn btn-ghost btn-sm" onclick="imprimirPedido('${p.docId}')" title="Imprimir a comanda na impressora térmica"><i class="fa-solid fa-print"></i></button>
         <button class="btn btn-ghost btn-sm" onclick="abrirPedidoDetalhe('${p.docId}')" title="Mudar etapa sem avisar, cancelar ou excluir"><i class="fa-solid fa-ellipsis"></i></button>
         ${botaoProx}
       </div>
@@ -2183,6 +2204,11 @@ function cardPedido(p) {
 async function avancarPedido(docId, etapa, avisar) {
   const p = _pedidos.find(x => x.docId === docId);
   if (!p) return;
+  // Impressão automática ao aceitar: imprime primeiro (leva ~2s) e depois abre o WhatsApp
+  // (o navegador ainda considera o toque recente, então a janela não é bloqueada)
+  if (etapa === "preparo" && typeof impAutoAoAceitar === "function" && impAutoAoAceitar()) {
+    await Promise.race([imprimirPedido(docId), new Promise(r => setTimeout(r, 3500))]);
+  }
   // Abre o WhatsApp já no clique (antes de esperar o banco), senão o celular bloqueia a janela
   if (avisar) {
     const link = linkWhatsCliente(p, etapa);
@@ -6218,7 +6244,8 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261104h"></script>
-<script src="post-do-dia.js?v=20261104h"></script>
+<script src="estoque-loja.js?v=20261105a"></script>
+<script src="post-do-dia.js?v=20261105a"></script>
+<script src="impressora.js?v=20261105a"></script>
 </body>
 </html>
