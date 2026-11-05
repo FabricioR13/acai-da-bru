@@ -27,7 +27,7 @@ Coleções do Firestore: `produtos`, `categorias`, `cupons`, `configuracoes`, `v
 ## Colocar no ar
 
 1. Criar o projeto no Firebase, ativar Firestore e Authentication (e-mail/senha) e criar o usuário admin.
-2. O `firebaseConfig` (projeto `acai-da-bru-41a8d`) já está em `script.js`, `admin.html` e `seed-firebase.html`.
+2. O `firebaseConfig` (projeto `acai-da-bru-41a8d`) já está em `script.js` e `admin.html`.
 3. Publicar as regras do `regras.md`.
 4. Cadastrar os produtos pelo painel (a página de cadastro inicial está no histórico do Git).
 5. Publicar no GitHub Pages.
