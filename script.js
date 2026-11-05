@@ -201,8 +201,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         sobreFoto: "assets/copo-quadrado.jpg",
         sobreLink: "https://www.instagram.com/acaidabru_cb/",
         // Horário de funcionamento (admin → Configurações). Desligado = sempre aberto.
-        horarioAtivo: false,
-        horarios: [], // [{ aberto, abre: "14:00", fecha: "22:00" }] — índice 0 = domingo
+        horarioAtivo: true,
+        // Horário do WhatsApp da Bru (nov/2026) — índice 0 = domingo
+        horarios: [
+            { aberto: true,  abre: "16:00", fecha: "23:00", pausaIni: "", pausaFim: "" },       // domingo
+            { aberto: false, abre: "14:30", fecha: "23:00", pausaIni: "", pausaFim: "" },       // segunda (fechada)
+            { aberto: true,  abre: "14:30", fecha: "23:00", pausaIni: "17:00", pausaFim: "18:00" }, // terça
+            { aberto: true,  abre: "14:30", fecha: "23:00", pausaIni: "17:00", pausaFim: "18:00" }, // quarta
+            { aberto: true,  abre: "14:30", fecha: "23:00", pausaIni: "17:00", pausaFim: "18:00" }, // quinta
+            { aberto: true,  abre: "14:30", fecha: "23:00", pausaIni: "17:00", pausaFim: "18:00" }, // sexta
+            { aberto: true,  abre: "16:00", fecha: "23:00", pausaIni: "", pausaFim: "" },       // sábado
+        ],
         lojaPausada: false, // "Pausar pedidos" no admin (ex.: acabou o açaí)
     };
     let configLoja = { ...CONFIG_PADRAO };

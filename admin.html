@@ -1204,6 +1204,10 @@
           <label class="toggle-row" style="margin-top:8px"><input type="checkbox" id="config-aceitar-intervalo" checked> No <strong>intervalo</strong>, deixar o cliente escolher enviar o pedido mesmo assim (ele fica na fila, com o aviso "preparar a partir das …")</label>
         </div>
         <div class="form-group full">
+          <label>Endereço da loja <small style="color:var(--muted)">(vai na mensagem do botão "Motoboy", como ponto de retirada)</small></label>
+          <input type="text" id="config-endereco-loja" maxlength="120" placeholder="Ex: Rua 37, 100 — Campo Belo, Cachoeirinha">
+        </div>
+        <div class="form-group full">
           <label>PIX para o cliente pagar <small style="color:var(--muted)">(vai na mensagem de "Em preparo" quando o pagamento é PIX — com link para copiar o código com o valor já preenchido ou ler o QR Code)</small></label>
           <div class="pix-grid">
             <label>Chave PIX<input type="text" id="config-pix-chave" placeholder="CNPJ, e-mail, telefone ou chave aleatória"></label>
@@ -2102,6 +2106,36 @@ function _textoPix(p) {
     + `\nRecebedor: ${_cfgLoja.pixNome}${_cfgLoja.pixBanco ? ` (${_cfgLoja.pixBanco})` : ""}`
     + `\n\nDepois é só mandar o comprovante aqui 😉`;
 }
+// Mensagem para o grupo dos motoboys (abre o WhatsApp para escolher o grupo)
+function textoMotoboy(p) {
+  const e = p.endereco || {};
+  const enderecoTxt = [`${e.rua || ""}${e.numero ? ", " + e.numero : ""}`, e.bairro || p.bairro || "", "Cachoeirinha"].filter(Boolean).join(" - ");
+  const mapa = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([`${e.rua || ""} ${e.numero || ""}`.trim(), e.bairro || p.bairro || "", "Cachoeirinha RS", e.cep || ""].filter(Boolean).join(", "))}`;
+  const tel = String(p.telefone || "").replace(/\D/g, "");
+  const telFmt = tel.length === 11 ? `(${tel.slice(0, 2)}) ${tel.slice(2, 7)}-${tel.slice(7)}` : tel;
+  const pago = !!p.pago;
+  const cobrar = pago ? "✅ *Já está pago* — não cobrar"
+    : /pix/i.test(p.pagamento || "") ? `💳 PIX — *confirmar com a loja antes de sair*`
+    : `💰 *Cobrar ${_brl(p.total)}* (${p.pagamento || "-"}${p.troco ? `, levar troco para R$ ${p.troco}` : ""})`;
+  const itens = (p.itens || []).reduce((s, it) => s + (Number(it.quantidade ?? it.qtd ?? 1) || 1), 0);
+  const loja = _cfgLoja.nomeLoja || "Açaí da Bru";
+  return [
+    `🛵 *ENTREGA — ${loja}*`,
+    `Pedido ${_nomePedido(p)}`,
+    _cfgLoja.enderecoLoja ? `\n🏪 *Retirar:* ${_cfgLoja.enderecoLoja}` : "",
+    `\n📍 *Entregar:* ${enderecoTxt}`,
+    e.cep ? `CEP ${e.cep}` : "",
+    `🗺️ ${mapa}`,
+    `\n👤 ${p.cliente || "Cliente"}${telFmt ? ` · ${telFmt}` : ""}`,
+    `📦 ${itens} ${itens === 1 ? "item" : "itens"}`,
+    cobrar,
+    Number(p.taxaEntrega) ? `🏍️ Taxa de entrega: ${_brl(p.taxaEntrega)}` : "",
+    p.observacoes ? `📝 Obs: ${p.observacoes}` : "",
+    `\nQuem pega? Responde aqui 🙋`,
+  ].filter(Boolean).join("\n");
+}
+const linkMotoboy = (p) => `https://wa.me/?text=${encodeURIComponent(textoMotoboy(p))}`;
+
 function linkWhatsCliente(p, etapa) {
   let tel = String(p.telefone || "").replace(/\D/g, "");
   if (!tel) return "";
@@ -2234,6 +2268,7 @@ function cardPedido(p) {
       <label class="toggle-row ped-pago"><input type="checkbox" ${p.pago ? "checked" : ""} onchange="marcarPago('${p.docId}', this.checked)"> Pago</label>
       <div class="ped-acoes">
         ${temTel && etapa !== "cancelado" ? `<a class="btn btn-ghost btn-sm" href="${linkWhatsCliente(p, etapa)}" target="_blank" rel="noopener" title="Reenviar o aviso desta etapa"><i class="fa-brands fa-whatsapp"></i> Avisar</a>` : ""}
+        ${_ehEntrega(p) && etapa !== "cancelado" && etapa !== "entregue" ? `<a class="btn btn-ghost btn-sm btn-motoboy" href="${linkMotoboy(p)}" target="_blank" rel="noopener" title="Mandar o endereço no grupo dos motoboys"><i class="fa-solid fa-motorcycle"></i> Motoboy</a>` : ""}
         <button class="btn btn-ghost btn-sm" onclick="imprimirPedido('${p.docId}')" title="Imprimir a comanda na impressora térmica"><i class="fa-solid fa-print"></i></button>
         <button class="btn btn-ghost btn-sm" onclick="abrirPedidoDetalhe('${p.docId}')" title="Mudar etapa sem avisar, cancelar ou excluir"><i class="fa-solid fa-ellipsis"></i></button>
         ${botaoProx}
@@ -6039,6 +6074,17 @@ const CONFIG_PADRAO = {
   ],
   aceitarOutrosBairros: true,
   entregaGratis: ["Rua 37", "94971-300"],
+  horarioAtivo: true,
+  horarios: [
+    { aberto: true,  abre: "16:00", fecha: "23:00", pausaIni: "", pausaFim: "" },       // domingo
+    { aberto: false, abre: "14:30", fecha: "23:00", pausaIni: "", pausaFim: "" },       // segunda (fechada)
+    { aberto: true,  abre: "14:30", fecha: "23:00", pausaIni: "17:00", pausaFim: "18:00" }, // terça
+    { aberto: true,  abre: "14:30", fecha: "23:00", pausaIni: "17:00", pausaFim: "18:00" }, // quarta
+    { aberto: true,  abre: "14:30", fecha: "23:00", pausaIni: "17:00", pausaFim: "18:00" }, // quinta
+    { aberto: true,  abre: "14:30", fecha: "23:00", pausaIni: "17:00", pausaFim: "18:00" }, // sexta
+    { aberto: true,  abre: "16:00", fecha: "23:00", pausaIni: "", pausaFim: "" },       // sábado
+  ],
+  enderecoLoja: "",
   pixChave: "69.878.196/0001-18", pixNome: "Bruna Ferreira da Silva", pixBanco: "InfinitePay (CloudWalk)", pixCidade: "Cachoeirinha",
   tempoEntrega: "40 a 45 minutos",
   precoComplementoExtra: 2,
@@ -6116,9 +6162,14 @@ async function carregarConfiguracoes() {
     sincronizarIngredientesPeloEstoque();
     if (document.getElementById("tab-disponivel").classList.contains("active")) renderDisponivel();
     document.getElementById("config-nome-loja").value  = cfg.nomeLoja;
+  // Horário ainda não configurado de verdade (vazio ou o modelo genérico 14h–22h) → já mostra o da Bru
+  const _horGenerico = !Array.isArray(cfg.horarios) || cfg.horarios.length !== 7
+    || cfg.horarios.every(h => h.aberto && h.abre === "14:00" && h.fecha === "22:00" && !h.pausaIni);
+  if (_horGenerico) { cfg.horarios = CONFIG_PADRAO.horarios; cfg.horarioAtivo = true; }
   document.getElementById("config-horario-ativo").checked = !!cfg.horarioAtivo;
   document.getElementById("config-aceitar-intervalo").checked = cfg.aceitarNoIntervalo !== false;
   document.getElementById("config-pix-chave").value  = cfg.pixChave || "";
+  document.getElementById("config-endereco-loja").value = cfg.enderecoLoja || "";
   document.getElementById("config-pix-nome").value   = cfg.pixNome || "";
   document.getElementById("config-pix-banco").value  = cfg.pixBanco || "";
   document.getElementById("config-pix-cidade").value = cfg.pixCidade || "";
@@ -6229,6 +6280,7 @@ async function salvarConfiguracoes() {
   const horarioAtivo = document.getElementById("config-horario-ativo").checked;
   const aceitarNoIntervalo = document.getElementById("config-aceitar-intervalo").checked;
   const pixChave  = document.getElementById("config-pix-chave").value.trim().slice(0, 80);
+  const enderecoLoja = document.getElementById("config-endereco-loja").value.trim().slice(0, 120);
   const pixNome   = document.getElementById("config-pix-nome").value.trim().slice(0, 60);
   const pixBanco  = document.getElementById("config-pix-banco").value.trim().slice(0, 40);
   const pixCidade = document.getElementById("config-pix-cidade").value.trim().slice(0, 40);
@@ -6302,7 +6354,7 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, lojaPausada: !!_cfgLoja.lojaPausada, pixChave, pixNome, pixBanco, pixCidade, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
+      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, lojaPausada: !!_cfgLoja.lojaPausada, pixChave, pixNome, pixBanco, pixCidade, enderecoLoja, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
       // campos do Estoque e do Post do dia (salvos fora desta tela)
@@ -6336,9 +6388,9 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261105e"></script>
-<script src="post-do-dia.js?v=20261105e"></script>
-<script src="impressora.js?v=20261105e"></script>
-<script src="pix.js?v=20261105e"></script>
+<script src="estoque-loja.js?v=20261105f"></script>
+<script src="post-do-dia.js?v=20261105f"></script>
+<script src="impressora.js?v=20261105f"></script>
+<script src="pix.js?v=20261105f"></script>
 </body>
 </html>
