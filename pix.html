@@ -40,6 +40,8 @@
     .dados span { color: #6b5a63; }
     .dados strong { text-align: right; }
     .passos { font-size: .82rem; color: #6b5a63; text-align: left; line-height: 1.5; padding-left: 18px; }
+    .dica-comp { width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; font-size: .85rem; line-height: 1.45; background: #FFF4DC; border: 1px solid #F3D58E; border-radius: 12px; padding: 10px 12px; color: #5C1638; }
+    .dica-comp i { color: var(--dourado); margin-top: 3px; }
     .aviso { font-size: .78rem; color: #6b5a63; text-align: center; line-height: 1.45; }
     .erro { font-size: .9rem; color: #b91c1c; }
     .rodape { text-align: center; font-size: .72rem; color: #a08f98; }
@@ -64,8 +66,9 @@
       </ol>
       <div class="dados" id="dados"></div>
       <button class="claro" id="btn-chave"><i class="fa-solid fa-key"></i> Copiar só a chave PIX</button>
-      <a class="btn whats" id="btn-comprovante" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Enviar o comprovante</a>
-      <p class="aviso">O pagamento é conferido pela loja no app do banco. Depois de pagar, é só mandar o comprovante pelo WhatsApp 💜</p>
+      <p class="dica-comp"><i class="fa-solid fa-receipt"></i> <span>Depois de pagar, no app do seu banco toque em <strong>Compartilhar comprovante</strong> e escolha o <strong>WhatsApp do Açaí da Bru</strong>.</span></p>
+      <a class="btn whats" id="btn-comprovante" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Avisar que paguei</a>
+      <p class="aviso">O pagamento é conferido pela loja direto no banco 💜</p>
     </div>
     <p class="erro" id="erro" hidden></p>
     <p class="rodape">Açaí da Bru · pagamento direto para a loja</p>
@@ -124,7 +127,7 @@ async function copiar(texto, btn, rotuloOk) {
   $("btn-copiar").onclick = () => copiar(pix, $("btn-copiar"), "Código copiado! Cole no app do banco");
   $("btn-chave").onclick = () => copiar(String(cfg.pixChave).replace(/[^\w@.+-]/g, ""), $("btn-chave"), "Chave copiada!");
   const tel = String(cfg.whatsapp || "").replace(/\D/g, "");
-  $("btn-comprovante").href = `https://wa.me/${tel}?text=${encodeURIComponent(`Oi! Segue o comprovante do PIX do pedido${codigo ? " #" + codigo : ""}${valor > 0 ? " (" + brl(valor) + ")" : ""} 💜`)}`;
+  $("btn-comprovante").href = `https://wa.me/${tel}?text=${encodeURIComponent(`Oi! Já fiz o PIX do pedido${codigo ? " #" + codigo : ""}${valor > 0 ? " (" + brl(valor) + ")" : ""} 💜`)}`;
   $("card").hidden = false;
 })();
   </script>
