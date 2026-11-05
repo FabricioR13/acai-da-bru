@@ -1264,13 +1264,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         produtosFiltrados = [...produtosFiltrados].sort(
             (a, b) => (seloDe(b) ? 1 : 0) - (seloDe(a) ? 1 : 0),
         );
-        // "Mostrar ao lado de" (ex.: Açaí Kids logo depois do Açaí no Copo)
-        produtosFiltrados.filter((p) => p.aposProduto).forEach((p) => {
-            const irmao = produtosFiltrados.findIndex((x) => String(x.id) === String(p.aposProduto));
-            if (irmao < 0) return;
+        // "Mostrar ao lado de" (ex.: Açaí Kids logo depois do Açaí no Copo).
+        // Produto com selo Kids sem posição marcada vai ao lado do Açaí no Copo.
+        const copoId = (produtos.find((x) => /a[çc]a[ií] no copo/i.test(x.nome || "")) || {}).id;
+        const aposDe = (p) => p.aposProduto || (seloDe(p) === "kids" && copoId ? copoId : null);
+        produtosFiltrados.filter((p) => aposDe(p)).forEach((p) => {
+            const alvo = aposDe(p);
+            if (String(alvo) === String(p.id) || !produtosFiltrados.some((x) => String(x.id) === String(alvo))) return;
             produtosFiltrados = produtosFiltrados.filter((x) => x !== p);
-            produtosFiltrados.splice(produtosFiltrados.findIndex((x) => String(x.id) === String(p.aposProduto)) + 1, 0, p);
+            produtosFiltrados.splice(produtosFiltrados.findIndex((x) => String(x.id) === String(alvo)) + 1, 0, p);
         });
+
+        // Na tela inicial (agrupada), quem fica "ao lado de" outro produto aparece na categoria dele
+        const catDe = (p) => {
+            const alvo = aposDe(p);
+            const irmao = alvo ? produtos.find((x) => String(x.id) === String(alvo)) : null;
+            return irmao ? irmao.categoria : p.categoria;
+        };
 
         if (produtosFiltrados.length === 0) {
             container.innerHTML = `
@@ -1283,9 +1293,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (!categoriaAtiva && !buscando) {
             const grupos = categorias
-                .map((c) => ({ c, itens: produtosFiltrados.filter((p) => p.categoria === c.id) }))
+                .map((c) => ({ c, itens: produtosFiltrados.filter((p) => catDe(p) === c.id) }))
                 .filter((g) => g.itens.length);
-            const semCategoria = produtosFiltrados.filter((p) => !categorias.some((c) => c.id === p.categoria));
+            const semCategoria = produtosFiltrados.filter((p) => !categorias.some((c) => c.id === catDe(p)));
             if (semCategoria.length) grupos.push({ c: { nome: "Outros" }, itens: semCategoria });
             container.innerHTML = grupos
                 .map((g) => `<h3 class="products-group-title">${g.c.nome}</h3>${g.itens.map(cardDoProduto).join("")}`)

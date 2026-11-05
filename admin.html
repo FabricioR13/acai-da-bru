@@ -856,7 +856,7 @@
     <div id="tab-produtos" class="tab-panel">
       <div id="kids-aviso" class="ingr-aviso" hidden>
         <p><strong>Açaí Kids separado:</strong> hoje o 250ml Kids é um tamanho dentro do "Açaí no Copo". Toque abaixo para ele virar um produto próprio, com o selo <strong>Kids</strong>, aparecendo <strong>ao lado do Açaí no Copo</strong> na loja. O preço, os complementos e o estoque do copo de 250ml continuam iguais.</p>
-        <button class="btn btn-primary btn-sm" onclick="separarAcaiKids()"><i class="fa-solid fa-child-reaching"></i> Separar o Açaí Kids</button>
+
       </div>
       <div class="stats-row">
         <div class="stat-card"><div class="num" id="stat-total">–</div><div class="lbl">Total de produtos</div></div>
@@ -1557,6 +1557,10 @@
           <select id="form-selo" onchange="alternarAreaPromo()" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text)">
             <option value="">Nenhum</option><option value="promocao">Promoção</option><option value="novidade">Novidade</option><option value="maisPedido">Mais pedido</option><option value="kids">Kids (infantil)</option>
           </select></label>
+      </div>
+      <div class="form-group full">
+        <label>Mostrar na loja ao lado de <small style="color:var(--muted)">(opcional — ex.: Açaí Kids ao lado do Açaí no Copo)</small></label>
+        <select id="form-apos"><option value="">— posição normal —</option></select>
       </div>
       <div class="form-group full">
         <label>Combina com <small style="color:var(--muted)">(opcional — quando o cliente colocar este produto no carrinho, a loja sugere levar também. Ex: sorvete → kit de casquinhas)</small></label>
@@ -4264,6 +4268,12 @@ function alternarAreaPromo() {
 const _promoVencida = (p) => { if (!p.promoAte) return false; const f = new Date(`${p.promoAte}T23:59:59`); return !isNaN(f) && f < new Date(); };
 const _seloDoProduto = (p) => p.selo !== undefined && p.selo !== null ? p.selo : (p.destaque ? "promocao" : "");
 // "Combina com": lista de outros produtos para marcar
+function _preencherApos(docAtual, atual) {
+  const sel = document.getElementById("form-apos");
+  if (!sel) return;
+  sel.innerHTML = `<option value="">— posição normal —</option>` + todosProdutos.filter(p => p.docId !== docAtual && p.ativo !== false)
+    .map(p => `<option value="${Number(p.id) || ""}" ${String(p.id) === String(atual || "") ? "selected" : ""}>${_escAttr(p.nome)}</option>`).join("");
+}
 function renderCombinaCom(docAtual, marcados) {
   const set = new Set((marcados || []).map(Number));
   document.getElementById("form-combina").innerHTML = todosProdutos.filter(p => p.docId !== docAtual).map(p =>
@@ -4635,40 +4645,83 @@ function lerListasProduto() {
 }
 
 // Duplicar: abre o produto como "novo", com tudo copiado, para só trocar nome/foto/preço
-// ── Açaí Kids: tamanho "Kids" do Açaí no Copo vira produto próprio (uma vez só)
-function _kidsPendente() {
-  const copo = todosProdutos.find(p => /a[çc]a[ií] no copo/i.test(p.nome || "") && (p.tamanhos || []).some(t => /kids/i.test(t.nome || "")));
-  const jaTem = todosProdutos.some(p => /kids/i.test(p.nome || ""));
-  return copo && !jaTem ? copo : null;
+// ── Açaí Kids: produto próprio, ao lado do Açaí no Copo, com os complementos da loja
+const _ehCopo = (p) => /a[çc]a[ií] no copo/i.test(p.nome || "");
+const _ehKids = (p) => /kids/i.test(p.nome || "") && !_ehCopo(p);
+function _kidsSituacao() {
+  const copo = todosProdutos.find(_ehCopo);
+  if (!copo) return null;
+  const kids = todosProdutos.find(_ehKids);
+  const tamKidsNoCopo = (copo.tamanhos || []).find(t => /kids/i.test(t.nome || ""));
+  if (!kids) return tamKidsNoCopo ? { tipo: "separar", copo, tamKidsNoCopo } : null;
+  const semComp = !(kids.usaComplementosLoja || (kids.complementosLista || []).length) || !(kids.tamanhos || []).some(t => Number(t.complementosGratis) > 0);
+  const problemas = [];
+  if (kids.categoria !== copo.categoria) problemas.push("categoria");
+  if (String(kids.aposProduto || "") !== String(copo.id)) problemas.push("posição");
+  if (semComp) problemas.push("complementos");
+  if (kids.selo !== "kids") problemas.push("selo");
+  if (tamKidsNoCopo) problemas.push("tamanho repetido");
+  return problemas.length ? { tipo: "ajustar", copo, kids, tamKidsNoCopo, problemas } : null;
 }
-function atualizarAvisoKids() { const el = document.getElementById("kids-aviso"); if (el) el.hidden = !_kidsPendente(); }
-async function separarAcaiKids() {
-  const copo = _kidsPendente();
-  if (!copo) { atualizarAvisoKids(); return; }
-  const tamKids = copo.tamanhos.find(t => /kids/i.test(t.nome || ""));
-  const novoId = Math.max(0, ...todosProdutos.map(p => Number(p.id) || 0)) + 1;
-  const { docId, ...base } = copo;
-  const kids = { ...base, id: novoId, nome: "Açaí Kids", ativo: true,
-    tamanhos: [{ nome: "250ml", preco: Number(tamKids.preco) || 0, complementosGratis: Number(tamKids.complementosGratis) || 0, ...(tamKids.custo ? { custo: tamKids.custo } : {}) }],
-    preco: Number(tamKids.preco) || 0, copos: 1, tamanhosCopos: null,
-    selo: "kids", destaque: false, seloAte: null, promoAte: null, aposProduto: Number(copo.id) || null,
-    descricao: "Açaí de 250ml do tamanho certo para os pequenos, com 3 complementos grátis. Cada complemento a mais e os adicionais são cobrados à parte.",
-    criadoEm: firebase.firestore.FieldValue.serverTimestamp() };
-  const restoTams = copo.tamanhos.filter(t => t !== tamKids);
+function atualizarAvisoKids() {
+  const el = document.getElementById("kids-aviso");
+  if (!el) return;
+  const s = _kidsSituacao();
+  el.hidden = !s;
+  if (!s) return;
+  el.innerHTML = s.tipo === "separar"
+    ? `<p><strong>Açaí Kids separado:</strong> hoje o 250ml Kids é um tamanho dentro do "Açaí no Copo". Toque abaixo para ele virar um produto próprio, com o selo <strong>Kids</strong>, aparecendo <strong>ao lado do Açaí no Copo</strong> na loja.</p>
+       <button class="btn btn-primary btn-sm" onclick="ajustarAcaiKids()"><i class="fa-solid fa-child-reaching"></i> Separar o Açaí Kids</button>`
+    : `<p><strong>Ajustar o Açaí Kids:</strong> ele ainda não está ${s.problemas.map(x => ({ "categoria": "na mesma categoria do Açaí no Copo", "posição": "ao lado do Açaí no Copo", "complementos": "com os complementos grátis", "selo": "com o selo Kids", "tamanho repetido": "sozinho (o Açaí no Copo ainda tem o tamanho Kids)" }[x])).join(", ")}. Toque abaixo que eu arrumo tudo de uma vez.</p>
+       <button class="btn btn-primary btn-sm" onclick="ajustarAcaiKids()"><i class="fa-solid fa-wand-magic-sparkles"></i> Ajustar o Açaí Kids</button>`;
+}
+async function ajustarAcaiKids() {
+  const s = _kidsSituacao();
+  if (!s) { atualizarAvisoKids(); return; }
+  const { copo, tamKidsNoCopo } = s;
+  const gratis = Number(tamKidsNoCopo?.complementosGratis) || 3;
+  const listas = { usaComplementosLoja: copo.usaComplementosLoja ?? true, complementosLista: copo.complementosLista || [], complementosExceto: copo.complementosExceto || [],
+    usaAdicionaisLoja: copo.usaAdicionaisLoja ?? true, adicionaisPagos: copo.adicionaisPagos || [], adicionaisExceto: copo.adicionaisExceto || [] };
   try {
     const lote = db.batch();
-    lote.set(db.collection("produtos").doc(String(novoId)), kids);
-    lote.update(db.collection("produtos").doc(copo.docId), { tamanhos: restoTams, preco: Math.min(...restoTams.map(t => Number(t.preco) || 0)) });
+    let kidsDocId;
+    if (s.tipo === "separar") {
+      const novoId = Math.max(0, ...todosProdutos.map(p => Number(p.id) || 0)) + 1;
+      kidsDocId = String(novoId);
+      const { docId, ...base } = copo;
+      lote.set(db.collection("produtos").doc(kidsDocId), { ...base, ...listas, id: novoId, nome: "Açaí Kids", ativo: true,
+        tamanhos: [{ nome: "250ml", preco: Number(tamKidsNoCopo.preco) || 0, complementosGratis: gratis, ...(tamKidsNoCopo.custo ? { custo: tamKidsNoCopo.custo } : {}) }],
+        preco: Number(tamKidsNoCopo.preco) || 0, copos: 1, tamanhosCopos: null, selo: "kids", destaque: false, seloAte: null, promoAte: null, aposProduto: Number(copo.id) || null,
+        descricao: "Açaí de 250ml do tamanho certo para os pequenos, com 3 complementos grátis. Cada complemento a mais e os adicionais são cobrados à parte.",
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+    } else {
+      const k = s.kids; kidsDocId = k.docId;
+      const tams = (k.tamanhos && k.tamanhos.length ? k.tamanhos : [{ nome: "250ml", preco: Number(k.preco) || Number(tamKidsNoCopo?.preco) || 0 }])
+        .map(t => ({ ...t, complementosGratis: Number(t.complementosGratis) > 0 ? Number(t.complementosGratis) : gratis }));
+      const upd = { categoria: copo.categoria, aposProduto: Number(copo.id) || null, selo: "kids", tamanhos: tams, copos: 1 };
+      if (s.problemas.includes("complementos")) Object.assign(upd, listas);
+      lote.update(db.collection("produtos").doc(k.docId), upd);
+      // A categoria criada só para o Kids fica vazia → apaga
+      const catVelha = k.categoria && k.categoria !== copo.categoria ? todasCategorias.find(c => (c.id || c.docId) === k.categoria) : null;
+      if (catVelha && !todosProdutos.some(p => p.docId !== k.docId && p.categoria === k.categoria)) lote.delete(db.collection("categorias").doc(catVelha.docId));
+    }
+    if (tamKidsNoCopo) {
+      const resto = copo.tamanhos.filter(t => t !== tamKidsNoCopo);
+      lote.update(db.collection("produtos").doc(copo.docId), { tamanhos: resto, preco: Math.min(...resto.map(t => Number(t.preco) || 0)) });
+    }
     // Estoque: o copo de 250ml passa a baixar pelo Açaí Kids
     (typeof _estoque !== "undefined" ? _estoque : []).forEach(e => {
       const vs = e.vinculos || [];
-      if (!vs.some(v => v.produto === copo.docId && /kids/i.test(v.tamanho || ""))) return;
-      lote.update(db.collection("estoque").doc(e.docId), { vinculos: vs.map(v => v.produto === copo.docId && /kids/i.test(v.tamanho || "") ? { produto: String(novoId), tamanho: "*", opcao: "*", qtd: v.qtd || 1 } : v) });
+      const doKids = (v) => (v.produto === copo.docId && /kids/i.test(v.tamanho || ""));
+      const temKids = vs.some(v => v.produto === kidsDocId);
+      if (!vs.some(doKids) && !(/250\s*ml/i.test(e.nome || "") && /copo/i.test(e.nome || "") && !temKids)) return;
+      const novos = vs.filter(v => !doKids(v) && v.produto !== kidsDocId).concat([{ produto: kidsDocId, tamanho: "*", opcao: "*", qtd: 1 }]);
+      lote.update(db.collection("estoque").doc(e.docId), { vinculos: novos });
     });
     await lote.commit();
-    toast("Açaí Kids separado! Ele já aparece na loja ao lado do Açaí no Copo 🧒", "ok");
-    await carregarProdutos();
-  } catch (e) { toast("Não consegui separar: " + e.message, "err"); }
+    toast("Açaí Kids ajustado! Ele aparece ao lado do Açaí no Copo, com os complementos 🧒", "ok");
+    await Promise.all([carregarProdutos(), carregarCategorias()]);
+  } catch (e) { toast("Não consegui ajustar: " + e.message, "err"); }
 }
 
 function duplicarProduto(docId) {
@@ -4682,7 +4735,7 @@ function duplicarProduto(docId) {
   document.getElementById("form-codigo").placeholder = `Ex: AC01 (em branco = código automático #${proximoId})`;
   // A cópia nasce desligada para não aparecer na loja antes de ser revisada
   document.getElementById("form-ativo").checked = false;
-  document.getElementById("form-selo").value = ""; renderCombinaCom("", []);
+  document.getElementById("form-selo").value = ""; renderCombinaCom("", []); _preencherApos("", null);
   document.getElementById("form-promo-ate").value = "";
   definirBannerPromo("");
   alternarAreaPromo();
@@ -4709,7 +4762,7 @@ function abrirModalCriar() {
   document.getElementById("form-imagem").value   = "";
   document.getElementById("form-descricao").value= "";
   document.getElementById("form-ativo").checked  = true;
-  document.getElementById("form-selo").value = ""; renderCombinaCom("", []);
+  document.getElementById("form-selo").value = ""; renderCombinaCom("", []); _preencherApos("", null);
   document.getElementById("form-copos").value = 1;
   carregarComboNoForm(null);
   document.getElementById("form-promo-ate").value = "";
@@ -4741,6 +4794,7 @@ function abrirModalEditar(docId) {
   document.getElementById("form-ativo").checked      = p.ativo !== false;
   document.getElementById("form-selo").value       = _seloDoProduto(p);
   renderCombinaCom(docId, p.combinaCom);
+  _preencherApos(docId, p.aposProduto);
   document.getElementById("form-copos").value        = Math.max(1, Number(p.copos) || 1);
   carregarComboNoForm(p);
   document.getElementById("form-promo-ate").value    = (_seloDoProduto(p) === "novidade" ? p.seloAte : p.promoAte) || "";
@@ -4783,6 +4837,7 @@ async function salvarProduto() {
   const selo      = document.getElementById("form-selo").value;
   const destaque  = ["promocao", "novidade"].includes(selo);
   const combinaCom = [...document.querySelectorAll("#form-combina input:checked")].map(i => Number(i.value));
+  const aposProduto = Number(document.getElementById("form-apos").value) || null;
   const dataSelo  = document.getElementById("form-promo-ate").value || null;
   const promoAte  = selo === "promocao" ? dataSelo : null;
   const seloAte   = selo === "novidade" ? dataSelo : null;
@@ -4811,7 +4866,7 @@ async function salvarProduto() {
     }
   }
 
-  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, selo, seloAte, combinaCom, promoAte, banner, copos, tamanhosCopos,
+  const dados = { nome, codigo, categoria, preco, tamanhos, opcaoInclusa, complementosLista, adicionaisPagos, disponibilidade, prazoDias, imagem, galeria: _galeriaAtual, descricao, ativo, destaque, selo, seloAte, combinaCom, aposProduto, promoAte, banner, copos, tamanhosCopos,
     usaComplementosLoja: listas.usaComplementosLoja, complementosExceto: listas.complementosExceto,
     usaAdicionaisLoja: listas.usaAdicionaisLoja, adicionaisExceto: listas.adicionaisExceto };
   try {
@@ -6388,9 +6443,9 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261105f"></script>
-<script src="post-do-dia.js?v=20261105f"></script>
-<script src="impressora.js?v=20261105f"></script>
-<script src="pix.js?v=20261105f"></script>
+<script src="estoque-loja.js?v=20261105g"></script>
+<script src="post-do-dia.js?v=20261105g"></script>
+<script src="impressora.js?v=20261105g"></script>
+<script src="pix.js?v=20261105g"></script>
 </body>
 </html>
