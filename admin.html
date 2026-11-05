@@ -1118,6 +1118,8 @@
           </div>
           <div id="bairros-lista" class="bairros-lista"></div>
           <label class="toggle-row" style="margin-top:6px"><input type="checkbox" id="config-aceitar-outros-bairros" checked> Aceitar pedido de bairro fora da lista (taxa combinada pelo WhatsApp)</label>
+          <label style="margin-top:12px">Entrega grátis <small style="color:var(--muted)">(ex.: a rua da loja — um por linha, nome da rua ou CEP. Quando o cliente digitar essa rua ou esse CEP, a taxa vira "Grátis")</small></label>
+          <textarea id="config-entrega-gratis" rows="3" placeholder="Rua 37&#10;94971-300"></textarea>
         </div>
         <div class="form-group">
           <label>Link de avaliação no Google <small style="color:var(--muted)">(opcional — do Perfil de Empresa no Google; vai na mensagem de "Entregue")</small></label>
@@ -5615,6 +5617,7 @@ const CONFIG_PADRAO = {
     { bairro: "Brigadeiro", taxa: 8 }, { bairro: "Guajuviras", taxa: 8 }
   ],
   aceitarOutrosBairros: true,
+  entregaGratis: ["Rua 37", "94971-300"],
   tempoEntrega: "40 a 45 minutos",
   precoComplementoExtra: 2,
   corPrimaria: "#7A1F4B",
@@ -5692,6 +5695,7 @@ async function carregarConfiguracoes() {
     _bairros = (Array.isArray(cfg.taxasEntrega) ? cfg.taxasEntrega : []).map(t => ({ bairro: t.bairro, taxa: Number(t.taxa) || 0 }));
     renderBairros();
     document.getElementById("config-aceitar-outros-bairros").checked = cfg.aceitarOutrosBairros !== false;
+    document.getElementById("config-entrega-gratis").value = (Array.isArray(cfg.entregaGratis) ? cfg.entregaGratis : []).join("\n");
     document.getElementById("config-tempo-entrega").value = cfg.tempoEntrega || "";
     document.getElementById("config-google-review").value = cfg.googleReviewUrl || "";
     document.getElementById("config-complemento-extra").value = cfg.precoComplementoExtra ?? "";
@@ -5752,6 +5756,7 @@ async function salvarConfiguracoes() {
   const entregaDisponivel  = document.getElementById("config-entrega-disponivel").checked;
   const taxasEntrega = _bairrosParaSalvar();
   const aceitarOutrosBairros = document.getElementById("config-aceitar-outros-bairros").checked;
+  const entregaGratis = document.getElementById("config-entrega-gratis").value.split("\n").map(t => t.trim()).filter(Boolean).slice(0, 20);
   const tempoEntrega = document.getElementById("config-tempo-entrega").value.trim();
   const googleReviewUrl = document.getElementById("config-google-review").value.trim();
   const precoComplementoExtra = Math.max(0, Number(String(document.getElementById("config-complemento-extra").value).replace(",", ".")) || 0);
@@ -5819,7 +5824,7 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
+      taxasEntrega, aceitarOutrosBairros, entregaGratis, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
       // campos do Estoque e do Post do dia (salvos fora desta tela)
@@ -5853,7 +5858,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261103j"></script>
-<script src="post-do-dia.js?v=20261103j"></script>
+<script src="estoque-loja.js?v=20261104a"></script>
+<script src="post-do-dia.js?v=20261104a"></script>
 </body>
 </html>

@@ -180,6 +180,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             { bairro: "Guajuviras", taxa: 8 },
         ],
         aceitarOutrosBairros: true,
+        // Entrega grátis (rua da loja): nomes de rua e/ou CEPs — editável no admin → Configurações
+        entregaGratis: ["Rua 37", "94971-300"],
         tempoEntrega: "40 a 45 minutos",
         // Cada complemento além dos grátis, em qualquer açaí
         precoComplementoExtra: 2,
@@ -2034,12 +2036,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         ? bairroOutroInput.value.trim()
         : bairroSelect.value;
     // null = taxa a combinar (bairro fora da lista) ou bairro ainda não escolhido
+    // Entrega grátis por rua/CEP (ex.: a rua da loja). Rua: compara o nome sem acento,
+    // aceitando "R." e "Rua" (Rua 37 = rua 37 = R. 37 = R 37). CEP: só os 8 números.
+    const normRua = (t) => semAcento(t).replace(/^(rua\b|r\.|r\s)\s*/, "").replace(/[^a-z0-9]+/g, " ").trim();
+    const entregaGratisAqui = () => {
+        if (tipoEntrega !== "delivery") return false;
+        const regras = Array.isArray(configLoja.entregaGratis) ? configLoja.entregaGratis : [];
+        const cep = (document.getElementById("delivery-cep")?.value || "").replace(/\D/g, "");
+        const rua = normRua(document.getElementById("delivery-address")?.value || "");
+        return regras.some((r) => {
+            const so = String(r || "").replace(/\D/g, "");
+            if (/^\d{5}-?\d{3}$/.test(String(r).trim())) return cep.length === 8 && cep === so;
+            return rua && rua === normRua(r);
+        });
+    };
     const taxaDoBairro = () => {
+        if (entregaGratisAqui()) return 0;
         const t = taxasEntrega().find((x) => x.bairro === bairroSelect.value);
         return t ? t.taxa : null;
     };
     const taxaEntregaAtual = () => (tipoEntrega === "delivery" ? (taxaDoBairro() || 0) : 0);
     const textoTaxaEntrega = () => {
+        if (entregaGratisAqui()) return "Grátis (rua da loja)";
         if (bairroSelect.value === OPCAO_OUTRO_BAIRRO) return "a combinar pelo WhatsApp";
         const t = taxaDoBairro();
         return t === null ? "" : (t > 0 ? formatarMoeda(t) : "Grátis");
@@ -2048,7 +2066,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const atualizarAvisoEntrega = () => {
         const tempo = configLoja.tempoEntrega ? `<i class="fa-regular fa-clock" aria-hidden="true"></i> Tempo estimado de entrega: <strong>${configLoja.tempoEntrega}</strong>` : "";
         let taxa = "Escolha o bairro para ver a taxa de entrega.";
-        if (bairroSelect.value === OPCAO_OUTRO_BAIRRO) taxa = "Para bairros fora da lista, a taxa é combinada pelo WhatsApp.";
+        if (entregaGratisAqui()) taxa = `<i class="fa-solid fa-gift" aria-hidden="true"></i> <strong>Entrega grátis</strong> — você é nosso vizinho de rua! 💜`;
+        else if (bairroSelect.value === OPCAO_OUTRO_BAIRRO) taxa = "Para bairros fora da lista, a taxa é combinada pelo WhatsApp.";
         else if (taxaDoBairro() !== null) taxa = `<i class="fa-solid fa-motorcycle" aria-hidden="true"></i> Taxa de entrega para <strong>${bairroSelect.value}</strong>: <strong>${textoTaxaEntrega()}</strong>`;
         deliveryFeeNotice.innerHTML = `${taxa}${tempo ? `<br>${tempo}` : ""}`;
     };
@@ -2065,6 +2084,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     bairroOutroInput.addEventListener("input", () => {
         if (bairroOutroInput.value.trim()) bairroOutroInput.classList.remove("error");
     });
+
+    // Rua ou CEP mudou → confere a entrega grátis (com uma pausa curta enquanto digita)
+    let _timerGratis = null;
+    ["delivery-address", "delivery-cep"].forEach((id) => document.getElementById(id)?.addEventListener("input", () => {
+        clearTimeout(_timerGratis);
+        _timerGratis = setTimeout(() => { atualizarAvisoEntrega(); atualizarCarrinho(); }, 350);
+    }));
 
     montarBairros();
     atualizarAvisoEntrega();
