@@ -3,7 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin – Açaí da Bru</title>
+  <title>Painel – Açaí da Bru</title>
+  <!-- App na tela inicial do celular ("Bru Painel") -->
+  <link rel="manifest" href="painel.webmanifest">
+  <meta name="theme-color" content="#2B0D1E">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Bru Painel">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/app-icone-apple.png">
   <script>try { if (localStorage.getItem("admin:tema") === "claro") document.documentElement.dataset.tema = "claro"; } catch (e) {}</script>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -66,14 +74,30 @@
     .tema-btn:hover { border-color: var(--gold); color: var(--gold); }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 16px; }
-    #login-screen h1 { font-size: 1.6rem; color: var(--gold); }
-    #login-screen p  { color: var(--muted); font-size: .9rem; }
-    .login-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 32px; width: 320px; display: flex; flex-direction: column; gap: 14px; }
-    .login-box input { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--text); font-size: .95rem; outline: none; }
-    .login-box input:focus { border-color: var(--gold); }
-    #login-error { color: var(--red); font-size: .82rem; display: none; }
-    #login-info { color: var(--green, #4caf50); font-size: .82rem; display: none; line-height: 1.45; }
+    /* Tela de login com as cores da Bru (igual no tema claro e no escuro) */
+    #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; gap: 18px; padding: 28px 16px 18px;
+      background: radial-gradient(120% 70% at 50% 0%, #7A1F4B 0%, #3a0f27 55%, #1c0613 100%); color: #FFF9F2; font-family: "Inter", system-ui, sans-serif; }
+    .login-marca { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .login-logo { background: #fff; border-radius: 28px; padding: 12px 18px; box-shadow: 0 14px 40px rgba(0,0,0,.45), 0 0 0 3px rgba(212,162,76,.55); margin-bottom: 12px; }
+    .login-logo img { display: block; width: 190px; max-width: 52vw; height: auto; }
+    #login-screen h1 { font-family: "Montserrat", sans-serif; font-weight: 800; font-size: 1.5rem; color: #F3D58E; letter-spacing: .01em; }
+    #login-screen .login-marca p { color: rgba(255,249,242,.75); font-size: .9rem; }
+    .login-box { background: #FFF9F2; color: #2B1420; border: 0; border-radius: 18px; padding: 24px 22px; width: 340px; max-width: 100%; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 18px 50px rgba(0,0,0,.4); }
+    #login-screen .login-box label { color: #5C1638; font-weight: 600; font-size: .85rem; }
+    #login-screen .login-box input[type=email], #login-screen .login-box input[type=password] { background: #fff; border: 1px solid #EEDDE3; border-radius: 10px; padding: 12px 14px; color: #2B1420; font-size: 1rem; outline: none; }
+    #login-screen .login-box input:focus { border-color: #7A1F4B; box-shadow: 0 0 0 3px rgba(122,31,75,.15); }
+    .login-box .login-entrar { background: #7A1F4B; color: #fff; justify-content: center; padding: 13px; font-size: 1rem; border-radius: 10px; }
+    .login-box .login-entrar:hover { background: #5C1638; }
+    #login-screen .login-box .login-lembrar { color: #6b5a63; font-weight: 500; }
+    .login-box .login-lembrar input { accent-color: #7A1F4B; }
+    .login-box .login-esqueci { color: #7A1F4B; }
+    .login-box .login-esqueci:hover { color: #5C1638; }
+    .login-tf { display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; font-size: .74rem; color: rgba(255,249,242,.55); text-decoration: none; transition: .2s; }
+    .login-tf img { width: 22px; height: 22px; border-radius: 6px; object-fit: cover; opacity: .85; }
+    .login-tf strong { font-weight: 600; color: rgba(255,249,242,.75); }
+    .login-tf:hover { color: rgba(255,249,242,.85); }
+    #login-error { color: #e11d48; font-size: .82rem; display: none; }
+    #login-info { color: #15803d; font-size: .82rem; display: none; line-height: 1.45; }
     .login-esqueci { background: none; border: none; color: var(--muted); font-size: .82rem; text-decoration: underline; cursor: pointer; align-self: center; padding: 2px; font-family: inherit; }
     .login-esqueci:hover { color: var(--gold); }
     .login-lembrar { display: flex; align-items: center; gap: 8px; font-size: .82rem; color: var(--muted); cursor: pointer; }
@@ -551,28 +575,31 @@
 <body>
 
 <div id="login-screen">
-  <div style="text-align:center">
-    <img src="assets/tf-solutions-logo.jpg" alt="TF Solutions" style="width:150px;max-width:60vw;height:auto;border-radius:12px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-    <h1>Açaí da Bru Admin</h1>
-    <p style="margin-top:6px">Acesso restrito</p>
+  <div class="login-marca">
+    <div class="login-logo"><img src="assets/logo.jpg" alt="Açaí da Bru"></div>
+    <h1>Painel da loja</h1>
+    <p>Pedidos, estoque e vendas do Açaí da Bru</p>
   </div>
   <div class="login-box">
     <div class="form-group">
       <label>E-mail</label>
-      <input type="email" id="email-input" placeholder="seuemail@exemplo.com" autofocus>
+      <input type="email" id="email-input" placeholder="seuemail@exemplo.com" autocomplete="username" autofocus>
     </div>
     <div class="form-group">
-      <label>Senha de acesso</label>
-      <input type="password" id="senha-input" placeholder="••••••••">
+      <label>Senha</label>
+      <input type="password" id="senha-input" placeholder="••••••••" autocomplete="current-password">
     </div>
     <label class="login-lembrar"><input type="checkbox" id="lembrar-login" checked> Manter conectado neste aparelho</label>
     <span id="login-error">E-mail ou senha inválidos.</span>
     <span id="login-info"></span>
-    <button class="btn btn-primary" onclick="fazerLogin()">
+    <button class="btn btn-primary login-entrar" onclick="fazerLogin()">
       <i class="fa-solid fa-right-to-bracket"></i> Entrar
     </button>
     <button type="button" class="login-esqueci" id="btn-esqueci-senha" onclick="esqueciSenha()">Esqueci minha senha</button>
   </div>
+  <a class="login-tf" href="https://www.tfsolutions.com.br" target="_blank" rel="noopener" title="TF Solutions — sites e sistemas para o seu negócio">
+    <img src="assets/tf-mini.jpg" alt=""> Sistema desenvolvido por <strong>TF Solutions</strong>
+  </a>
 </div>
 
 <div id="app">
@@ -5858,7 +5885,7 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261104a"></script>
-<script src="post-do-dia.js?v=20261104a"></script>
+<script src="estoque-loja.js?v=20261104b"></script>
+<script src="post-do-dia.js?v=20261104b"></script>
 </body>
 </html>
