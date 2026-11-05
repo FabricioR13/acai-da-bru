@@ -34,7 +34,7 @@
 </head>
 <body>
 <main>
-  <h1>🖨️ Teste da impressora térmica</h1>
+  <h1>🖨️ Teste da impressora térmica <small style="font-size:.7rem;color:#7A1F4B">— versão 2</small></h1>
   <p class="sub">Página só para testar. Não mexe na loja, no painel nem nos pedidos. Use no <strong>celular Android</strong> da Bru, com o Bluetooth ligado e a impressora ligada e com papel.</p>
 
   <div class="card">
@@ -95,29 +95,32 @@ const quebra = (t, rec = 0) => {
 const agora = new Date();
 const COMANDA = [
   centro("ACAI DA BRU"),
-  centro("Pedido Nº 12 (TESTE)"),
+  centro("*** TESTE 2 - VERSAO NOVA ***"),
+  centro("Nº 1 · #TF2B7"),
   centro(agora.toLocaleDateString("pt-BR") + " " + agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })),
   linha("="),
-  "1x Combo Família",
-  quebra("1º açaí (400ml): Granola, Paçoca, Leite em pó", 3),
-  quebra("2º açaí (400ml): Banana, Morango, Leite condensado (+ Nutella)", 3),
-  quebra("3º açaí (300ml): Sucrilhos, Amendoim, Ovomaltine", 3),
-  lado("", "R$ 49,90"),
-  "1x Açaí no Copo 250ml Kids",
-  quebra("Complementos: Granola, M&M's, Chocoball", 3),
-  lado("", "R$ 9,90"),
+  "2x Combo Casal",
+  quebra("1º açaí (400ml): Morango, Leite em pó, Granola", 3),
+  quebra("2º açaí (400ml): Paçoca, Ovomaltine, Banana (+ Nutella)", 3),
+  lado("", "R$ 75,80"),
+  "1x Sorvete 1 Litro",
+  quebra("Sabor: Flocos", 3),
+  lado("", "R$ 17,90"),
+  "1x Coca-Cola 2L",
+  lado("", "R$ 14,00"),
   linha("-"),
-  lado("Adicionais", "R$ 4,00"),
-  lado("Entrega (Parque da Matriz)", "R$ 5,00"),
-  lado("TOTAL", "R$ 68,80"),
+  lado("Subtotal", "R$ 107,70"),
+  lado("Entrega (Rua 37)", "Grátis"),
+  lado("TOTAL", "R$ 107,70"),
   linha("-"),
-  "Pagamento: PIX",
-  "Cliente: Maria (teste)",
-  "Fone: (51) 99999-0000",
-  quebra("Entrega: Rua Exemplo, 123 - Parque da Matriz"),
-  quebra("Obs: sem colher, por favor"),
+  "Pagamento: Dinheiro",
+  "Troco para: R$ 120,00",
+  "Cliente: Bruna (teste)",
+  "Fone: (51) 99312-6436",
+  quebra("Entrega: Rua 37, 100 - Cachoeirinha"),
+  quebra("Obs: caprichar no morango!"),
   linha("="),
-  centro("Obrigado pela preferência!"),
+  centro("FIM DO TESTE 2 - saiu tudo?"),
   "", "", "",
 ].join("\n");
 document.getElementById("previa").textContent = COMANDA;
