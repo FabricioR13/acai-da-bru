@@ -2125,7 +2125,7 @@ function textoMotoboy(p) {
   const loja = _cfgLoja.nomeLoja || "Açaí da Bru";
   return [
     `🛵 *ENTREGA — ${loja}*`,
-    `Pedido ${_nomePedido(p)}`,
+    `Código do pedido: *#${p.codigo || p.docId.slice(0, 6)}*`,
     _cfgLoja.enderecoLoja ? `\n🏪 *Retirar:* ${_cfgLoja.enderecoLoja}` : "",
     `\n📍 *Entregar:* ${enderecoTxt}`,
     e.cep ? `CEP ${e.cep}` : "",
@@ -2135,7 +2135,8 @@ function textoMotoboy(p) {
     cobrar,
     Number(p.taxaEntrega) ? `🏍️ Taxa de entrega: ${_brl(p.taxaEntrega)}` : "",
     p.observacoes ? `📝 Obs: ${p.observacoes}` : "",
-    `\nQuem pega? Responde aqui 🙋`,
+    `\n🔐 Na entrega, peça ao cliente o código do pedido para confirmar.`,
+    `Quem pega? Responde aqui 🙋`,
   ].filter(Boolean).join("\n");
 }
 const linkMotoboy = (p) => `https://wa.me/?text=${encodeURIComponent(textoMotoboy(p))}`;
@@ -6443,9 +6444,9 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261105g"></script>
-<script src="post-do-dia.js?v=20261105g"></script>
-<script src="impressora.js?v=20261105g"></script>
-<script src="pix.js?v=20261105g"></script>
+<script src="estoque-loja.js?v=20261105h"></script>
+<script src="post-do-dia.js?v=20261105h"></script>
+<script src="impressora.js?v=20261105h"></script>
+<script src="pix.js?v=20261105h"></script>
 </body>
 </html>
