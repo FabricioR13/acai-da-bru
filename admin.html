@@ -2319,8 +2319,27 @@ async function avancarPedido(docId, etapa, avisar) {
   } catch (e) { toast("Erro ao mudar a etapa: " + e.message, "err"); }
 }
 
+// Agradecimento do PIX: sai quando a Bru marca "Pago" num pedido pago por PIX
+function mensagemPixRecebido(p) {
+  const nome = String(p.cliente || "").trim().split(/\s+/)[0] || "tudo bem";
+  const c = _codigoCliente(p), n = c ? `${c} ` : "";
+  const etapa = _etapaDe(p), entrega = _ehEntrega(p);
+  const oi = `Oi, ${nome}! Recebemos seu PIX, muito obrigada 💜`;
+  if (etapa === "saiu") return `${oi}\n\n${entrega ? `Seu pedido ${n}já está a caminho! 🛵` : `Seu pedido ${n}já está pronto para retirada! 🍧`}`;
+  if (etapa === "entregue") return `${oi}\n\nObrigada pela preferência! 🍧`;
+  return `${oi}\n\nSeu pedido ${n}já está em preparo e ${entrega ? "logo sai para entrega! 🛵" : "logo fica pronto para retirada! 🍧"}`;
+}
+
 async function marcarPago(docId, pago) {
   const p = _pedidos.find(x => x.docId === docId);
+  // Abre o WhatsApp já no toque (se esperar o banco, o celular bloqueia a janela)
+  if (pago && p && /pix/i.test(p.pagamento || "") && _etapaDe(p) !== "cancelado") {
+    let tel = String(p.telefone || "").replace(/\D/g, "");
+    if (tel) {
+      if (tel.length <= 11) tel = "55" + tel;
+      window.open(`https://wa.me/${tel}?text=${encodeURIComponent(mensagemPixRecebido(p))}`, "_blank");
+    }
+  }
   try {
     await db.collection("pedidos").doc(docId).update({ pago, pagoEm: pago ? firebase.firestore.FieldValue.serverTimestamp() : null });
     toast(pago ? `${_nomePedido(p)} marcado como pago` : `${_nomePedido(p)} voltou para "não pago"`, "ok");
