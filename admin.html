@@ -192,13 +192,15 @@
     .stat-parte .lbl { margin: 0; font-size: .75rem; display: flex; align-items: center; gap: 6px; }
     .stat-parte strong { font-size: 1.15rem; color: var(--text); white-space: nowrap; }
     @media (max-width: 600px) {
-      .stats-relatorio { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stats-relatorio { grid-template-columns: 1fr; gap: 10px; }
       .stats-relatorio .stat-card { padding: 12px 14px; }
       .stats-relatorio .stat-card .num { font-size: 1.3rem; }
       .stats-relatorio .stat-card-largo { grid-column: 1 / -1; order: -1; }
       .stats-relatorio .stat-card-tempo { grid-column: 1 / -1; }
       .stat-partes { grid-template-columns: 1fr 1fr; }
     }
+    .rank-pos { display: inline-block; min-width: 26px; color: var(--gold); font-weight: 700; font-size: .8rem; }
+    .rank-zerado td { color: var(--muted); }
     .stat-sub { display: block; font-size: .72rem; color: var(--muted); margin-top: 4px; }
     .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
     table { width: 100%; border-collapse: collapse; }
@@ -803,7 +805,7 @@
       </div>
       <div class="painel-duplo">
         <div class="chart-card">
-          <h3><i class="fa-solid fa-trophy"></i> Mais vendidos no mês</h3>
+          <h3><i class="fa-solid fa-trophy"></i> Mais vendidos no mês <small style="color:var(--muted);font-weight:400">(todos os pedidos não cancelados)</small></h3>
           <div class="table-wrap"><table><thead><tr><th>Produto</th><th style="text-align:right">Qtd</th><th style="text-align:right">Vendido</th><th style="text-align:right">Lucro</th></tr></thead><tbody id="painel-top"></tbody></table></div>
         </div>
         <div class="chart-card">
@@ -2609,6 +2611,37 @@ function calcularPainel(r) {
   };
 }
 
+// Ranking de produtos do mês: conta TODOS os pedidos não cancelados (pagos ou não) + balcão,
+// e inclui os produtos ativos que não venderam nada (com 0), por tamanho quando há mais de um.
+function _rankingProdutos(P) {
+  const top = {};
+  const chaveDe = (nome, tamanho) => {
+    const prod = todosProdutos.find(p => _normNome(p.nome) === _normNome(nome));
+    const tam = prod && (prod.tamanhos || []).length > 1 ? (tamanho || "") : "";
+    const n = prod?.nome || nome;
+    return { k: `${_normNome(n)}|${_normNome(tam)}`, nome: tam ? `${n} (${tam})` : n };
+  };
+  const somar = (nome, tamanho, qtd, receita, custoUnit, temCusto) => {
+    const c = chaveDe(nome, tamanho);
+    const t = top[c.k] = top[c.k] || { nome: c.nome, qtd: 0, receita: 0, custo: 0, semCusto: 0 };
+    t.qtd += qtd; t.receita += receita; t.custo += custoUnit * qtd; if (!temCusto) t.semCusto += qtd;
+  };
+  (P.pedidos || []).filter(p => p.status !== "cancelado").forEach(p => (p.itens || []).forEach(it => {
+    const c = custoItemPedido(it), q = Number(it.quantidade) || 1;
+    somar(c.nome, c.tamanho, q, (Number(it.preco) || 0) * q, c.custo, c.temCusto);
+  }));
+  (P.vendasDocs || []).forEach(v => (v.itens || []).forEach(it => {
+    const c = custoItemPdv(it), q = Number(it.qtd) || 1;
+    somar(c.nome, c.tamanho, q, (Number(it.preco) || 0) * q, c.custo, c.temCusto);
+  }));
+  // Produtos que não venderam nada também aparecem, zerados
+  todosProdutos.filter(p => p.ativo !== false).forEach(p => {
+    const tams = (p.tamanhos || []).length > 1 ? p.tamanhos.map(t => t.nome) : [""];
+    tams.forEach(tn => { const c = chaveDe(p.nome, tn); if (!top[c.k]) top[c.k] = { nome: c.nome, qtd: 0, receita: 0, custo: 0, semCusto: 0 }; });
+  });
+  return Object.values(top).sort((a, b) => b.qtd - a.qtd || b.receita - a.receita || a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
 function _mesAnterior(mesStr) {
   const [a, m] = mesStr.split("-").map(Number);
   const d = new Date(a, m - 2, 1);
@@ -2686,11 +2719,13 @@ function renderPainel(P, A, mesStr) {
     h.addEventListener("mouseleave", () => tip.hidden = true); h.addEventListener("blur", () => tip.hidden = true);
   });
 
-  // Mais vendidos
-  document.getElementById("painel-top").innerHTML = P.top.length ? P.top.slice(0, 10).map(t => `<tr>
-    <td>${_escAttr(t.nome)}</td><td style="text-align:right">${t.qtd}</td><td style="text-align:right">${_brl(t.receita)}</td>
-    <td style="text-align:right">${t.semCusto === t.qtd ? '<small style="color:var(--muted)">sem custo</small>' : _brl(t.receita - t.custo)}</td></tr>`).join("")
-    : `<tr><td colspan="4"><div class="empty-state"><p>Nenhuma venda paga neste mês ainda.</p></div></td></tr>`;
+  // Mais vendidos: todos os produtos do cardápio, do que mais vendeu ao que não vendeu nada
+  const rank = _rankingProdutos(P);
+  document.getElementById("painel-top").innerHTML = rank.length ? rank.map((t, i) => t.qtd ? `<tr>
+    <td><span class="rank-pos">${i + 1}º</span> ${_escAttr(t.nome)}</td><td style="text-align:right;font-weight:700">${t.qtd}</td><td style="text-align:right">${_brl(t.receita)}</td>
+    <td style="text-align:right">${t.semCusto === t.qtd ? '<small style="color:var(--muted)">sem custo</small>' : _brl(t.receita - t.custo)}</td></tr>`
+    : `<tr class="rank-zerado"><td><span class="rank-pos">–</span> ${_escAttr(t.nome)}</td><td style="text-align:right">0</td><td style="text-align:right" colspan="2"><small>não vendeu</small></td></tr>`).join("")
+    : `<tr><td colspan="4"><div class="empty-state"><p>Nenhum produto cadastrado.</p></div></td></tr>`;
 
   // Margem do cardápio (todos os tamanhos dos produtos ativos)
   const linhas = [];
