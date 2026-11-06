@@ -880,6 +880,7 @@
           <option value="inativo">Inativos</option>
           <option value="destaque">Com selo (promoção, novidade…)</option>
         </select>
+        <button class="btn btn-ghost" onclick="otimizarFotosProdutos()" title="Comprime as fotos já salvas para a loja abrir mais rápido no celular"><i class="fa-solid fa-bolt"></i> Otimizar fotos</button>
         <button class="btn btn-primary" onclick="abrirModalCriar()"><i class="fa-solid fa-plus"></i> Novo Produto</button>
       </div>
       <div class="table-wrap">
@@ -3976,6 +3977,51 @@ async function organizarIngredientes() {
   renderDisponivel();
 }
 
+// ── OTIMIZAR FOTOS SALVAS NO BANCO ─────────────────────────────────────────
+// As fotos enviadas pelo admin ficam dentro do produto (texto base64) e a loja baixa
+// TODAS antes de mostrar os produtos. Este botão comprime as que estão pesadas
+// (máx. 640px nas fotos quadradas e 900px nas artes de promoção), sem mudar o visual.
+async function _recomprimir(src, maxDim) {
+  if (typeof src !== "string" || !src.startsWith("data:image") || src.length < 90 * 1024) return null;
+  const img = await new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = src; });
+  const w = img.naturalWidth, h = img.naturalHeight, r = Math.min(1, maxDim / Math.max(w, h));
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * r); cv.height = Math.round(h * r);
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, cv.width, cv.height);
+  const novo = cv.toDataURL("image/jpeg", 0.74);
+  return novo.length < src.length * 0.9 ? novo : null;
+}
+async function otimizarFotosProdutos() {
+  const kb = (t) => Math.round((typeof t === "string" && t.startsWith("data:") ? t.length * 3 / 4 : 0) / 1024);
+  const pesoProd = (p) => kb(p.imagem) + kb(p.banner) + (p.galeria || []).reduce((s, g) => s + kb(g), 0) + ((p.opcaoInclusa || {}).imagens || []).reduce((s, g) => s + kb(g), 0);
+  const antes = todosProdutos.reduce((s, p) => s + pesoProd(p), 0);
+  toast("Otimizando fotos… não feche a página.", "ok");
+  let mexidos = 0, depois = 0;
+  for (const p of todosProdutos) {
+    const upd = {};
+    try {
+      const img = await _recomprimir(p.imagem, 640); if (img) upd.imagem = img;
+      const ban = await _recomprimir(p.banner, 900); if (ban) upd.banner = ban;
+      if (Array.isArray(p.galeria)) {
+        const g = await Promise.all(p.galeria.map(x => _recomprimir(x, 640)));
+        if (g.some(Boolean)) upd.galeria = p.galeria.map((x, i) => g[i] || x);
+      }
+      const oi = p.opcaoInclusa;
+      if (oi && Array.isArray(oi.imagens)) {
+        const g = await Promise.all(oi.imagens.map(x => _recomprimir(x, 640)));
+        if (g.some(Boolean)) upd.opcaoInclusa = { ...oi, imagens: oi.imagens.map((x, i) => g[i] || x) };
+      }
+      if (Object.keys(upd).length) { await db.collection("produtos").doc(p.docId).update(upd); mexidos++; }
+    } catch (e) { console.warn("Não deu para otimizar as fotos de", p.nome, e); }
+    depois += pesoProd({ ...p, ...upd });
+  }
+  await carregarProdutos();
+  toast(mexidos ? `Fotos otimizadas em ${mexidos} produto(s): de ~${antes}KB para ~${depois}KB.` : `As fotos já estão leves (~${antes}KB no total).`, "ok");
+}
+
 // ── PRODUTOS ──────────────────────────────────────────────────────────────
 async function carregarProdutos() {
   try {
@@ -4127,7 +4173,7 @@ function resetarCropAutomatico() {
 
 function confirmarCrop() {
   if (!_cropperInstance) return;
-  const canvas = _cropperInstance.getCroppedCanvas({ width: 900, height: 900, imageSmoothingQuality: "high" });
+  const canvas = _cropperInstance.getCroppedCanvas({ width: 640, height: 640, imageSmoothingQuality: "high" });
   const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
   _cropperInstance.destroy();
   _cropperInstance = null;
@@ -4158,7 +4204,7 @@ function quadradoInteiro(img, lado = 900, qualidade = 0.8) {
 }
 function confirmarFotoInteira() {
   const img = document.getElementById("crop-image");
-  const dataUrl = quadradoInteiro(img, 900, 0.78);
+  const dataUrl = quadradoInteiro(img, 640, 0.75);
   if (_cropperInstance) { _cropperInstance.destroy(); _cropperInstance = null; }
   fecharModal("modal-crop");
   const cb = _cropCallback;

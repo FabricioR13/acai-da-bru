@@ -113,12 +113,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Seletores para o sistema de filtro
     const searchInput = document.querySelector(".search-input");
 
+    // --- BUSCAS NO FIREBASE EM PARALELO ---
+    // Produtos, cupons, categorias e configurações são pedidos todos de uma vez (antes
+    // eram um depois do outro, e o celular esperava 4 viagens ao servidor em sequência).
+    const _semAviso = (p) => { p.catch(() => {}); return p; };
+    const _buscaProdutos = _semAviso(db.collection("produtos").where("ativo", "!=", false).get());
+    const _buscaCupons = _semAviso(db.collection("cupons").get());
+    const _buscaCategorias = _semAviso(db.collection("categorias").get());
+    const _buscaConfig = _semAviso(db.collection("configuracoes").doc("geral").get());
+
     // --- CARREGAR PRODUTOS DO FIREBASE ---
     let produtos = [];
     try {
-        const snap = await db.collection("produtos")
-            .where("ativo", "!=", false)
-            .get();
+        const snap = await _buscaProdutos;
         produtos = snap.docs.map(d => ({ ...d.data() }));
     } catch (e) {
         console.error("Erro ao carregar produtos do Firebase:", e);
@@ -127,7 +134,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- CARREGAR CUPONS DO FIREBASE ---
     let coupons = [];
     try {
-        const cuponsSnap = await db.collection("cupons").get();
+        const cuponsSnap = await _buscaCupons;
         coupons = cuponsSnap.docs.map((d) => ({ docId: d.id, ...d.data() }));
     } catch (e) {
         console.error("Erro ao carregar cupons do Firebase:", e);
@@ -144,7 +151,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ];
     let categorias = [];
     try {
-        const categoriasSnap = await db.collection("categorias").get();
+        const categoriasSnap = await _buscaCategorias;
         categorias = categoriasSnap.docs
             .map((d) => ({ ...d.data() }))
             .filter((c) => c.id !== "all"); // "Todos" já é gerado automaticamente
@@ -216,7 +223,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
     let configLoja = { ...CONFIG_PADRAO };
     try {
-        const configDoc = await db.collection("configuracoes").doc("geral").get();
+        const configDoc = await _buscaConfig;
         if (configDoc.exists) configLoja = { ...CONFIG_PADRAO, ...configDoc.data() };
     } catch (e) {
         console.error("Erro ao carregar configurações da loja:", e);
