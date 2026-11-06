@@ -122,11 +122,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     const _buscaCategorias = _semAviso(db.collection("categorias").get());
     const _buscaConfig = _semAviso(db.collection("configuracoes").doc("geral").get());
 
+    // --- CARDÁPIO GUARDADO NO CELULAR (abre na hora) ---
+    // Quem já visitou a loja vê o cardápio da última visita imediatamente, sem esperar o
+    // servidor. Em paralelo, a versão nova é buscada: se nada mudou, fica como está; se a
+    // Bru mudou algo (preço, foto, pausa…), a página recarrega uma vez com os dados novos.
+    const CHAVE_CARDAPIO = "acaidabru-cardapio-v1";
+    const _buscaTudo = _semAviso(Promise.all([_buscaProdutos, _buscaCupons, _buscaCategorias, _buscaConfig])
+        .then(([p, c, cat, cfg]) => ({
+            produtos: p.docs.map((d) => d.data()),
+            cupons: c.docs.map((d) => ({ docId: d.id, ...d.data() })),
+            categorias: cat.docs.map((d) => d.data()),
+            config: cfg.exists ? cfg.data() : null,
+        })));
+    let _cardapioGuardado = null, _cardapioTexto = "";
+    try { _cardapioTexto = localStorage.getItem(CHAVE_CARDAPIO) || ""; _cardapioGuardado = JSON.parse(_cardapioTexto || "null"); } catch (e) { /* sem cache */ }
+    if (!_cardapioGuardado || !Array.isArray(_cardapioGuardado.produtos) || !_cardapioGuardado.produtos.length) _cardapioGuardado = null;
+    const _guardarCardapio = (texto) => {
+        try { localStorage.setItem(CHAVE_CARDAPIO, texto); } catch (e) {
+            try { localStorage.removeItem(CHAVE_CARDAPIO); } catch (e2) { /* ignora */ } // celular sem espaço: segue sem cache
+        }
+    };
+
     // --- CARREGAR PRODUTOS DO FIREBASE ---
     let produtos = [];
     try {
-        const snap = await _buscaProdutos;
-        produtos = snap.docs.map(d => ({ ...d.data() }));
+        produtos = _cardapioGuardado
+            ? _cardapioGuardado.produtos.map((p) => ({ ...p }))
+            : (await _buscaProdutos).docs.map(d => ({ ...d.data() }));
     } catch (e) {
         console.error("Erro ao carregar produtos do Firebase:", e);
     }
@@ -134,8 +156,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- CARREGAR CUPONS DO FIREBASE ---
     let coupons = [];
     try {
-        const cuponsSnap = await _buscaCupons;
-        coupons = cuponsSnap.docs.map((d) => ({ docId: d.id, ...d.data() }));
+        coupons = _cardapioGuardado
+            ? (_cardapioGuardado.cupons || []).map((c) => ({ ...c }))
+            : (await _buscaCupons).docs.map((d) => ({ docId: d.id, ...d.data() }));
     } catch (e) {
         console.error("Erro ao carregar cupons do Firebase:", e);
     }
@@ -151,9 +174,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     ];
     let categorias = [];
     try {
-        const categoriasSnap = await _buscaCategorias;
-        categorias = categoriasSnap.docs
-            .map((d) => ({ ...d.data() }))
+        categorias = (_cardapioGuardado
+            ? (_cardapioGuardado.categorias || [])
+            : (await _buscaCategorias).docs.map((d) => ({ ...d.data() })))
             .filter((c) => c.id !== "all"); // "Todos" já é gerado automaticamente
     } catch (e) {
         console.error("Erro ao carregar categorias do Firebase:", e);
@@ -223,8 +246,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
     let configLoja = { ...CONFIG_PADRAO };
     try {
-        const configDoc = await _buscaConfig;
-        if (configDoc.exists) configLoja = { ...CONFIG_PADRAO, ...configDoc.data() };
+        if (_cardapioGuardado) {
+            if (_cardapioGuardado.config) configLoja = { ...CONFIG_PADRAO, ..._cardapioGuardado.config };
+        } else {
+            const configDoc = await _buscaConfig;
+            if (configDoc.exists) configLoja = { ...CONFIG_PADRAO, ...configDoc.data() };
+        }
     } catch (e) {
         console.error("Erro ao carregar configurações da loja:", e);
     }
@@ -2245,4 +2272,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     filtrarEMostrarProdutos();
     atualizarCarrinho();
     mostrarEtapa(1);
+
+    // Confere o cardápio guardado com o do servidor
+    _buscaTudo.then((novo) => {
+        const texto = JSON.stringify(novo);
+        const mudou = texto !== _cardapioTexto;
+        if (mudou) _guardarCardapio(texto);
+        if (!_cardapioGuardado || !mudou) return;
+        let jaRecarregou = false;
+        try { jaRecarregou = sessionStorage.getItem("acaidabru-recarregou") === "1"; } catch (e) { /* ignora */ }
+        if (jaRecarregou) return; // nunca recarrega duas vezes seguidas
+        try { sessionStorage.setItem("acaidabru-recarregou", "1"); } catch (e) { /* ignora */ }
+        if (!carrinho.length) { location.reload(); return; }
+        // Cliente já começou a montar o pedido: não some com o carrinho, só avisa
+        const aviso = document.createElement("button");
+        aviso.type = "button";
+        aviso.className = "aviso-cardapio-novo";
+        aviso.innerHTML = '<i class="fa-solid fa-rotate"></i> O cardápio foi atualizado. Toque para ver a versão nova';
+        aviso.onclick = () => location.reload();
+        document.body.appendChild(aviso);
+    }).catch((e) => console.warn("Não foi possível conferir o cardápio:", e));
 });

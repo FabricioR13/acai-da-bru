@@ -668,3 +668,6 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 .product-badge-destaque.selo-kids,.detail-badge-destaque.selo-kids,.promo-card-selo.selo-kids{background:linear-gradient(135deg,#ff7ab6,#8b5cf6);color:#fff;box-shadow:0 6px 14px rgba(139,92,246,.35)}
 .product-card--kids{border:2px solid transparent;background:linear-gradient(#fff,#fff) padding-box,linear-gradient(135deg,#ff7ab6,#8b5cf6,#38bdf8) border-box}
 .product-card--kids .product-name::after{content:" 🧒"}
+
+/* Aviso "cardápio atualizado" (quando o cliente já tem itens no carrinho) */
+.aviso-cardapio-novo { position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%); z-index: 9999; max-width: calc(100% - 32px); background: #4a1d5c; color: #fff; border: 0; border-radius: 999px; padding: 10px 16px; font: 600 .85rem Inter, sans-serif; box-shadow: 0 6px 18px rgba(0,0,0,.25); cursor: pointer; display: flex; gap: 8px; align-items: center; }
