@@ -181,6 +181,12 @@
     .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; flex: 1; min-width: 140px; }
     .stat-card .num { font-size: 1.6rem; font-weight: 700; color: var(--gold); }
     .stat-card .lbl { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .stat-card-largo { min-width: 240px; }
+    .stat-partes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .stat-parte { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+    .stat-parte .lbl { margin: 0; font-size: .72rem; }
+    .stat-parte strong { font-size: 1rem; color: var(--text, inherit); }
+    .stat-sub { display: block; font-size: .72rem; color: var(--muted); margin-top: 4px; }
     .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
     table { width: 100%; border-collapse: collapse; }
     thead tr { background: var(--surface); }
@@ -1121,12 +1127,18 @@
       </div>
       <div class="stats-row">
         <div class="stat-card"><div class="num" id="relatorio-stat-qtd">–</div><div class="lbl">Vendas no mês</div></div>
-        <div class="stat-card"><div class="num" id="relatorio-stat-total">–</div><div class="lbl">Faturamento no mês</div></div>
+        <div class="stat-card stat-card-largo"><div class="num" id="relatorio-stat-total">–</div><div class="lbl">Faturamento no mês</div>
+          <div class="stat-partes">
+            <div class="stat-parte"><span class="lbl"><i class="fa-solid fa-ice-cream"></i> Produtos</span><strong id="relatorio-stat-produtos">–</strong></div>
+            <div class="stat-parte"><span class="lbl"><i class="fa-solid fa-motorcycle"></i> Tele (entregas)</span><strong id="relatorio-stat-tele">–</strong></div>
+          </div>
+        </div>
         <div class="stat-card"><div class="num" id="relatorio-stat-ticket">–</div><div class="lbl">Ticket médio</div></div>
-        <div class="stat-card"><div class="num" id="relatorio-stat-site">–</div><div class="lbl">Pedidos pelo site</div></div>
-        <div class="stat-card"><div class="num" id="relatorio-stat-site-total">–</div><div class="lbl">Valor pedido pelo site</div></div>
+        <div class="stat-card"><div class="num" id="relatorio-stat-site">–</div><div class="lbl">Pedidos (site e WhatsApp)</div></div>
+        <div class="stat-card"><div class="num" id="relatorio-stat-site-total">–</div><div class="lbl">Valor dos pedidos</div></div>
+        <div class="stat-card"><div class="num" id="relatorio-stat-tempo">–</div><div class="lbl">Tempo médio: aceitar → sair p/ entrega</div><small class="stat-sub" id="relatorio-stat-tempo-sub"></small></div>
       </div>
-      <p style="color:var(--muted);font-size:.75rem;margin:-6px 0 14px">"Vendas" e "Faturamento" contam o balcão (PDV). "Pedidos pelo site" são os pedidos enviados para o WhatsApp — confira no WhatsApp quais foram confirmados.</p>
+      <p style="color:var(--muted);font-size:.75rem;margin:-6px 0 14px">O faturamento soma o balcão (PDV) e os pedidos do site/WhatsApp (menos os cancelados). "Tele" é a soma das taxas de entrega; "Produtos" é o restante. O tempo médio usa os pedidos de entrega em que foram usados os botões "Em preparo" e "Saiu para entrega".</p>
       <div class="chart-card">
         <h3><i class="fa-solid fa-chart-column"></i> Vendas por dia do mês</h3>
         <div class="chart-wrap" id="relatorio-grafico-wrap">
@@ -5218,8 +5230,8 @@ function pdvCalcularDesconto(subtotal) {
   return Math.min(subtotal, manual + descontoCupom);
 }
 
-const PAG_LABEL = { dinheiro: "Dinheiro", pix: "Pix", debito: "Débito", credito: "Crédito" };
-const PAG_COLOR = { dinheiro: "#4caf50", pix: "#29b6a8", debito: "#5c8df6", credito: "#f0c040" };
+const PAG_LABEL = { dinheiro: "Dinheiro", pix: "Pix", debito: "Débito", credito: "Crédito", outro: "Outro" };
+const PAG_COLOR = { dinheiro: "#4caf50", pix: "#29b6a8", debito: "#5c8df6", credito: "#f0c040", outro: "#9e9e9e" };
 const PAG_ORDEM = ["dinheiro", "pix", "debito", "credito"];
 
 function pdvCalcularPagamentos(total) {
@@ -5483,8 +5495,7 @@ function imprimirRelatorioMensal() {
   const [ano, mes] = mesStr.split("-").map(Number);
   const nomeMes = new Date(ano, mes - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-  const totalMes = vendasRelatorio.reduce((s,v) => s + Number(v.total||0), 0);
-  const ticketMedio = vendasRelatorio.length ? totalMes / vendasRelatorio.length : 0;
+  const R = resumoRelatorio();
 
   const totaisPorForma = {};
   PAG_ORDEM.forEach(f => totaisPorForma[f] = 0);
@@ -5494,13 +5505,29 @@ function imprimirRelatorioMensal() {
       totaisPorForma[p.forma] += Number(p.valor || 0);
     });
   });
+  _pedidosValidosRel().forEach(p => {
+    const f = _formaPedido(p.pagamento);
+    if (totaisPorForma[f] === undefined) totaisPorForma[f] = 0;
+    totaisPorForma[f] += Number(p.total || 0);
+  });
   const pagamentosHtml = Object.keys(totaisPorForma)
     .filter(f => totaisPorForma[f] > 0)
     .sort((a,b) => PAG_ORDEM.indexOf(a) - PAG_ORDEM.indexOf(b))
     .map(f => `<div class="pdv-totals-row"><span>${PAG_LABEL[f] || f}</span><span>R$ ${totaisPorForma[f].toFixed(2).replace('.',',')}</span></div>`)
     .join("") || `<div class="pdv-totals-row"><span style="color:var(--muted)">Sem vendas registradas neste período</span></div>`;
 
-  const linhasTabela = vendasRelatorio.map(v => {
+  const linhasPedidos = R.pedidos.map(p => {
+    const dt = p.criadoEm?.toDate ? p.criadoEm.toDate() : null;
+    return { ms: dt ? dt.getTime() : 0, html: `
+      <tr>
+        <td>${dt ? dt.toLocaleDateString('pt-BR') + " " + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '–'}</td>
+        <td>${_escAttr(p.cliente || '–')}</td>
+        <td>${(p.itens || []).map(i => `${i.quantidade ?? i.qtd ?? 1}x ${i.nome}`).join(", ")}${Number(p.taxaEntrega) ? ` + tele ${_brl(p.taxaEntrega)}` : ""}</td>
+        <td>${_escAttr(p.pagamento || '–')}</td>
+        <td style="text-align:right">${_brl(p.total)}</td>
+      </tr>` };
+  });
+  const linhasBalcao = vendasRelatorio.map(v => {
     const dt = v.criadoEm?.toDate ? v.criadoEm.toDate() : null;
     const dataStr = dt ? dt.toLocaleDateString('pt-BR') : '–';
     const horaStr  = dt ? dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '–';
@@ -5508,24 +5535,28 @@ function imprimirRelatorioMensal() {
     const pagamentoTexto = Array.isArray(v.pagamentos)
       ? v.pagamentos.map(p => PAG_LABEL[p.forma] || p.forma).join(" + ")
       : (PAG_LABEL[v.pagamento] || v.pagamento || '–');
-    return `
+    return { ms: dt ? dt.getTime() : 0, html: `
       <tr>
         <td>${dataStr} ${horaStr}</td>
         <td>${v.cliente || '–'}</td>
         <td>${itensResumo}</td>
         <td>${pagamentoTexto}</td>
         <td style="text-align:right">R$ ${Number(v.total||0).toFixed(2).replace('.',',')}</td>
-      </tr>`;
-  }).join("");
+      </tr>` };
+  });
+  const linhasTabela = [...linhasPedidos, ...linhasBalcao].sort((a, b) => b.ms - a.ms).map(l => l.html).join("");
 
   document.getElementById("relatorio-imprimir").innerHTML = `
     <div class="comprovante-cabecalho">
       <strong>${_nomeLojaAtual}</strong>
       <div style="font-size:.85rem;color:var(--muted);text-transform:capitalize">Relatório mensal — ${nomeMes}</div>
     </div>
-    <div class="pdv-totals-row"><span>Vendas no mês</span><span>${vendasRelatorio.length}</span></div>
-    <div class="pdv-totals-row"><span>Faturamento no mês</span><span>R$ ${totalMes.toFixed(2).replace('.',',')}</span></div>
-    <div class="pdv-totals-row total"><span>Ticket médio</span><span>R$ ${ticketMedio.toFixed(2).replace('.',',')}</span></div>
+    <div class="pdv-totals-row"><span>Vendas no mês</span><span>${R.qtd}</span></div>
+    <div class="pdv-totals-row"><span>Faturamento no mês</span><span>${_brl(R.total)}</span></div>
+    <div class="pdv-totals-row"><span>&nbsp;&nbsp;Produtos</span><span>${_brl(R.produtos)}</span></div>
+    <div class="pdv-totals-row"><span>&nbsp;&nbsp;Tele (entregas)</span><span>${_brl(R.tele)}</span></div>
+    <div class="pdv-totals-row total"><span>Ticket médio</span><span>${_brl(R.ticket)}</span></div>
+    <div class="pdv-totals-row"><span>Tempo médio aceitar → sair p/ entrega</span><span>${_fmtMin(R.tempoMedio)}${R.tempos.length ? ` (${R.tempos.length} entregas)` : ""}</span></div>
     <div style="margin-top:14px;margin-bottom:6px;font-weight:700;font-size:.85rem">Por forma de pagamento</div>
     ${pagamentosHtml}
     <div style="margin-top:18px;margin-bottom:6px;font-weight:700;font-size:.85rem">Vendas do período</div>
@@ -5534,7 +5565,7 @@ function imprimirRelatorioMensal() {
       <tbody>${linhasTabela || `<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhuma venda neste período.</td></tr>`}</tbody>
     </table>
     <div style="margin-top:14px;font-size:.7rem;color:var(--muted);text-align:center">
-      Relatório interno gerado pelo sistema da loja — não substitui documento fiscal. Considera apenas vendas registradas pelo PDV.
+      Relatório interno gerado pelo sistema da loja — não substitui documento fiscal. Considera as vendas do balcão (PDV) e os pedidos do site/WhatsApp não cancelados.
     </div>`;
   window.print();
 }
@@ -5687,15 +5718,53 @@ function renderClientesFieis() {
   }).join("");
 }
 
-function renderRelatorio() {
-  const totalMes = vendasRelatorio.reduce((s,v) => s + Number(v.total||0), 0);
-  document.getElementById("relatorio-stat-qtd").textContent   = vendasRelatorio.length;
-  document.getElementById("relatorio-stat-total").textContent = "R$ " + totalMes.toFixed(2).replace('.',',');
-  document.getElementById("relatorio-stat-ticket").textContent= "R$ " + (vendasRelatorio.length ? totalMes / vendasRelatorio.length : 0).toFixed(2).replace('.',',');
+// Forma de pagamento de um pedido (texto livre: "PIX", "Cartão de Crédito (na entrega)"…) → chave do PDV
+function _formaPedido(txt) {
+  const t = String(txt || "").toLowerCase();
+  if (/pix/.test(t)) return "pix";
+  if (/dinheiro/.test(t)) return "dinheiro";
+  if (/d[ée]bito/.test(t)) return "debito";
+  if (/cr[ée]dito|cart[ãa]o/.test(t)) return "credito";
+  return "outro";
+}
+const _pedidosValidosRel = () => pedidosSiteRelatorio.filter(p => p.status !== "cancelado");
+const _msDe = (t) => t?.toMillis ? t.toMillis() : (t instanceof Date ? t.getTime() : null);
 
-  const totalSite = pedidosSiteRelatorio.reduce((s, p) => s + Number(p.total || 0), 0);
-  document.getElementById("relatorio-stat-site").textContent = pedidosSiteRelatorio.length;
-  document.getElementById("relatorio-stat-site-total").textContent = _brl(totalSite);
+// Tudo o que entrou no mês: balcão (PDV) + pedidos do site/WhatsApp não cancelados
+function resumoRelatorio() {
+  const pedidos = _pedidosValidosRel();
+  const totalBalcao = vendasRelatorio.reduce((s, v) => s + Number(v.total || 0), 0);
+  const totalPedidos = pedidos.reduce((s, p) => s + Number(p.total || 0), 0);
+  const tele = pedidos.reduce((s, p) => s + Number(p.taxaEntrega || 0), 0);
+  const total = totalBalcao + totalPedidos;
+  const qtd = vendasRelatorio.length + pedidos.length;
+
+  // Tempo entre aceitar (Em preparo) e sair para entrega — só entregas, ignora registros estranhos
+  const tempos = pedidos.filter(_ehEntrega).map(p => {
+    const a = _msDe(p.etapas?.preparo), b = _msDe(p.etapas?.saiu);
+    return a && b ? (b - a) / 60000 : null;
+  }).filter(m => m !== null && m >= 0 && m <= 240);
+  const media = tempos.length ? tempos.reduce((s, m) => s + m, 0) / tempos.length : null;
+
+  return { pedidos, totalBalcao, totalPedidos, tele, produtos: total - tele, total, qtd,
+    ticket: qtd ? total / qtd : 0, tempos, tempoMedio: media,
+    tempoMin: tempos.length ? Math.min(...tempos) : null, tempoMax: tempos.length ? Math.max(...tempos) : null };
+}
+const _fmtMin = (m) => m === null ? "–" : m < 60 ? `${Math.round(m)} min` : `${Math.floor(m / 60)}h${String(Math.round(m % 60)).padStart(2, "0")}`;
+
+function renderRelatorio() {
+  const R = resumoRelatorio();
+  document.getElementById("relatorio-stat-qtd").textContent    = R.qtd;
+  document.getElementById("relatorio-stat-total").textContent  = _brl(R.total);
+  document.getElementById("relatorio-stat-produtos").textContent = _brl(R.produtos);
+  document.getElementById("relatorio-stat-tele").textContent   = _brl(R.tele);
+  document.getElementById("relatorio-stat-ticket").textContent = _brl(R.ticket);
+  document.getElementById("relatorio-stat-site").textContent   = R.pedidos.length;
+  document.getElementById("relatorio-stat-site-total").textContent = _brl(R.totalPedidos);
+  document.getElementById("relatorio-stat-tempo").textContent  = _fmtMin(R.tempoMedio);
+  document.getElementById("relatorio-stat-tempo-sub").textContent = R.tempos.length
+    ? `em ${R.tempos.length} entrega${R.tempos.length > 1 ? "s" : ""} · mais rápida ${_fmtMin(R.tempoMin)} · mais demorada ${_fmtMin(R.tempoMax)}`
+    : "ainda sem entregas com os dois horários registrados";
 
   renderRelatorioGrafico();
   renderRelatorioHorarios();
@@ -5750,6 +5819,11 @@ function renderRelatorioGrafico() {
     if (!dt) return;
     const dia = dt.getDate();
     totaisPorDia[dia] = (totaisPorDia[dia] || 0) + Number(v.total || 0);
+  });
+  _pedidosValidosRel().forEach(p => {
+    const dt = p.criadoEm?.toDate ? p.criadoEm.toDate() : null;
+    if (!dt) return;
+    totaisPorDia[dt.getDate()] += Number(p.total || 0);
   });
 
   const dados = [];
@@ -5843,7 +5917,7 @@ const DIAS_SEMANA_LONGO = ["domingo", "segunda", "terça", "quarta", "quinta", "
 
 function eventosRelatorio(origem) {
   const lista = [];
-  if (origem !== "balcao") pedidosSiteRelatorio.forEach(p => {
+  if (origem !== "balcao") _pedidosValidosRel().forEach(p => {
     const dt = p.criadoEm?.toDate ? p.criadoEm.toDate() : null;
     if (dt) lista.push({ dt, total: Number(p.total || 0), origem: "site", doc: p });
   });
@@ -6036,7 +6110,12 @@ function renderRelatorioGraficoPagamento() {
       totaisPorForma[p.forma] += Number(p.valor || 0);
     });
   });
-  const formas = PAG_ORDEM.filter(f => f in totaisPorForma);
+  _pedidosValidosRel().forEach(p => {
+    const f = _formaPedido(p.pagamento);
+    if (totaisPorForma[f] === undefined) totaisPorForma[f] = 0;
+    totaisPorForma[f] += Number(p.total || 0);
+  });
+  const formas = [...PAG_ORDEM, ...(totaisPorForma.outro ? ["outro"] : [])];
   const dados = formas.map(f => ({ forma: f, total: totaisPorForma[f] || 0 }));
 
   const maiorValor = Math.max(0, ...dados.map(d => d.total));
