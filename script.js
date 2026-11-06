@@ -126,7 +126,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Quem já visitou a loja vê o cardápio da última visita imediatamente, sem esperar o
     // servidor. Em paralelo, a versão nova é buscada: se nada mudou, fica como está; se a
     // Bru mudou algo (preço, foto, pausa…), a página recarrega uma vez com os dados novos.
-    const CHAVE_CARDAPIO = "acaidabru-cardapio-v1";
+    const CHAVE_CARDAPIO = "acaidabru-cardapio-v2";
+    try { localStorage.removeItem("acaidabru-cardapio-v1"); } catch (e) { /* ignora */ }
+    // O servidor manda os campos em ordem diferente a cada vez: ordena antes de comparar/guardar
+    const _ordenar = (v) => Array.isArray(v) ? v.map(_ordenar)
+        : v && typeof v === "object" ? Object.keys(v).sort().reduce((o, k) => { o[k] = _ordenar(v[k]); return o; }, {})
+        : v;
     const _buscaTudo = _semAviso(Promise.all([_buscaProdutos, _buscaCupons, _buscaCategorias, _buscaConfig])
         .then(([p, c, cat, cfg]) => ({
             produtos: p.docs.map((d) => d.data()),
@@ -2275,7 +2280,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Confere o cardápio guardado com o do servidor
     _buscaTudo.then((novo) => {
-        const texto = JSON.stringify(novo);
+        const texto = JSON.stringify(_ordenar(JSON.parse(JSON.stringify(novo))));
         const mudou = texto !== _cardapioTexto;
         if (mudou) _guardarCardapio(texto);
         if (!_cardapioGuardado || !mudou) return;
