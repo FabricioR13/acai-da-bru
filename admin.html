@@ -181,11 +181,24 @@
     .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; flex: 1; min-width: 140px; }
     .stat-card .num { font-size: 1.6rem; font-weight: 700; color: var(--gold); }
     .stat-card .lbl { font-size: .78rem; color: var(--muted); margin-top: 2px; }
-    .stat-card-largo { min-width: 240px; }
-    .stat-partes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-    .stat-parte { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
-    .stat-parte .lbl { margin: 0; font-size: .72rem; }
-    .stat-parte strong { font-size: 1rem; color: var(--text, inherit); }
+    /* Linha de números do Relatório: grade própria (no celular o faturamento ocupa a linha toda) */
+    .stats-relatorio { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+    .stats-relatorio .stat-card { min-width: 0; }
+    .stats-relatorio .stat-card-largo, .stats-relatorio .stat-card-tempo { grid-column: span 2; }
+    .stats-relatorio .stat-card { padding: 14px 16px; }
+    .stats-relatorio .stat-card .num { white-space: nowrap; font-size: clamp(1.15rem, 1.8vw, 1.5rem); }
+    .stat-partes { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 14px; }
+    .stat-parte { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .stat-parte .lbl { margin: 0; font-size: .75rem; display: flex; align-items: center; gap: 6px; }
+    .stat-parte strong { font-size: 1.15rem; color: var(--text); white-space: nowrap; }
+    @media (max-width: 600px) {
+      .stats-relatorio { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stats-relatorio .stat-card { padding: 12px 14px; }
+      .stats-relatorio .stat-card .num { font-size: 1.3rem; }
+      .stats-relatorio .stat-card-largo { grid-column: 1 / -1; order: -1; }
+      .stats-relatorio .stat-card-tempo { grid-column: 1 / -1; }
+      .stat-partes { grid-template-columns: 1fr 1fr; }
+    }
     .stat-sub { display: block; font-size: .72rem; color: var(--muted); margin-top: 4px; }
     .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
     table { width: 100%; border-collapse: collapse; }
@@ -1126,7 +1139,7 @@
         <input type="month" id="relatorio-mes" onchange="carregarRelatorio()">
         <button class="btn btn-ghost" onclick="imprimirRelatorioMensal()"><i class="fa-solid fa-print"></i> Imprimir relatório</button>
       </div>
-      <div class="stats-row">
+      <div class="stats-row stats-relatorio">
         <div class="stat-card"><div class="num" id="relatorio-stat-qtd">–</div><div class="lbl">Vendas no mês</div></div>
         <div class="stat-card stat-card-largo"><div class="num" id="relatorio-stat-total">–</div><div class="lbl">Faturamento no mês</div>
           <div class="stat-partes">
@@ -1137,7 +1150,7 @@
         <div class="stat-card"><div class="num" id="relatorio-stat-ticket">–</div><div class="lbl">Ticket médio</div></div>
         <div class="stat-card"><div class="num" id="relatorio-stat-site">–</div><div class="lbl">Pedidos (site e WhatsApp)</div></div>
         <div class="stat-card"><div class="num" id="relatorio-stat-site-total">–</div><div class="lbl">Valor dos pedidos</div></div>
-        <div class="stat-card"><div class="num" id="relatorio-stat-tempo">–</div><div class="lbl">Tempo médio: aceitar → sair p/ entrega</div><small class="stat-sub" id="relatorio-stat-tempo-sub"></small></div>
+        <div class="stat-card stat-card-tempo"><div class="num" id="relatorio-stat-tempo">–</div><div class="lbl">Tempo médio: aceitar → sair p/ entrega</div><small class="stat-sub" id="relatorio-stat-tempo-sub"></small></div>
       </div>
       <p style="color:var(--muted);font-size:.75rem;margin:-6px 0 14px">O faturamento soma o balcão (PDV) e os pedidos do site/WhatsApp (menos os cancelados). "Tele" é a soma das taxas de entrega; "Produtos" é o restante. O tempo médio usa os pedidos de entrega em que foram usados os botões "Em preparo" e "Saiu para entrega".</p>
       <div class="chart-card">
