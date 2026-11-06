@@ -2116,8 +2116,7 @@ function textoMotoboy(p) {
   const e = p.endereco || {};
   const enderecoTxt = [`${e.rua || ""}${e.numero ? ", " + e.numero : ""}`, e.bairro || p.bairro || "", "Cachoeirinha"].filter(Boolean).join(" - ");
   const mapa = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([`${e.rua || ""} ${e.numero || ""}`.trim(), e.bairro || p.bairro || "", "Cachoeirinha RS", e.cep || ""].filter(Boolean).join(", "))}`;
-  const tel = String(p.telefone || "").replace(/\D/g, "");
-  const telFmt = tel.length === 11 ? `(${tel.slice(0, 2)}) ${tel.slice(2, 7)}-${tel.slice(7)}` : tel;
+  // Telefone do cliente NÃO vai para o grupo dos motoboys (segurança/privacidade do cliente)
   const pago = !!p.pago;
   const cobrar = pago ? "✅ *Já está pago* — não cobrar"
     : /pix/i.test(p.pagamento || "") ? `💳 PIX — *confirmar com a loja antes de sair*`
@@ -2131,7 +2130,7 @@ function textoMotoboy(p) {
     `\n📍 *Entregar:* ${enderecoTxt}`,
     e.cep ? `CEP ${e.cep}` : "",
     `🗺️ ${mapa}`,
-    `\n👤 ${p.cliente || "Cliente"}${telFmt ? ` · ${telFmt}` : ""}`,
+    `\n👤 ${p.cliente || "Cliente"}`,
     `📦 ${itens} ${itens === 1 ? "item" : "itens"}`,
     cobrar,
     Number(p.taxaEntrega) ? `🏍️ Taxa de entrega: ${_brl(p.taxaEntrega)}` : "",
