@@ -859,7 +859,7 @@
       </div>
       <div class="stats-row">
         <div class="stat-card"><div class="num" id="caixa-entradas" style="color:var(--green)">–</div><div class="lbl">Entradas no mês</div></div>
-        <div class="stat-card"><div class="num" id="caixa-saidas" style="color:var(--red)">–</div><div class="lbl">Saídas no mês</div></div>
+        <div class="stat-card"><div class="num" id="caixa-saidas" style="color:var(--red)">–</div><div class="lbl">Saídas no mês</div><div class="lbl" id="caixa-saidas-estoque" hidden style="font-size:.72rem;margin-top:4px" title="Custo do que saiu do estoque sem ser venda (aba Estoque → Parcerias e perdas). Não soma nas saídas, porque a compra desses itens já foi lançada como despesa."></div></div>
         <div class="stat-card"><div class="num" id="caixa-saldo">–</div><div class="lbl">Saldo do mês</div></div>
         <div class="stat-card"><div class="num" id="caixa-hoje">–</div><div class="lbl">Saldo de hoje</div></div>
       </div>
@@ -2592,15 +2592,31 @@ function escolherTipoLanc(tipo) {
 }
 
 // Carrega o mês: lançamentos manuais + vendas do PDV + pedidos pagos do site
+let _caixaEstoqueSaidas = null;
+// "Perdas R$ 5,00 (1) · Parcerias R$ 24,00 (2)" — custo do que saiu do estoque sem ser venda
+function _textoSaidasEstoque(es) {
+  if (!es || (!es.perdaN && !es.parcN)) return "";
+  return [es.perdaN ? `Perdas ${_brl(es.perdaCusto)} (${es.perdaN})` : "", es.parcN ? `Parcerias ${_brl(es.parcCusto)} (${es.parcN})` : ""].filter(Boolean).join(" · ");
+}
 async function carregarCaixaMes(mesStr) {
   const [ano, mes] = mesStr.split("-").map(Number);
   const inicio = new Date(ano, mes - 1, 1), fim = new Date(ano, mes, 1);
   const faixa = (c) => db.collection(c).where(c === "caixa" ? "data" : "criadoEm", ">=", inicio).where(c === "caixa" ? "data" : "criadoEm", "<", fim).get();
-  const [m, v, p] = await Promise.all([
+  const [m, v, p, em] = await Promise.all([
     faixa("caixa").catch(e => { console.warn(e); return { docs: [] }; }),
     faixa("vendas").catch(e => { console.warn(e); return { docs: [] }; }),
     faixa("pedidos").catch(e => { console.warn(e); return { docs: [] }; }),
+    faixa("estoqueMov").catch(e => { console.warn(e); return { docs: [] }; }),
   ]);
+  // Parcerias e perdas do estoque (aba Estoque): custo de cada registro, contado uma vez por lote
+  const estoqueSaidas = { parcN: 0, parcCusto: 0, parcVenda: 0, perdaN: 0, perdaCusto: 0 };
+  const lotesVistos = new Set();
+  em.docs.map(d => d.data()).forEach(x => {
+    if ((x.tipo !== "parceria" && x.tipo !== "perda") || !x.lote || lotesVistos.has(x.lote)) return;
+    lotesVistos.add(x.lote);
+    if (x.tipo === "parceria") { estoqueSaidas.parcN++; estoqueSaidas.parcCusto += Number(x.custo || 0); estoqueSaidas.parcVenda += Number(x.venda || 0); }
+    else { estoqueSaidas.perdaN++; estoqueSaidas.perdaCusto += Number(x.custo || 0); }
+  });
   const manual = m.docs.map(d => ({ docId: d.id, ...d.data() }));
   const vendas = v.docs.map(d => ({ docId: d.id, ...d.data() }));
   const pedidos = p.docs.map(d => ({ docId: d.id, ...d.data() }));
@@ -2608,7 +2624,7 @@ async function carregarCaixaMes(mesStr) {
   manual.forEach(l => lanc.push({ id: "m:" + l.docId, docId: l.docId, origem: "manual", tipo: l.tipo, categoria: l.categoria, descricao: l.descricao || "", forma: l.forma || "", valor: Number(l.valor || 0), data: _dataDe(l.data) }));
   vendas.forEach(vd => lanc.push({ id: "v:" + vd.docId, origem: "pdv", tipo: "entrada", categoria: "Venda no balcão", descricao: `Balcão${vd.cliente ? " — " + vd.cliente : ""} (${(vd.itens || []).reduce((s, i) => s + (i.qtd || 0), 0)} itens)`, forma: vd.pagamento || "", valor: Number(vd.total || 0), data: _dataDe(vd.criadoEm) }));
   pedidos.filter(pd => pd.pago && pd.status !== "cancelado").forEach(pd => lanc.push({ id: "p:" + pd.docId, origem: "site", tipo: "entrada", categoria: pd.origem === "whatsapp" ? "Venda pelo WhatsApp" : pd.origem === "balcao" ? "Venda no balcão" : "Venda pelo site", descricao: `Pedido ${pd.numero ? "Nº " + pd.numero : "#" + (pd.codigo || pd.docId.slice(0, 6))} — ${pd.cliente || ""}`, forma: pd.pagamento || "", valor: Number(pd.total || 0), data: _dataDe(pd.pagoEm) || _dataDe(pd.criadoEm) }));
-  return { manual, vendas, pedidos, lanc: lanc.filter(l => l.data).sort((a, b) => b.data - a.data) };
+  return { manual, vendas, pedidos, estoqueSaidas, lanc: lanc.filter(l => l.data).sort((a, b) => b.data - a.data) };
 }
 
 async function carregarCaixa() {
@@ -2618,7 +2634,7 @@ async function carregarCaixa() {
   if (!document.getElementById("lanc-categoria").options.length) escolherTipoLanc(_tipoLanc);
   try {
     const r = await carregarCaixaMes(campo.value);
-    _caixaManual = r.manual; _caixaVendas = r.vendas; _caixaPedidos = r.pedidos; _lancamentosCaixa = r.lanc;
+    _caixaManual = r.manual; _caixaVendas = r.vendas; _caixaPedidos = r.pedidos; _lancamentosCaixa = r.lanc; _caixaEstoqueSaidas = r.estoqueSaidas;
     renderCaixa();
   } catch (e) {
     document.getElementById("caixa-tabela").innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>Erro ao carregar o caixa: ${_escAttr(e.message)}</p></div></td></tr>`;
@@ -2637,6 +2653,10 @@ function renderCaixa() {
   const saldoEl = document.getElementById("caixa-saldo");
   saldoEl.textContent = _brl(ent - sai); saldoEl.style.color = ent - sai >= 0 ? "var(--green)" : "var(--red)";
   document.getElementById("caixa-hoje").textContent = _brl(saldoHoje);
+  const elEst = document.getElementById("caixa-saidas-estoque"), txtEst = _textoSaidasEstoque(_caixaEstoqueSaidas);
+  const es = _caixaEstoqueSaidas || {};
+  elEst.hidden = !txtEst;
+  elEst.innerHTML = txtEst ? [es.perdaN ? `Perdas: ${_brl(es.perdaCusto)}` : "", es.parcN ? `Parcerias: ${_brl(es.parcCusto)}` : ""].filter(Boolean).join("<br>") : "";
 
   // Saídas por categoria (barras horizontais)
   const porCat = {};
@@ -2841,6 +2861,7 @@ async function carregarPainel() {
   try {
     const [atual, ant] = await Promise.all([carregarCaixaMes(campo.value), carregarCaixaMes(_mesAnterior(campo.value))]);
     const P = calcularPainel(atual), A = calcularPainel(ant);
+    P.estoqueSaidas = atual.estoqueSaidas; A.estoqueSaidas = ant.estoqueSaidas;
     _painel = { mes: campo.value, P, A };
     renderPainel(P, A, campo.value);
   } catch (e) {
@@ -2853,7 +2874,7 @@ function renderPainel(P, A, mesStr) {
   const pct = (v) => `${(v * 100).toFixed(0)}%`;
   document.getElementById("painel-kpis").innerHTML = [
     kpi("Vendas", _brl(P.vendas), _chipVar(_variacao(P.vendas, A.vendas))),
-    kpi("Despesas", _brl(P.despesas), _chipVar(_variacao(P.despesas, A.despesas), true), "var(--red)"),
+    kpi("Despesas", _brl(P.despesas), (_textoSaidasEstoque(P.estoqueSaidas) ? `<small title="Custo do que saiu do estoque sem ser venda. Não soma nas despesas: a compra já foi lançada.">do estoque: ${_textoSaidasEstoque(P.estoqueSaidas)}</small>` : "") + _chipVar(_variacao(P.despesas, A.despesas), true), "var(--red)"),
     kpi("Lucro do mês (caixa)", _brl(P.lucroLiquido), `<small>entradas − saídas</small>${_chipVar(_variacao(P.lucroLiquido, A.lucroLiquido))}`, P.lucroLiquido >= 0 ? "var(--green)" : "var(--red)"),
     kpi("Lucro nas vendas", P.cpv ? _brl(P.lucroBruto) : "—", P.cpv ? `<small>margem de ${pct(P.margemBruta)} · custo dos produtos ${_brl(P.cpv)}</small>` : `<small>cadastre os custos para ver</small>`),
     kpi("Vendas no mês", String(P.qtdVendas), `<small>${P.pedidosSite} pedido${P.pedidosSite === 1 ? "" : "s"} (site/WhatsApp)</small>`),
@@ -3092,7 +3113,7 @@ async function gerarRelatorioMensal() {
   <h2>Resumo do mês</h2>
   <div class="ks">
     ${linhaKpi("Vendas", _brl(P.vendas), varTxt(_variacao(P.vendas, A.vendas)))}
-    ${linhaKpi("Despesas", _brl(P.despesas), varTxt(_variacao(P.despesas, A.despesas)))}
+    ${linhaKpi("Despesas", _brl(P.despesas), [varTxt(_variacao(P.despesas, A.despesas)), _textoSaidasEstoque(P.estoqueSaidas) ? `do estoque: ${_textoSaidasEstoque(P.estoqueSaidas)}` : ""].filter(Boolean).join(" · "))}
     ${linhaKpi("Caixa do mês", _brl(P.lucroLiquido), "entradas − saídas")}
     ${linhaKpi("Lucro nas vendas", P.cpv ? _brl(P.lucroBruto) : "—", P.cpv ? `margem ${(P.margemBruta * 100).toFixed(0)}%` : "custos não cadastrados")}
     ${linhaKpi("Nº de vendas", String(P.qtdVendas), `${P.pedidosSite} pedidos (site/WhatsApp)`)}
