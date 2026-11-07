@@ -776,6 +776,7 @@
           <input type="date" id="ped-dia" onchange="assinarPedidos()" aria-label="Dia dos pedidos">
           <label class="toggle-row" title="Toca um som quando chega pedido novo"><input type="checkbox" id="ped-som" checked onchange="salvarPrefSom()"> <i class="fa-solid fa-bell"></i> Som</label>
           <button class="btn btn-ghost btn-sm" id="btn-impressora" onclick="conectarImpressora()"><i class="fa-solid fa-print"></i> Conectar impressora</button>
+          <button class="btn btn-ghost btn-sm" id="btn-abrir" hidden onclick="alternarAbrirAgora()" title="Começa a aceitar pedidos pelo site agora, antes do horário — só hoje"><i class="fa-solid fa-store"></i> Abrir agora</button>
           <button class="btn btn-ghost btn-sm" id="btn-pausa" onclick="alternarPausaLoja()" title="Para de receber pedidos pelo site agora (ex.: acabou o açaí) — o cardápio continua aparecendo"><i class="fa-solid fa-pause"></i> Pausar pedidos</button>
           <button class="btn btn-primary btn-sm" onclick="abrirNovoPedido()" title="Pedido que chegou pelo WhatsApp, telefone ou no balcão"><i class="fa-solid fa-plus"></i> Novo pedido</button>
         </div>
@@ -6590,6 +6591,7 @@ function atualizarBotaoPausa() {
   if (!b) return;
   const p = _pausaAtiva();
   b.className = `btn btn-sm ${p ? "btn-danger" : "btn-ghost"}`;
+  atualizarBotaoAbrir();
   b.innerHTML = p ? `<i class="fa-solid fa-play"></i> ${_cfgLoja.pausaMotivo === "encerrou" ? "Encerrado hoje" : "Pedidos pausados"} — retomar` : `<i class="fa-solid fa-pause"></i> Pausar pedidos`;
 }
 // Dia de hoje em Brasília (AAAA-MM-DD), igual ao que o catálogo usa
@@ -6614,6 +6616,39 @@ async function alternarPausaLoja() {
     _cfgLoja.lojaPausada = false;
     atualizarBotaoPausa();
     toast("Pedidos liberados de novo no site", "ok");
+  } catch (e) { toast("Não consegui salvar: " + e.message, "err"); }
+}
+// ── ABRIR AGORA (antes do horário, só hoje) ───────────────────────────────
+const _abertoAgoraAtivo = () => !!_cfgLoja.abertoAgoraDia && _cfgLoja.abertoAgoraDia === _hojeSP();
+// Fora do horário agora, mas ainda antes do fechamento de hoje? (aí faz sentido "Abrir agora")
+function _podeAbrirAgora() {
+  if (!_cfgLoja.horarioAtivo || !Array.isArray(_cfgLoja.horarios) || _cfgLoja.horarios.length !== 7) return false;
+  const { d, m } = _diaMinSP(new Date());
+  const h = _cfgLoja.horarios[d] || {}, a = _minHor(h.abre), f = _minHor(h.fecha);
+  if (a === null || f === null || f <= a) return false;
+  return m < f && (!h.aberto || m < a);
+}
+function atualizarBotaoAbrir() {
+  const b = document.getElementById("btn-abrir");
+  if (!b) return;
+  const ativo = _abertoAgoraAtivo();
+  b.hidden = !ativo && !_podeAbrirAgora();
+  b.className = `btn btn-sm ${ativo ? "btn-primary" : "btn-ghost"}`;
+  b.innerHTML = ativo ? `<i class="fa-solid fa-store"></i> Aberto antes do horário — desfazer` : `<i class="fa-solid fa-store"></i> Abrir agora`;
+}
+setInterval(() => { if (Array.isArray(_cfgLoja.horarios)) atualizarBotaoAbrir(); }, 60000);
+async function alternarAbrirAgora() {
+  const ativo = _abertoAgoraAtivo();
+  if (!ativo) {
+    const h = _cfgLoja.horarios[_diaMinSP(new Date()).d] || {};
+    if (!confirm(`Abrir os pedidos pelo site agora?\n\nVale só para hoje: fica aberto até ${_hBonita(_minHor(h.fecha))} (o fechamento normal) e amanhã volta ao horário de sempre.`)) return;
+  }
+  const dados = ativo ? { abertoAgoraDia: "" } : { abertoAgoraDia: _hojeSP(), lojaPausada: false };
+  try {
+    await db.collection("configuracoes").doc("geral").set(dados, { merge: true });
+    Object.assign(_cfgLoja, dados);
+    atualizarBotaoAbrir(); atualizarBotaoPausa();
+    toast(ativo ? "Voltou ao horário normal — o site abre na hora de sempre" : "Loja aberta! O site já aceita pedidos (em até 1 minuto para quem está com a página aberta)", "ok");
   } catch (e) { toast("Não consegui salvar: " + e.message, "err"); }
 }
 function previaPausa() {
@@ -6843,7 +6878,7 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, toleranciaMin, lojaPausada: !!_cfgLoja.lojaPausada, pausaMotivo: _cfgLoja.pausaMotivo || "rapida", pausaTexto: _cfgLoja.pausaTexto || "", pausaDia: _cfgLoja.pausaDia || "", pixChave, pixNome, pixBanco, pixCidade, enderecoLoja, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
+      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, toleranciaMin, lojaPausada: !!_cfgLoja.lojaPausada, pausaMotivo: _cfgLoja.pausaMotivo || "rapida", pausaTexto: _cfgLoja.pausaTexto || "", pausaDia: _cfgLoja.pausaDia || "", abertoAgoraDia: _cfgLoja.abertoAgoraDia || "", pixChave, pixNome, pixBanco, pixCidade, enderecoLoja, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
       // campos do Estoque e do Post do dia (salvos fora desta tela)

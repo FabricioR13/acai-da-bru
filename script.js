@@ -254,6 +254,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         pausaMotivo: "rapida", // rapida | demanda | encerrou | outro (mensagem que o cliente vê)
         pausaTexto: "",        // mensagem escrita pela dona (motivo "outro")
         pausaDia: "",          // dia (AAAA-MM-DD) em que "encerrou por hoje" foi marcado: no dia seguinte volta sozinho
+        abertoAgoraDia: "",    // "Abrir agora" no painel: neste dia aceita pedidos antes do horário (ou em dia de folga)
     };
     let configLoja = { ...CONFIG_PADRAO };
     try {
@@ -1877,12 +1878,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (pausa) return { aberta: false, pausa: true, msg: pausa };
         if (!configLoja.horarioAtivo || hs.length !== 7) return { aberta: true };
         const { d, m } = agoraSP();
-        const dia = (i) => {
+        const dia = (i, forcar) => {
             const h = hs[(i + 7) % 7] || {}; const a = minutos(h.abre), f = minutos(h.fecha);
             const pi = minutos(h.pausaIni), pf = minutos(h.pausaFim);
-            return h.aberto && a !== null && f !== null ? { a, f, abre: h.abre, pi, pf, volta: h.pausaFim } : null;
+            return (h.aberto || forcar) && a !== null && f !== null ? { a, f, abre: h.abre, pi, pf, volta: h.pausaFim } : null;
         };
-        const hoje = dia(d), ontem = dia(d - 1);
+        // "Abrir agora" (painel): hoje aceita desde já, até o fechamento normal — mesmo em dia de folga
+        const abertoAgora = !!configLoja.abertoAgoraDia && configLoja.abertoAgoraDia === hojeEmSaoPaulo().iso;
+        const hoje = dia(d) || (abertoAgora ? dia(d, true) : null), ontem = dia(d - 1);
+        if (abertoAgora && hoje && hoje.f > hoje.a && m < hoje.a) return { aberta: true };
         if (hoje && (hoje.f > hoje.a ? m >= hoje.a && m < hoje.f : m >= hoje.a)) {
             // Intervalo do dia (ex.: fecha das 17h às 18h)
             if (hoje.pi !== null && hoje.pf !== null && hoje.pf > hoje.pi && m >= hoje.pi && m < hoje.pf)
@@ -1928,17 +1932,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
     atualizarStatusLoja();
     sincronizarRelogio().then(atualizarStatusLoja);
-    setInterval(atualizarStatusLoja, 60000);
+    // Com a loja fechada, confere a cada minuto se a dona abriu antes do horário ou retomou a pausa
+    const CHAVES_STATUS = ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo", "toleranciaMin", "pausaMotivo", "pausaTexto", "pausaDia", "abertoAgoraDia"];
+    const recarregarStatus = async () => {
+        try {
+            const doc = await db.collection("configuracoes").doc("geral").get();
+            if (doc.exists) { const d = doc.data(); CHAVES_STATUS.forEach((k) => { if (k in d) configLoja[k] = d[k]; }); }
+        } catch (e) { /* sem internet: segue com o que já tinha */ }
+    };
+    setInterval(async () => {
+        if (!statusLoja().aberta && !document.hidden) await recarregarStatus();
+        atualizarStatusLoja();
+    }, 60000);
 
     const finalizarPedido = async () => {
         // Confere de novo o horário/pausa no banco (a dona pode ter pausado com a página já aberta)
-        try {
-            const doc = await db.collection("configuracoes").doc("geral").get();
-            if (doc.exists) {
-                const d = doc.data();
-                ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo", "toleranciaMin", "pausaMotivo", "pausaTexto", "pausaDia"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
-            }
-        } catch (e) { /* sem internet: segue com o que já tinha */ }
+        await recarregarStatus();
         const st = atualizarStatusLoja();
         notaIntervalo = "";
         if (!st.aberta && st.intervalo) {
