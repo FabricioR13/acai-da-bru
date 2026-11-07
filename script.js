@@ -237,8 +237,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         sobreLink: "https://www.instagram.com/acaidabru_cb/",
         // Horário de funcionamento (admin → Configurações). Desligado = sempre aberto.
         horarioAtivo: true,
-        // Minutos depois de fechar em que o pedido ainda entra (marcado "fora do horário" no painel)
-        toleranciaMin: 15,
+        // Fora do horário o cliente é avisado mas consegue enviar; o pedido chega marcado e a
+        // dona confirma. Só o "Pausar pedidos" bloqueia. Desligado = fora do horário não envia.
+        aceitarForaHorario: true,
         // Horário do WhatsApp da Bru (nov/2026) — índice 0 = domingo
         horarios: [
             { aberto: true,  abre: "16:00", fecha: "23:00", pausaIni: "", pausaFim: "" },       // domingo
@@ -1864,22 +1865,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             return { aberta: true };
         }
         if (ontem && ontem.f <= ontem.a && m < ontem.f) return { aberta: true }; // passou da meia-noite
-        // Tolerância: acabou de fechar (ex.: fecha 23h, tolerância 15 min → aceita até 23h14).
-        // O pedido entra normalmente e o painel marca "fora do horário" para a dona decidir.
-        const tol = Math.max(0, Math.min(180, Number(configLoja.toleranciaMin) || 0));
-        if (tol) {
-            const fimAbs = (x, desloc) => (x.f > x.a ? x.f : x.f + 1440) + desloc; // fechamento em minutos a partir de hoje 0h
-            if ([hoje && fimAbs(hoje, 0), ontem && fimAbs(ontem, -1440)].some((f) => f !== null && f !== false && m >= f && m < f + tol))
-                return { aberta: true, tolerancia: true };
-        }
         // Próxima abertura
         for (let k = 0; k < 8; k++) {
             const x = dia(d + k);
             if (!x || (k === 0 && x.a <= m)) continue;
             const quando = k === 0 ? "hoje" : k === 1 ? "amanhã" : DIAS_SEMANA[(d + k) % 7];
-            return { aberta: false, msg: `Estamos fechados agora. Abrimos ${quando} às ${horaBonita(x.abre)} 💜` };
+            return { aberta: false, foraHorario: configLoja.aceitarForaHorario !== false, msg: `Estamos fora do horário agora. Abrimos ${quando} às ${horaBonita(x.abre)} 💜` };
         }
-        return { aberta: false, msg: "Estamos fechados no momento." };
+        return { aberta: false, foraHorario: configLoja.aceitarForaHorario !== false, msg: "Estamos fora do horário no momento." };
     };
     const avisoFechado = document.createElement("div");
     avisoFechado.className = "aviso-fechado";
@@ -1891,8 +1884,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         avisoFechado.hidden = st.aberta;
         if (!st.aberta) avisoFechado.innerHTML = st.intervalo
             ? `<i class="fa-solid fa-mug-hot" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Se quiser, já pode enviar seu pedido: ele fica na fila e preparamos assim que voltarmos.</span>`
+            : st.foraHorario
+            ? `<i class="fa-solid fa-moon" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Se quiser, pode enviar seu pedido mesmo assim: a loja confirma pelo WhatsApp se consegue preparar.</span>`
             : `<i class="fa-solid fa-moon" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Você pode olhar o cardápio e montar seu pedido.</span>`;
-        finishOrderBtn.classList.toggle("loja-fechada", !st.aberta && !st.intervalo);
+        finishOrderBtn.classList.toggle("loja-fechada", !st.aberta && !st.intervalo && !st.foraHorario);
         return st;
     };
     atualizarStatusLoja();
@@ -1905,7 +1900,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const doc = await db.collection("configuracoes").doc("geral").get();
             if (doc.exists) {
                 const d = doc.data();
-                ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo", "toleranciaMin"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
+                ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo", "aceitarForaHorario"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
             }
         } catch (e) { /* sem internet: segue com o que já tinha */ }
         const st = atualizarStatusLoja();
@@ -1915,6 +1910,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             const ok = confirm(`Estamos no intervalo e voltamos hoje às ${st.volta}.\n\nVocê pode enviar seu pedido agora: ele fica na fila e começamos a preparar assim que voltarmos.\n\nOK = enviar agora\nCancelar = enviar mais tarde (seu carrinho fica guardado)`);
             if (!ok) return;
             notaIntervalo = `⏰ Pedido feito no intervalo — preparar a partir das ${st.volta}. `;
+        } else if (!st.aberta && st.foraHorario) {
+            // Fora do horário (sem pausa): o cliente pode enviar, sabendo que a loja ainda vai confirmar
+            const ok = confirm(`${st.msg.replace(/ 💜$/, "")}.\n\nVocê pode enviar seu pedido mesmo assim: ele chega para a loja, que vai confirmar pelo WhatsApp se consegue preparar agora.\n\nOK = enviar e aguardar a confirmação\nCancelar = enviar mais tarde (seu carrinho fica guardado)`);
+            if (!ok) return;
+            notaIntervalo = "⏰ Pedido enviado fora do horário — aguardando a confirmação da loja. ";
         } else if (!st.aberta) { alert(st.msg + "\n\nSeu carrinho fica guardado — é só enviar quando estivermos abertos."); return; }
         // Rede de segurança: os campos já foram validados etapa a etapa, mas confere
         // de novo aqui (ex: caso o cliente volte numa etapa pelos pontinhos e apague algo).
