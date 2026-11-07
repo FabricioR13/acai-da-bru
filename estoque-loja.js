@@ -255,3 +255,162 @@ async function aplicarListaBru() {
   } catch (err) { toast("Erro ao atualizar: " + err.message, "err"); }
   finally { btn.disabled = false; }
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  PARCERIAS E PERDAS — saídas do estoque que não são venda
+//  • Parceria: troca com outro empreendedor (gasta copo, polpa… mas não entra dinheiro)
+//  • Perda: copo que caiu, produto que venceu ou estragou
+//  Cada registro baixa os itens e fica no histórico "estoqueMov" com tipo, lote e detalhes
+//  (o mesmo "lote" junta os itens de um registro; "Desfazer" devolve tudo ao estoque).
+// ═════════════════════════════════════════════════════════════════════════════
+let _sdTipo = "parceria";
+let _sdQtd = {};          // itemId → quantidade que saiu (no formulário)
+let _sdMes = null;        // Date no dia 1 do mês mostrado no histórico
+let _sdRegistros = [];
+
+function abrirSaidasEstoque() {
+  if (!_sdMes) { const h = new Date(); _sdMes = new Date(h.getFullYear(), h.getMonth(), 1); }
+  abrirModal("saidas-modal");
+  carregarSaidasEstoque();
+}
+function mudarMesSaidas(passo) {
+  _sdMes = new Date(_sdMes.getFullYear(), _sdMes.getMonth() + passo, 1);
+  carregarSaidasEstoque();
+}
+async function carregarSaidasEstoque() {
+  const ini = _sdMes, fim = new Date(ini.getFullYear(), ini.getMonth() + 1, 1);
+  const h = new Date(), ehAtual = ini.getFullYear() === h.getFullYear() && ini.getMonth() === h.getMonth();
+  const mes = ini.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  document.getElementById("sd-mes").textContent = mes.charAt(0).toUpperCase() + mes.slice(1);
+  document.getElementById("sd-mes-prox").disabled = ehAtual;
+  const hist = document.getElementById("sd-hist");
+  hist.innerHTML = `<div class="loader"><i class="fa-solid fa-spinner"></i> Carregando...</div>`;
+  let movs = [];
+  try {
+    const snap = await db.collection("estoqueMov")
+      .where("criadoEm", ">=", firebase.firestore.Timestamp.fromDate(ini))
+      .where("criadoEm", "<", firebase.firestore.Timestamp.fromDate(fim)).get();
+    movs = snap.docs.map(d => d.data()).filter(m => (m.tipo === "parceria" || m.tipo === "perda") && m.lote);
+  } catch (e) { hist.innerHTML = `<p class="ingr-vazio">Não consegui carregar: ${_escAttr(e.message)}</p>`; return; }
+  // Junta os itens de cada registro (mesmo lote)
+  const porLote = new Map();
+  movs.forEach(m => {
+    if (!porLote.has(m.lote)) porLote.set(m.lote, { ...m, itens: [], data: m.criadoEm?.toDate?.() || new Date() });
+    porLote.get(m.lote).itens.push({ nome: m.nome, qtd: -Number(m.qtd || 0), unidade: (_estoque.find(e => e.docId === m.itemId) || {}).unidade });
+  });
+  _sdRegistros = [...porLote.values()].sort((a, b) => b.data - a.data);
+  const tot = (t) => _sdRegistros.filter(r => r.tipo === t);
+  const custo = (l) => l.reduce((s, r) => s + Number(r.custo || 0), 0);
+  const parc = tot("parceria"), perdas = tot("perda");
+  document.getElementById("sd-totais").innerHTML = `
+    <div><i class="fa-solid fa-handshake" style="color:var(--blue)"></i> Parcerias<strong>${parc.length}</strong>${custo(parc) ? `custo ${_brl(custo(parc))}` : ""}${parc.some(r => r.venda) ? ` · valeria ${_brl(parc.reduce((s, r) => s + Number(r.venda || 0), 0))}` : ""}</div>
+    <div><i class="fa-solid fa-trash-can" style="color:var(--red)"></i> Perdas<strong>${perdas.length}</strong>${custo(perdas) ? `custo ${_brl(custo(perdas))}` : ""}</div>`;
+  hist.innerHTML = _sdRegistros.length ? _sdRegistros.map(r => {
+    const quando = r.data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " às " + r.data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const itens = r.itens.map(i => `${_fmtQtd(i.qtd)}× ${i.nome}`).join(", ");
+    const titulo = r.tipo === "parceria" ? (r.parceiro || "Parceria") : (r.motivoPerda || "Perda");
+    const valores = [r.custo ? `custo ${_brl(r.custo)}` : "", r.venda ? `valor de venda ${_brl(r.venda)}` : ""].filter(Boolean).join(" · ");
+    return `<div class="sd-reg ${r.tipo}">
+      <div class="sd-reg-topo"><strong>${_escAttr(titulo)}</strong><span class="est-pill ${r.tipo === "parceria" ? "sd-pill-parc" : "sd-pill-perda"}">${r.tipo === "parceria" ? "Parceria" : "Perda"}</span></div>
+      ${r.descricao ? `<span>${_escAttr(r.descricao)}</span>` : ""}
+      ${r.troca ? `<span><i class="fa-solid fa-right-left" style="color:var(--muted)"></i> Recebeu: ${_escAttr(r.troca)}</span>` : ""}
+      ${r.obs ? `<span><i class="fa-solid fa-comment" style="color:var(--muted)"></i> ${_escAttr(r.obs)}</span>` : ""}
+      <small><i class="fa-solid fa-box"></i> Saiu: ${_escAttr(itens)}</small>
+      <div class="sd-reg-topo"><small>${quando}${valores ? " · " + valores : ""}</small>
+        <button class="btn btn-ghost btn-sm" onclick="desfazerSaidaEstoque('${_escAttr(r.lote)}')" title="Apaga este registro e devolve os itens ao estoque"><i class="fa-solid fa-rotate-left"></i> Desfazer</button></div>
+    </div>`;
+  }).join("") : `<p class="ingr-vazio">Nada anotado neste mês.</p>`;
+}
+
+function abrirSaidaEstoque(tipo) {
+  _sdQtd = {};
+  ["sd-parceiro", "sd-descricao", "sd-troca", "sd-custo", "sd-venda", "sd-custo-perda", "sd-obs", "sd-busca"].forEach(id => { document.getElementById(id).value = ""; });
+  document.getElementById("sd-motivo").selectedIndex = 0;
+  trocarTipoSaida(tipo || "parceria");
+  abrirModal("saida-modal");
+  setTimeout(() => document.getElementById(_sdTipo === "parceria" ? "sd-parceiro" : "sd-busca").focus(), 50);
+}
+function trocarTipoSaida(tipo) {
+  _sdTipo = tipo;
+  document.querySelectorAll("[data-sd-tipo]").forEach(b => b.classList.toggle("ativo", b.dataset.sdTipo === tipo));
+  document.getElementById("sd-campos-parceria").hidden = tipo !== "parceria";
+  document.getElementById("sd-campos-perda").hidden = tipo !== "perda";
+  document.getElementById("sd-titulo").innerHTML = tipo === "parceria"
+    ? `<i class="fa-solid fa-handshake"></i> Nova parceria`
+    : `<i class="fa-solid fa-trash-can"></i> Nova perda`;
+  renderItensSaida();
+}
+function renderItensSaida() {
+  const busca = _chaveEst(document.getElementById("sd-busca").value);
+  const lista = _estoque.filter(e => _estTemQtd(e) && (!busca || _chaveEst(e.nome).includes(busca)));
+  const semQtd = _estoque.filter(e => !_estTemQtd(e)).length;
+  const el = document.getElementById("sd-itens");
+  el.innerHTML = lista.length ? _gruposEstoque(lista).map(g => `<p class="sd-grupo">${_escAttr(g.nome)}</p>` + g.itens.map(e => `
+    <label class="sd-item${_sdQtd[e.docId] ? " marcado" : ""}">
+      <span>${_escAttr(e.nome)}<small>tem ${_escAttr(_qtdUn(e.quantidade, e.unidade))}</small></span>
+      <input type="number" min="0" step="any" inputmode="decimal" placeholder="0" value="${_sdQtd[e.docId] || ""}" aria-label="Quantos ${_escAttr(e.nome)} saíram"
+        oninput="_sdQtd['${e.docId}'] = Math.max(0, Number(this.value) || 0); this.closest('.sd-item').classList.toggle('marcado', !!_sdQtd['${e.docId}']); _resumoSaida()">
+    </label>`).join("")).join("")
+    : `<p class="ingr-vazio" style="padding:8px">${busca ? "Nenhum item com esse nome." : "Nenhum item com quantidade no estoque."}</p>`;
+  if (semQtd && !busca) el.insertAdjacentHTML("beforeend", `<p class="ingr-vazio" style="padding:6px 8px;font-size:.75rem">${semQtd} ${semQtd === 1 ? "item ainda não tem" : "itens ainda não têm"} quantidade contada e não ${semQtd === 1 ? "aparece" : "aparecem"} aqui.</p>`);
+  _resumoSaida();
+}
+function _resumoSaida() {
+  const esc = Object.entries(_sdQtd).filter(([, q]) => q > 0);
+  document.getElementById("sd-escolhidos").textContent = esc.length
+    ? "Vai baixar: " + esc.map(([id, q]) => { const e = _estoque.find(x => x.docId === id); return e ? `${_fmtQtd(q)}× ${e.nome}` : ""; }).filter(Boolean).join(", ")
+    : "Nenhum item escolhido ainda.";
+}
+async function salvarSaidaEstoque() {
+  const itens = Object.entries(_sdQtd).filter(([id, q]) => q > 0 && _estoque.some(e => e.docId === id));
+  const parceria = _sdTipo === "parceria";
+  const parceiro = document.getElementById("sd-parceiro").value.trim().slice(0, 60);
+  if (parceria && !parceiro) { toast("Coloque com quem foi a parceria.", "err"); document.getElementById("sd-parceiro").focus(); return; }
+  if (!itens.length) { toast("Coloque a quantidade de pelo menos um item que saiu.", "err"); document.getElementById("sd-busca").focus(); return; }
+  const motivoPerda = document.getElementById("sd-motivo").value;
+  const dados = parceria ? {
+    tipo: "parceria", parceiro,
+    descricao: document.getElementById("sd-descricao").value.trim().slice(0, 120),
+    troca: document.getElementById("sd-troca").value.trim().slice(0, 120),
+    custo: _lerPreco(document.getElementById("sd-custo").value) || 0,
+    venda: _lerPreco(document.getElementById("sd-venda").value) || 0,
+    motivo: `Parceria: ${parceiro}`,
+  } : {
+    tipo: "perda", motivoPerda,
+    obs: document.getElementById("sd-obs").value.trim().slice(0, 140),
+    custo: _lerPreco(document.getElementById("sd-custo-perda").value) || 0,
+    motivo: `Perda: ${motivoPerda}`,
+  };
+  const lote = db.collection("estoqueMov").doc().id;
+  const btn = document.getElementById("sd-salvar");
+  btn.disabled = true;
+  try {
+    const b = db.batch();
+    itens.forEach(([id, q]) => {
+      const e = _estoque.find(x => x.docId === id);
+      b.update(db.collection("estoque").doc(id), { quantidade: firebase.firestore.FieldValue.increment(-q) });
+      b.set(db.collection("estoqueMov").doc(), { ...dados, lote, itemId: id, nome: e.nome, qtd: -q, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+    });
+    await b.commit();
+    fecharModal("saida-modal");
+    toast(`${parceria ? "Parceria" : "Perda"} anotada · baixou ${itens.map(([id, q]) => `${_fmtQtd(q)}× ${(_estoque.find(e => e.docId === id) || {}).nome}`).join(", ")}`, "ok");
+    if (document.getElementById("saidas-modal").classList.contains("show")) carregarSaidasEstoque();
+  } catch (e) { toast("Não consegui salvar: " + e.message, "err"); }
+  finally { btn.disabled = false; }
+}
+async function desfazerSaidaEstoque(lote) {
+  const r = _sdRegistros.find(x => x.lote === lote);
+  if (!r || !confirm(`Desfazer este registro?\n\nOs itens voltam para o estoque:\n${r.itens.map(i => `• ${_fmtQtd(i.qtd)}× ${i.nome}`).join("\n")}`)) return;
+  try {
+    const snap = await db.collection("estoqueMov").where("lote", "==", lote).get();
+    const b = db.batch();
+    snap.docs.forEach(d => {
+      const m = d.data();
+      if (_estoque.some(e => e.docId === m.itemId)) b.update(db.collection("estoque").doc(m.itemId), { quantidade: firebase.firestore.FieldValue.increment(-Number(m.qtd || 0)) });
+      b.delete(d.ref);
+    });
+    await b.commit();
+    toast("Registro desfeito — os itens voltaram ao estoque", "ok");
+    carregarSaidasEstoque();
+  } catch (e) { toast("Não consegui desfazer: " + e.message, "err"); }
+}

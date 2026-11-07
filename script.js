@@ -237,6 +237,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         sobreLink: "https://www.instagram.com/acaidabru_cb/",
         // Horário de funcionamento (admin → Configurações). Desligado = sempre aberto.
         horarioAtivo: true,
+        // Minutos depois de fechar em que o pedido ainda entra (marcado "fora do horário" no painel)
+        toleranciaMin: 15,
         // Horário do WhatsApp da Bru (nov/2026) — índice 0 = domingo
         horarios: [
             { aberto: true,  abre: "16:00", fecha: "23:00", pausaIni: "", pausaFim: "" },       // domingo
@@ -1826,11 +1828,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     const minutos = (h) => { const [a, b] = String(h || "").split(":").map(Number); return Number.isFinite(a) ? a * 60 + (b || 0) : null; };
     const horaBonita = (h) => { const [a, b] = String(h).split(":"); return `${Number(a)}h${b && b !== "00" ? b : ""}`; };
     let notaIntervalo = ""; // preenchida quando o cliente envia durante o intervalo
+
+    // Hora oficial de Brasília: não depende do relógio nem do fuso do celular do cliente.
+    // Pega a hora do servidor do site (cabeçalho "Date") e guarda a diferença para o aparelho.
+    let difRelogio = 0;
+    const sincronizarRelogio = async () => {
+        try {
+            const r = await fetch(location.href.split("#")[0], { method: "HEAD", cache: "no-store" });
+            const s = Date.parse(r.headers.get("Date") || "");
+            if (Number.isFinite(s)) difRelogio = s - Date.now();
+        } catch (e) { /* sem internet: usa o relógio do aparelho */ }
+    };
+    const fmtSP = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    const agoraSP = () => {
+        const p = Object.fromEntries(fmtSP.formatToParts(new Date(Date.now() + difRelogio)).map((x) => [x.type, x.value]));
+        return { d: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(p.weekday), m: (Number(p.hour) % 24) * 60 + Number(p.minute) };
+    };
+
     const statusLoja = () => {
         if (configLoja.lojaPausada) return { aberta: false, msg: "Pausamos os pedidos por um momento. Já já voltamos! 💜" };
         const hs = Array.isArray(configLoja.horarios) ? configLoja.horarios : [];
         if (!configLoja.horarioAtivo || hs.length !== 7) return { aberta: true };
-        const agora = new Date(), d = agora.getDay(), m = agora.getHours() * 60 + agora.getMinutes();
+        const { d, m } = agoraSP();
         const dia = (i) => {
             const h = hs[(i + 7) % 7] || {}; const a = minutos(h.abre), f = minutos(h.fecha);
             const pi = minutos(h.pausaIni), pf = minutos(h.pausaFim);
@@ -1845,6 +1864,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             return { aberta: true };
         }
         if (ontem && ontem.f <= ontem.a && m < ontem.f) return { aberta: true }; // passou da meia-noite
+        // Tolerância: acabou de fechar (ex.: fecha 23h, tolerância 15 min → aceita até 23h14).
+        // O pedido entra normalmente e o painel marca "fora do horário" para a dona decidir.
+        const tol = Math.max(0, Math.min(180, Number(configLoja.toleranciaMin) || 0));
+        if (tol) {
+            const fimAbs = (x, desloc) => (x.f > x.a ? x.f : x.f + 1440) + desloc; // fechamento em minutos a partir de hoje 0h
+            if ([hoje && fimAbs(hoje, 0), ontem && fimAbs(ontem, -1440)].some((f) => f !== null && f !== false && m >= f && m < f + tol))
+                return { aberta: true, tolerancia: true };
+        }
         // Próxima abertura
         for (let k = 0; k < 8; k++) {
             const x = dia(d + k);
@@ -1869,6 +1896,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return st;
     };
     atualizarStatusLoja();
+    sincronizarRelogio().then(atualizarStatusLoja);
     setInterval(atualizarStatusLoja, 60000);
 
     const finalizarPedido = async () => {
@@ -1877,7 +1905,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const doc = await db.collection("configuracoes").doc("geral").get();
             if (doc.exists) {
                 const d = doc.data();
-                ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
+                ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo", "toleranciaMin"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
             }
         } catch (e) { /* sem internet: segue com o que já tinha */ }
         const st = atualizarStatusLoja();

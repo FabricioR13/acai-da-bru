@@ -404,6 +404,26 @@
     .resest-nums { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 6px; }
     .resest-nums span { display: block; font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
     .resest-nums strong { font-size: 1rem; } .resest-nums .mais { color: var(--green); } .resest-nums .menos { color: var(--gold); }
+    /* Estoque: parcerias e perdas */
+    .sd-tipos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+    .sd-tipo { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 700; cursor: pointer; font-size: .9rem; }
+    .sd-tipo.ativo { border-color: var(--gold); background: rgba(240,192,64,.12); color: var(--gold); }
+    .sd-itens { display: flex; flex-direction: column; gap: 4px; max-height: 38vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 6px; background: var(--surface); }
+    .sd-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 8px; font-size: .85rem; }
+    .sd-item.marcado { background: rgba(240,192,64,.10); }
+    .sd-item small { display: block; color: var(--muted); font-size: .72rem; }
+    .sd-item input { width: 74px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 7px 8px; color: var(--text); font-size: .9rem; text-align: center; }
+    .sd-grupo { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 6px 8px 0; }
+    .sd-hist-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .sd-totais { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .sd-totais div { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: .8rem; color: var(--muted); }
+    .sd-totais strong { display: block; color: var(--text); font-size: 1rem; }
+    .sd-reg { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--blue); border-radius: 10px; padding: 9px 11px; font-size: .84rem; display: flex; flex-direction: column; gap: 3px; }
+    .sd-reg.perda { border-left-color: var(--red); }
+    .sd-reg-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .sd-reg small { color: var(--muted); }
+    .sd-pill-parc { background: rgba(33,150,243,.15); color: var(--blue); }
+    .sd-pill-perda { background: rgba(229,57,53,.15); color: var(--red); }
     /* Post do dia */
     .post-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
     @media (max-width: 900px) { .post-layout { grid-template-columns: 1fr; } }
@@ -524,6 +544,11 @@
     .ped-itens li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; }
     .ped-itens small { width: 100%; color: var(--muted); font-size: .75rem; line-height: 1.35; }
     .ped-obs { font-size: .8rem; background: #2a2205; border-radius: 8px; padding: 6px 9px; }
+    .ped-card.ped-fora-card { border-color: var(--red); border-left-color: var(--red); }
+    .ped-fora { display: flex; gap: 10px; align-items: flex-start; background: #3a0f0f; border: 1px solid #7a1f1f; color: #ffb4ab; border-radius: 8px; padding: 8px 10px; font-size: .82rem; }
+    .ped-fora > i { font-size: 1.05rem; margin-top: 2px; color: var(--red); }
+    .ped-fora strong { display: block; color: #ffdad6; font-size: .86rem; }
+    .ped-fora .btn { margin-top: 6px; }
     .ped-valores { display: flex; justify-content: space-between; gap: 8px; font-size: .82rem; color: var(--muted); flex-wrap: wrap; }
     .ped-valores strong { color: var(--text); font-size: .95rem; }
     .ped-card footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -914,12 +939,13 @@
         </div>
         <div class="ped-controles">
           <button class="btn btn-ghost btn-sm" onclick="abrirListaCompras()"><i class="fa-solid fa-cart-shopping"></i> Lista de compras</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirSaidasEstoque()" title="Anotar trocas com parceiros e o que foi perdido (caiu, venceu…)"><i class="fa-solid fa-handshake"></i> Parcerias e perdas</button>
           <button class="btn btn-ghost btn-sm" onclick="abrirResumoEstoque()"><i class="fa-solid fa-clipboard-list"></i> Resumo do mês</button>
           <button class="btn btn-ghost btn-sm" onclick="abrirListaBru()" title="Confere o estoque com a lista de itens que a loja trabalha"><i class="fa-solid fa-list-check"></i> Lista da loja</button>
           <button class="btn btn-primary btn-sm" onclick="abrirItemEstoque()"><i class="fa-solid fa-plus"></i> Novo item</button>
         </div>
       </div>
-      <p style="color:var(--muted);font-size:.8rem;margin:-4px 0 12px">O estoque <strong>baixa sozinho</strong> quando o pedido vai para "Em preparo" e numa venda do PDV, e volta se o pedido for cancelado. Quando a mercadoria chegar, toque em <strong>Repor</strong>. Item zerado aparece como esgotado na loja. Mantimentos (granola, cremes, coberturas…) não baixam sozinhos: quando acabar, toque em <strong>Acabou</strong> e o ingrediente sai da loja até você repor.</p>
+      <p style="color:var(--muted);font-size:.8rem;margin:-4px 0 12px">O estoque <strong>baixa sozinho</strong> quando o pedido vai para "Em preparo" e numa venda do PDV, e volta se o pedido for cancelado. Quando a mercadoria chegar, toque em <strong>Repor</strong>. Item zerado aparece como esgotado na loja. Mantimentos (granola, cremes, coberturas…) não baixam sozinhos: quando acabar, toque em <strong>Acabou</strong> e o ingrediente sai da loja até você repor. Troca com parceiro ou copo que caiu? Anote em <strong>Parcerias e perdas</strong> que baixa do estoque.</p>
       <div class="ped-filtros" id="est-filtros">
         <button class="ped-filtro ativo" data-est-filtro="todos" onclick="filtrarEstoque('todos')">Todos <span id="est-c-todos">0</span></button>
         <button class="ped-filtro" data-est-filtro="baixo" onclick="filtrarEstoque('baixo')">Acabando <span id="est-c-baixo">0</span></button>
@@ -1230,6 +1256,9 @@
           <label class="toggle-row"><input type="checkbox" id="config-horario-ativo" onchange="document.getElementById('horarios-area').hidden=!this.checked"> Só aceitar pedidos pelo site dentro do horário</label>
           <small style="color:var(--muted);display:block;margin:4px 0 8px">Fora do horário, o cliente vê o aviso "Estamos fechados — abrimos às…", pode olhar o cardápio e montar o carrinho, mas não consegue enviar. Fecha depois da meia-noite? Coloque, por exemplo, das 18:00 às 00:30. Tem uma pausa no meio do dia? Marque <strong>Intervalo</strong> (ex.: fecha das 17:00 às 18:00).</small>
           <div id="horarios-area" class="horarios-area" hidden></div>
+          <label style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px">Tolerância depois de fechar:
+            <input type="number" id="config-tolerancia" min="0" max="120" step="5" style="width:80px"> minutos</label>
+          <small style="color:var(--muted);display:block;margin:2px 0 4px">Pedido que chegar nesse tempo entra normalmente, mas aparece no painel com o aviso vermelho <strong>"Pedido entrou fora do horário"</strong>, para você decidir se aceita ou recusa (com mensagem pronta para o cliente). Coloque 0 para fechar na hora certinha. Vai fechar mais cedo? Use o botão <strong>Pausar pedidos</strong>.</small>
           <label class="toggle-row" style="margin-top:8px"><input type="checkbox" id="config-aceitar-intervalo" checked> No <strong>intervalo</strong>, deixar o cliente escolher enviar o pedido mesmo assim (ele fica na fila, com o aviso "preparar a partir das …")</label>
         </div>
         <div class="form-group full">
@@ -1848,6 +1877,58 @@
   </div>
 </div>
 
+<!-- Estoque: parcerias e perdas (histórico do mês) -->
+<div class="modal-overlay" id="saidas-modal">
+  <div class="modal np-modal">
+    <button class="modal-close" onclick="fecharModal('saidas-modal')">&times;</button>
+    <h2><i class="fa-solid fa-handshake"></i> Parcerias e perdas</h2>
+    <p style="color:var(--muted);font-size:.8rem;margin-bottom:10px">O que saiu do estoque sem ser venda: trocas com outros empreendedores e o que foi perdido (caiu no chão, passou da validade…). Tudo aqui já baixou do estoque.</p>
+    <div class="sd-tipos">
+      <button class="btn btn-primary" onclick="abrirSaidaEstoque('parceria')"><i class="fa-solid fa-handshake"></i> Nova parceria</button>
+      <button class="btn btn-danger" onclick="abrirSaidaEstoque('perda')"><i class="fa-solid fa-trash-can"></i> Nova perda</button>
+    </div>
+    <div class="sd-hist-topo" style="margin-top:12px">
+      <button class="btn btn-ghost btn-sm" onclick="mudarMesSaidas(-1)" aria-label="Mês anterior"><i class="fa-solid fa-chevron-left"></i></button>
+      <strong id="sd-mes"></strong>
+      <button class="btn btn-ghost btn-sm" id="sd-mes-prox" onclick="mudarMesSaidas(1)" aria-label="Próximo mês"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="sd-totais" id="sd-totais"></div>
+    <div id="sd-hist" class="resest-lista"></div>
+  </div>
+</div>
+
+<!-- Estoque: registrar parceria ou perda -->
+<div class="modal-overlay" id="saida-modal">
+  <div class="modal np-modal">
+    <button class="modal-close" onclick="fecharModal('saida-modal')">&times;</button>
+    <h2 id="sd-titulo"><i class="fa-solid fa-handshake"></i> Parceria</h2>
+    <div class="sd-tipos" role="tablist">
+      <button type="button" class="sd-tipo" data-sd-tipo="parceria" onclick="trocarTipoSaida('parceria')"><i class="fa-solid fa-handshake"></i> Parceria / troca</button>
+      <button type="button" class="sd-tipo" data-sd-tipo="perda" onclick="trocarTipoSaida('perda')"><i class="fa-solid fa-trash-can"></i> Perda / desperdício</button>
+    </div>
+    <div class="np-grid" id="sd-campos-parceria">
+      <label class="np-largo">Com quem foi a parceria?<input type="text" id="sd-parceiro" maxlength="60" placeholder="Ex: Doces da Ana, Barbearia do Léo"></label>
+      <label class="np-largo">O que foi entregue <small>(opcional)</small><input type="text" id="sd-descricao" maxlength="120" placeholder="Ex: 3 açaí 500ml com Nutella"></label>
+      <label class="np-largo">O que recebeu em troca <small>(opcional)</small><input type="text" id="sd-troca" maxlength="120" placeholder="Ex: 1 bolo de pote, divulgação no Instagram"></label>
+      <label>Custo para você <small>(opcional)</small><input type="text" id="sd-custo" inputmode="decimal" placeholder="R$ 0,00"></label>
+      <label>Valor de venda na loja <small>(opcional)</small><input type="text" id="sd-venda" inputmode="decimal" placeholder="R$ 0,00"></label>
+    </div>
+    <div class="np-grid" id="sd-campos-perda" hidden>
+      <label>O que aconteceu?<select id="sd-motivo"><option>Caiu no chão / derramou</option><option>Passou da validade</option><option>Estragou</option><option>Furou / quebrou</option><option>Outro</option></select></label>
+      <label>Custo perdido <small>(opcional)</small><input type="text" id="sd-custo-perda" inputmode="decimal" placeholder="R$ 0,00"></label>
+      <label class="np-largo">Observação <small>(opcional)</small><input type="text" id="sd-obs" maxlength="140" placeholder="Ex: copo caiu na hora de fechar a tampa"></label>
+    </div>
+    <h3 class="np-sec">O que saiu do estoque <small style="color:var(--muted);font-weight:400">(coloque a quantidade de cada item)</small></h3>
+    <input type="text" id="sd-busca" placeholder="Procurar item… (copo, polpa, sorvete)" oninput="renderItensSaida()" style="width:100%;margin-bottom:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:.85rem">
+    <div id="sd-itens" class="sd-itens"></div>
+    <p id="sd-escolhidos" style="color:var(--muted);font-size:.8rem;margin-top:6px"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModal('saida-modal')">Cancelar</button>
+      <button class="btn btn-primary" id="sd-salvar" onclick="salvarSaidaEstoque()"><i class="fa-solid fa-check"></i> Registrar e baixar do estoque</button>
+    </div>
+  </div>
+</div>
+
 <!-- Estoque: resumo do mês (feito para o celular) -->
 <div class="modal-overlay" id="resest-modal">
   <div class="modal np-modal">
@@ -2282,11 +2363,17 @@ function cardPedido(p) {
     : (_ehEntrega(p) ? _escAttr(p.bairro || "") : p.tipo === "balcao" ? "Balcão (na hora)" : "Retirada no local");
   const itens = (p.itens || []).map(it => `<li><strong>${it.quantidade}x ${_escAttr(it.nome)}${it.tamanho ? ` (${_escAttr(it.tamanho)})` : ""}</strong> <span>${_brl(it.preco * it.quantidade)}</span>${it.detalhes ? `<small>${_escAttr(it.detalhes)}</small>` : ""}</li>`).join("");
   const botaoProx = prox ? `<button class="btn btn-primary btn-sm" onclick="avancarPedido('${p.docId}','${prox}',true)" title="Muda a etapa e abre o WhatsApp do cliente com o aviso"><i class="fa-solid ${ETAPAS[prox].icone}"></i> ${prox === "saiu" && !_ehEntrega(p) ? "Pronto p/ retirada" : ETAPAS[prox].nome}${temTel ? ` <i class="fa-brands fa-whatsapp"></i>` : ""}</button>` : "";
-  return `<article class="ped-card${p._novo ? " ped-novo" : ""}" style="--cor-etapa:${E.cor}">
+  const fora = etapa !== "cancelado" ? _situacaoHorario(p) : null;
+  const avisoFora = fora ? `<div class="ped-fora"><i class="fa-solid fa-clock"></i><div>
+      <strong>Pedido entrou fora do horário</strong>${_escAttr(fora)}. Você decide se aceita.
+      ${etapa === "recebido" ? `<div><button class="btn btn-danger btn-sm" onclick="recusarForaHorario('${p.docId}')" title="Cancela o pedido${temTel ? " e abre o WhatsApp do cliente com a mensagem pronta" : ""}">${temTel ? `<i class="fa-brands fa-whatsapp"></i> Recusar e avisar o cliente` : `<i class="fa-solid fa-ban"></i> Recusar`}</button></div>` : ""}
+    </div></div>` : "";
+  return `<article class="ped-card${p._novo ? " ped-novo" : ""}${fora ? " ped-fora-card" : ""}" style="--cor-etapa:${E.cor}">
     <header>
       <div><strong class="ped-num">${_nomePedido(p)}</strong> <span class="ped-hora">${_horaDe(p)}</span>${p.origem === "whatsapp" ? ' <span class="ped-origem"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span>' : p.origem === "balcao" ? ' <span class="ped-origem"><i class="fa-solid fa-cash-register"></i> Balcão</span>' : ""}</div>
       <span class="ped-etapa"><i class="fa-solid ${E.icone}"></i> ${E.nome}</span>
     </header>
+    ${avisoFora}
     <div class="ped-cliente">
       <div><i class="fa-solid fa-user"></i> ${_escAttr(p.cliente || "Cliente")}${telFmt ? ` · <a href="https://wa.me/${tel.length <= 11 ? "55" + tel : tel}" target="_blank" rel="noopener">${telFmt}</a>` : ""}</div>
       <div><i class="fa-solid ${_ehEntrega(p) ? "fa-location-dot" : "fa-store"}"></i> ${end}${p.endereco?.cep ? ` · CEP ${_escAttr(p.endereco.cep)}` : ""}</div>
@@ -2332,6 +2419,73 @@ async function avancarPedido(docId, etapa, avisar) {
     toast(`${_nomePedido(p)}: ${ETAPAS[etapa].nome}`, "ok");
     estoqueAoMudarEtapa(p, etapa);
   } catch (e) { toast("Erro ao mudar a etapa: " + e.message, "err"); }
+}
+
+// ── PEDIDO FORA DO HORÁRIO ──────────────────────────────────────────────
+// Confere a hora em que o pedido chegou (do servidor, em Brasília) com o horário de
+// funcionamento. Pedido do site fora do horário (na tolerância depois de fechar, ou
+// de alguém com a página aberta) ganha o aviso vermelho e a Bru decide.
+const _fmtSPAdm = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+function _diaMinSP(date) {
+  const p = Object.fromEntries(_fmtSPAdm.formatToParts(date).map(x => [x.type, x.value]));
+  return { d: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(p.weekday), m: (Number(p.hour) % 24) * 60 + Number(p.minute) };
+}
+const _minHor = (h) => { const [a, b] = String(h || "").split(":").map(Number); return Number.isFinite(a) ? a * 60 + (b || 0) : null; };
+const _hBonita = (min) => { min = ((min % 1440) + 1440) % 1440; const h = Math.floor(min / 60), mm = min % 60; return `${h}h${mm ? String(mm).padStart(2, "0") : ""}`; };
+function _diaHorario(i) {
+  const h = _cfgLoja.horarios[(i + 7) % 7] || {};
+  const a = _minHor(h.abre), f = _minHor(h.fecha);
+  return h.aberto && a !== null && f !== null ? { a, f } : null;
+}
+function _situacaoHorario(p) {
+  if (p.origem && p.origem !== "site") return null;          // lançado pela Bru no painel
+  if (!_cfgLoja.horarioAtivo || !Array.isArray(_cfgLoja.horarios) || _cfgLoja.horarios.length !== 7) return null;
+  const dt = p.criadoEm?.toDate?.();
+  if (!dt) return null;
+  const { d, m } = _diaMinSP(dt);
+  const hoje = _diaHorario(d), ontem = _diaHorario(d - 1);
+  if (hoje && (hoje.f > hoje.a ? m >= hoje.a && m < hoje.f : m >= hoje.a)) return null; // dentro (o intervalo tem aviso próprio)
+  if (ontem && ontem.f <= ontem.a && m < ontem.f) return null;                          // passou da meia-noite, ainda aberto
+  const fims = [hoje && (hoje.f > hoje.a ? hoje.f : hoje.f + 1440), ontem && (ontem.f > ontem.a ? ontem.f : ontem.f + 1440) - 1440]
+    .filter(f => typeof f === "number" && f <= m);
+  const chegou = `Chegou às ${_hBonita(m)}`;
+  const f = fims.length ? Math.max(...fims) : null, dif = f === null ? null : m - f;
+  if (f !== null && dif < 180) return `${chegou}, ${dif} min depois do fechamento (${_hBonita(f)})`;
+  if (hoje && m < hoje.a) return `${chegou}, antes de abrir (abre ${_hBonita(hoje.a)})`;
+  if (!hoje) return `${chegou}, num dia em que a loja não abre`;
+  return `${chegou}, depois do fechamento (${_hBonita(f)})`;
+}
+// "amanhã às 14h30", "hoje às 16h", "na terça às 14h30" (a partir de agora)
+function _proximaAbertura() {
+  if (!Array.isArray(_cfgLoja.horarios) || _cfgLoja.horarios.length !== 7) return "";
+  const { d, m } = _diaMinSP(new Date());
+  const nomes = ["no domingo", "na segunda", "na terça", "na quarta", "na quinta", "na sexta", "no sábado"];
+  for (let k = 0; k < 8; k++) {
+    const x = _diaHorario(d + k);
+    if (!x || (k === 0 && x.a <= m)) continue;
+    return `${k === 0 ? "hoje" : k === 1 ? "amanhã" : nomes[(d + k) % 7]} às ${_hBonita(x.a)}`;
+  }
+  return "";
+}
+function mensagemForaHorario(p) {
+  const nome = String(p.cliente || "").trim().split(/\s+/)[0] || "tudo bem";
+  const loja = _cfgLoja.nomeLoja || "Açaí da Bru";
+  const c = _codigoCliente(p), n = c ? `${c} ` : "";
+  const volta = _proximaAbertura();
+  // Ainda vai abrir hoje (pedido feito cedo demais) ou já encerrou o expediente?
+  const cedo = /^hoje/.test(volta);
+  return `Oi, ${nome}! 💜 Recebemos seu pedido ${n}aqui no ${loja}, mas ele chegou fora do nosso horário${cedo ? " e a gente ainda não abriu" : " e hoje já encerramos o expediente"} 😔`
+    + `\n\nPor isso não vamos conseguir preparar agora, desculpa!`
+    + (volta ? ` A gente ${cedo ? "abre" : "volta"} ${volta} e vai ser um prazer te atender 🍧` : "")
+    + `\n\nObrigada pelo carinho e pela preferência! 💜`;
+}
+async function recusarForaHorario(docId) {
+  const p = _pedidos.find(x => x.docId === docId);
+  if (!p) return;
+  let tel = String(p.telefone || "").replace(/\D/g, "");
+  if (!confirm(`Recusar o pedido ${_nomePedido(p)}?\n\nEle vai para "Cancelado"${tel ? " e abre o WhatsApp do cliente com a mensagem avisando que o expediente encerrou" : ""}.`)) return;
+  if (tel) { if (tel.length <= 11) tel = "55" + tel; window.open(`https://wa.me/${tel}?text=${encodeURIComponent(mensagemForaHorario(p))}`, "_blank"); }
+  await avancarPedido(docId, "cancelado", false);
 }
 
 // Agradecimento do PIX: sai quando a Bru marca "Pago" num pedido pago por PIX
@@ -3299,6 +3453,8 @@ async function _dadosResumoEstoque() {
   return [..._estoque].sort((a, b) => peso(a) - peso(b) || (a.nome || "").localeCompare(b.nome || "", "pt-BR")).map(e => ({
     e, entrou: soma(e.docId, m => m.motivo === "Reposição"),
     saiu: -soma(e.docId, m => /^(Pedido|Venda|Cancelado)/.test(m.motivo || "")),
+    parc: -soma(e.docId, m => m.tipo === "parceria"),
+    perda: -soma(e.docId, m => m.tipo === "perda"),
     sit: _estZerado(e) ? "Esgotado" : _estBaixo(e) ? "Acabando" : !_estTemQtd(e) ? "Falta contar" : "OK",
   }));
 }
@@ -3315,10 +3471,10 @@ async function abrirResumoEstoque() {
         <div><span>Tem agora</span><strong>${_estTemQtd(r.e) ? _escAttr(_qtdUn(r.e.quantidade, r.e.unidade)) : "—"}</strong></div>
         <div><span>Chegou</span><strong class="mais">${r.entrou ? "+" + _fmtQtd(r.entrou) : "0"}</strong></div>
         <div><span>Vendeu</span><strong class="menos">${r.saiu ? _fmtQtd(r.saiu) : "0"}</strong></div>
-      </div></div>`).join("") : `<p class="ingr-vazio">Nenhum item no estoque ainda.</p>`;
+      </div>${r.parc || r.perda ? `<p style="font-size:.75rem;color:var(--muted);margin-top:4px">${[r.parc ? `Parcerias: ${_fmtQtd(r.parc)}` : "", r.perda ? `Perdas: ${_fmtQtd(r.perda)}` : ""].filter(Boolean).join(" · ")}</p>` : ""}</div>`).join("") : `<p class="ingr-vazio">Nenhum item no estoque ainda.</p>`;
 }
 function resumoEstoqueWhats() {
-  const linhas = _resEst.map(r => `• *${r.e.nome}*: ${_estTemQtd(r.e) ? _qtdUn(r.e.quantidade, r.e.unidade) : "não contado"}${r.sit === "Esgotado" ? " ❌" : r.sit === "Acabando" ? " ⚠️" : ""} (chegou ${_fmtQtd(r.entrou)} · vendeu ${_fmtQtd(r.saiu)})`);
+  const linhas = _resEst.map(r => `• *${r.e.nome}*: ${_estTemQtd(r.e) ? _qtdUn(r.e.quantidade, r.e.unidade) : "não contado"}${r.sit === "Esgotado" ? " ❌" : r.sit === "Acabando" ? " ⚠️" : ""} (chegou ${_fmtQtd(r.entrou)} · vendeu ${_fmtQtd(r.saiu)}${r.parc ? ` · parceria ${_fmtQtd(r.parc)}` : ""}${r.perda ? ` · perda ${_fmtQtd(r.perda)}` : ""})`);
   const txt = `📦 Estoque — ${_cfgLoja.nomeLoja || "Açaí da Bru"} (${new Date().toLocaleDateString("pt-BR")})\n\n${linhas.join("\n")}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank");
 }
@@ -3337,8 +3493,8 @@ function resumoEstoquePdf() {
   .rod{margin-top:20px;font-size:.7rem;color:#9ca3af;text-align:center} @media print{.bt{display:none} body{padding:0}}<\/style><\/head><body>
   <button class="bt" onclick="window.print()">Salvar PDF / Imprimir</button>
   <header><img src="${location.href.replace(/[^/]*$/, "")}assets/logo.jpg" alt=""><div><h1>Estoque de ${_escAttr(_mesAno())}</h1><p>${_escAttr(loja)} · ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p></div></header>
-  <table><thead><tr><th>Item</th><th class="n">Tem agora</th><th class="n">Chegou</th><th class="n">Vendeu</th><th>Situação</th></tr></thead><tbody>
-  ${_resEst.map(r => `<tr><td>${_escAttr(r.e.nome)}</td><td class="n"><strong>${_estTemQtd(r.e) ? _escAttr(_qtdUn(r.e.quantidade, r.e.unidade)) : "—"}</strong></td><td class="n">${_fmtQtd(r.entrou)}</td><td class="n">${_fmtQtd(r.saiu)}</td><td style="color:${cor[r.sit]};font-weight:700">${r.sit}</td></tr>`).join("")}
+  <table><thead><tr><th>Item</th><th class="n">Tem agora</th><th class="n">Chegou</th><th class="n">Vendeu</th><th class="n">Parc./perda</th><th>Situação</th></tr></thead><tbody>
+  ${_resEst.map(r => `<tr><td>${_escAttr(r.e.nome)}</td><td class="n"><strong>${_estTemQtd(r.e) ? _escAttr(_qtdUn(r.e.quantidade, r.e.unidade)) : "—"}</strong></td><td class="n">${_fmtQtd(r.entrou)}</td><td class="n">${_fmtQtd(r.saiu)}</td><td class="n">${_fmtQtd((r.parc || 0) + (r.perda || 0))}</td><td style="color:${cor[r.sit]};font-weight:700">${r.sit}</td></tr>`).join("")}
   </tbody></table><p class="rod">Gerado pelo painel do ${_escAttr(loja)} · TF Solutions</p><\/body><\/html>`);
   jan.document.close();
 }
@@ -3353,10 +3509,11 @@ async function baixarPlanilhaEstoque() {
   const soma = (id, f) => movs.filter(m => m.itemId === id && f(m)).reduce((s, m) => s + Number(m.qtd || 0), 0);
   const cel = (v) => { const s = String(v ?? ""); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const num = (v) => v === "" || v === null || v === undefined ? "" : String(Math.round(Number(v) * 100) / 100).replace(".", ",");
-  const linhas = [["Item", "Unidade", "Quantidade agora", "Mínimo", "Situação", "Entrou no mês (reposição)", "Saiu no mês (vendas)", "Baixa automática"]];
+  const linhas = [["Item", "Unidade", "Quantidade agora", "Mínimo", "Situação", "Entrou no mês (reposição)", "Saiu no mês (vendas)", "Parcerias no mês", "Perdas no mês", "Baixa automática"]];
   _estoque.forEach(e => linhas.push([e.nome, e.unidade || "", _estTemQtd(e) ? num(e.quantidade) : "", num(e.minimo || 0),
     _estZerado(e) ? "Esgotado" : _estBaixo(e) ? "Acabando" : !_estTemQtd(e) ? "Falta contar" : "OK",
     num(soma(e.docId, m => m.motivo === "Reposição")), num(-soma(e.docId, m => /^(Pedido|Venda|Cancelado)/.test(m.motivo || ""))),
+    num(-soma(e.docId, m => m.tipo === "parceria")), num(-soma(e.docId, m => m.tipo === "perda")),
     _resumoVinculos(e).replace(/^Baixa sozinho com: /, "")]));
   const csv = "﻿" + linhas.map(l => l.map(cel).join(";")).join("\r\n");
   const a = document.createElement("a");
@@ -6323,6 +6480,7 @@ const CONFIG_PADRAO = {
   aceitarOutrosBairros: true,
   entregaGratis: ["Rua 37", "94971-300"],
   horarioAtivo: true,
+  toleranciaMin: 15,
   horarios: [
     { aberto: true,  abre: "16:00", fecha: "23:00", pausaIni: "", pausaFim: "" },       // domingo
     { aberto: false, abre: "14:30", fecha: "23:00", pausaIni: "", pausaFim: "" },       // segunda (fechada)
@@ -6416,6 +6574,7 @@ async function carregarConfiguracoes() {
   if (_horGenerico) { cfg.horarios = CONFIG_PADRAO.horarios; cfg.horarioAtivo = true; }
   document.getElementById("config-horario-ativo").checked = !!cfg.horarioAtivo;
   document.getElementById("config-aceitar-intervalo").checked = cfg.aceitarNoIntervalo !== false;
+  document.getElementById("config-tolerancia").value = Number.isFinite(Number(cfg.toleranciaMin)) ? Number(cfg.toleranciaMin) : 15;
   document.getElementById("config-pix-chave").value  = cfg.pixChave || "";
   document.getElementById("config-endereco-loja").value = cfg.enderecoLoja || "";
   document.getElementById("config-pix-nome").value   = cfg.pixNome || "";
@@ -6527,6 +6686,7 @@ async function salvarConfiguracoes() {
   const aceitarOutrosBairros = document.getElementById("config-aceitar-outros-bairros").checked;
   const horarioAtivo = document.getElementById("config-horario-ativo").checked;
   const aceitarNoIntervalo = document.getElementById("config-aceitar-intervalo").checked;
+  const toleranciaMin = Math.max(0, Math.min(120, Math.round(Number(document.getElementById("config-tolerancia").value) || 0)));
   const pixChave  = document.getElementById("config-pix-chave").value.trim().slice(0, 80);
   const enderecoLoja = document.getElementById("config-endereco-loja").value.trim().slice(0, 120);
   const pixNome   = document.getElementById("config-pix-nome").value.trim().slice(0, 60);
@@ -6602,7 +6762,7 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, lojaPausada: !!_cfgLoja.lojaPausada, pixChave, pixNome, pixBanco, pixCidade, enderecoLoja, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
+      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, toleranciaMin, lojaPausada: !!_cfgLoja.lojaPausada, pixChave, pixNome, pixBanco, pixCidade, enderecoLoja, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
       // campos do Estoque e do Post do dia (salvos fora desta tela)
@@ -6636,9 +6796,9 @@ function toast(msg, tipo = "ok") {
 // ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (sessionStorage.getItem("admin_ok") === "1") inicializar();
 </script>
-<script src="estoque-loja.js?v=20261105h"></script>
-<script src="post-do-dia.js?v=20261105h"></script>
-<script src="impressora.js?v=20261105h"></script>
-<script src="pix.js?v=20261105h"></script>
+<script src="estoque-loja.js?v=20261107a"></script>
+<script src="post-do-dia.js?v=20261107a"></script>
+<script src="impressora.js?v=20261107a"></script>
+<script src="pix.js?v=20261107a"></script>
 </body>
 </html>
