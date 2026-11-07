@@ -1328,7 +1328,7 @@
           <textarea id="config-entrega-gratis" rows="3" placeholder="Rua 37&#10;94971-300"></textarea>
         </div>
         <div class="form-group">
-          <label>Link de avaliação no Google <small style="color:var(--muted)">(opcional — do Perfil de Empresa no Google; vai na mensagem de "Entregue")</small></label>
+          <label>Link de avaliação no Google <small style="color:var(--muted)">(do Perfil de Empresa no Google — vai na mensagem de "Entregue" e no botão "Avaliar no Google" do site. Assim as avaliações vão direto para o Google e ajudam a loja a aparecer quando alguém pesquisa açaí na região)</small></label>
           <input type="url" id="config-google-review" placeholder="https://g.page/r/.../review" style="margin-bottom:12px">
           <label>Tempo estimado de entrega</label>
           <input type="text" id="config-tempo-entrega" placeholder="Ex: 40 a 45 minutos">
@@ -2227,9 +2227,12 @@ function mensagemEtapa(p, etapa) {
         + `\n${/instagram\.com/i.test(_cfgLoja.sobreLink || "") ? String(_cfgLoja.sobreLink).split("?")[0] : "https://www.instagram.com/acaidabru_cb"}`
         + `\n\nObrigada pela preferência! 💜`
       : `${nome}, seu pedido ${n}está pronto para retirada! 🍧`,
+    // Com o link do Google, a avaliação vai direto para lá (ajuda a loja a aparecer nas buscas);
+    // sem ele, usa a página de avaliação do próprio site.
     entregue: `Pedido ${n}entregue! Obrigada pela preferência, ${nome} 💜 Bom açaí!`
-      + (linkAvaliacao(p) ? `\n\nConta pra gente como foi? Leva 10 segundinhos ⭐\n${linkAvaliacao(p)}` : "")
-      + (_cfgLoja.googleReviewUrl ? `\n\nSe puder, deixa também sua opinião no Google — ajuda muito a gente: ${_cfgLoja.googleReviewUrl}` : ""),
+      + (_linkGoogle()
+        ? `\n\nGostou? Deixa sua avaliação no Google ⭐ Leva 1 minutinho e ajuda muito a gente a crescer:\n${_linkGoogle()}`
+        : linkAvaliacao(p) ? `\n\nConta pra gente como foi? Leva 10 segundinhos ⭐\n${linkAvaliacao(p)}` : ""),
     cancelado: `Oi, ${nome}. Seu pedido ${n}foi cancelado. Qualquer dúvida, é só chamar a gente por aqui.`,
   }[etapa];
 }
@@ -3003,6 +3006,10 @@ function excluirAvaliacao(docId) {
   };
   abrirModal("confirm-modal");
 }
+
+// Link de avaliação no Google (Perfil de Empresa da loja)
+const GOOGLE_REVIEW_PADRAO = "https://g.page/r/CUKIvcO9wfomEBI/review";
+const _linkGoogle = () => (_cfgLoja.googleReviewUrl || GOOGLE_REVIEW_PADRAO || "").trim();
 
 // Link de avaliação do pedido (vai na mensagem de "Entregue")
 function linkAvaliacao(p) {
@@ -6741,7 +6748,7 @@ async function carregarConfiguracoes() {
     document.getElementById("config-aceitar-outros-bairros").checked = cfg.aceitarOutrosBairros !== false;
     document.getElementById("config-entrega-gratis").value = (Array.isArray(cfg.entregaGratis) ? cfg.entregaGratis : []).join("\n");
     document.getElementById("config-tempo-entrega").value = cfg.tempoEntrega || "";
-    document.getElementById("config-google-review").value = cfg.googleReviewUrl || "";
+    document.getElementById("config-google-review").value = cfg.googleReviewUrl || GOOGLE_REVIEW_PADRAO;
     document.getElementById("config-complemento-extra").value = cfg.precoComplementoExtra ?? "";
     document.getElementById("config-custo-complemento-extra").value = cfg.custoComplementoExtra ?? "";
     document.getElementById("config-sobre-nome").value  = cfg.sobreNome  || "";

@@ -235,6 +235,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         sobreTexto: "Açaí de qualidade, feito com carinho e montado do seu jeito. Siga a gente no Instagram e fique de olho nas promoções da semana!",
         sobreFoto: "assets/copo-quadrado.jpg",
         sobreLink: "https://www.instagram.com/acaidabru_cb/",
+        googleReviewUrl: "https://g.page/r/CUKIvcO9wfomEBI/review", // botão "Avaliar no Google" (Perfil de Empresa)
         // Horário de funcionamento (admin → Configurações). Desligado = sempre aberto.
         horarioAtivo: true,
         // Minutos depois de fechar em que o cliente ainda pode enviar (avisado de que a loja
@@ -2330,7 +2331,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 .filter((a) => a.aprovada === true && a.comentario)
                 .sort((a, b) => ((b.criadoEm?.toMillis?.() || 0) - (a.criadoEm?.toMillis?.() || 0)))
                 .slice(0, 9);
-            if (!lista.length) return;
+            const google = String(configLoja.googleReviewUrl || CONFIG_PADRAO.googleReviewUrl || "").trim();
+            const botaoGoogle = /^https:\/\//.test(google) ? `
+                <a class="btn-google-review" href="${google.replace(/"/g, "")}" target="_blank" rel="noopener">
+                    <i class="fa-brands fa-google" aria-hidden="true"></i> Já provou? Avalie a gente no Google ⭐
+                </a>` : "";
+            if (!lista.length && !botaoGoogle) return;
             const esc = (t) => String(t || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
             track.innerHTML = lista.map((a) => `
                 <figure class="review-card">
@@ -2338,6 +2344,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <blockquote>“${esc(a.comentario)}”</blockquote>
                     <figcaption>— ${esc(a.nome || "Cliente")}</figcaption>
                 </figure>`).join("");
+            track.hidden = !lista.length;
+            if (!lista.length) secao.querySelector(".promo-titulo").textContent = "Sua opinião faz a diferença";
+            if (botaoGoogle && !secao.querySelector(".btn-google-review")) secao.insertAdjacentHTML("beforeend", botaoGoogle);
             secao.hidden = false;
         } catch (e) {
             console.warn("Avaliações indisponíveis:", e);
