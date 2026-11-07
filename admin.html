@@ -404,6 +404,12 @@
     .resest-nums { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 6px; }
     .resest-nums span { display: block; font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
     .resest-nums strong { font-size: 1rem; } .resest-nums .mais { color: var(--green); } .resest-nums .menos { color: var(--gold); }
+    /* Pausar pedidos: motivos */
+    .pausa-opcoes { display: flex; flex-direction: column; gap: 6px; }
+    .pausa-op { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px; cursor: pointer; font-size: .88rem; }
+    .pausa-op:has(input:checked) { border-color: var(--gold); background: rgba(240,192,64,.08); }
+    .pausa-op input { margin-top: 3px; accent-color: var(--gold); }
+    .pausa-op small { display: block; color: var(--muted); font-size: .76rem; margin-top: 2px; }
     /* Estoque: parcerias e perdas */
     .sd-tipos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
     .sd-tipo { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 700; cursor: pointer; font-size: .9rem; }
@@ -1873,6 +1879,26 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="fecharModal('rep-modal')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarReposicao()"><i class="fa-solid fa-plus"></i> Dar entrada</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pausar pedidos: motivo que o cliente vê -->
+<div class="modal-overlay" id="pausa-modal">
+  <div class="modal" style="max-width:460px">
+    <button class="modal-close" onclick="fecharModal('pausa-modal')">&times;</button>
+    <h2><i class="fa-solid fa-pause"></i> Pausar pedidos</h2>
+    <p style="color:var(--muted);font-size:.8rem;margin-bottom:10px">O cardápio continua aparecendo, mas ninguém consegue enviar pedido pelo site. Escolha o que o cliente vai ler:</p>
+    <div class="pausa-opcoes" id="pausa-opcoes">
+      <label class="pausa-op"><input type="radio" name="pausa-motivo" value="rapida" checked onchange="previaPausa()"><span><strong>Pausa rápida</strong><small>"Pausamos os pedidos por um momento. Já já voltamos!"</small></span></label>
+      <label class="pausa-op"><input type="radio" name="pausa-motivo" value="demanda" onchange="previaPausa()"><span><strong>Muitos pedidos agora</strong><small>"Estamos com muitos pedidos agora. Pausamos por um tempinho para dar conta de todos. Já já voltamos!"</small></span></label>
+      <label class="pausa-op"><input type="radio" name="pausa-motivo" value="encerrou" onchange="previaPausa()"><span><strong>Encerramos por hoje (alta demanda)</strong><small>"Encerramos os pedidos de hoje mais cedo devido à alta demanda. Amanhã abrimos às…" — amanhã volta sozinho, não precisa retomar.</small></span></label>
+      <label class="pausa-op"><input type="radio" name="pausa-motivo" value="outro" onchange="previaPausa()"><span><strong>Escrever outra mensagem</strong></span></label>
+    </div>
+    <textarea id="pausa-texto" rows="2" maxlength="160" placeholder="Ex: Acabou o açaí por hoje 😢 Amanhã tem mais!" hidden style="width:100%;margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 10px;color:var(--text);font-size:.9rem"></textarea>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModal('pausa-modal')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarPausaLoja()"><i class="fa-solid fa-pause"></i> Pausar agora</button>
     </div>
   </div>
 </div>
@@ -6541,17 +6567,51 @@ function lerHorarios() {
 function atualizarBotaoPausa() {
   const b = document.getElementById("btn-pausa");
   if (!b) return;
-  const p = !!_cfgLoja.lojaPausada;
+  const p = _pausaAtiva();
   b.className = `btn btn-sm ${p ? "btn-danger" : "btn-ghost"}`;
-  b.innerHTML = p ? `<i class="fa-solid fa-play"></i> Pedidos pausados — retomar` : `<i class="fa-solid fa-pause"></i> Pausar pedidos`;
+  b.innerHTML = p ? `<i class="fa-solid fa-play"></i> ${_cfgLoja.pausaMotivo === "encerrou" ? "Encerrado hoje" : "Pedidos pausados"} — retomar` : `<i class="fa-solid fa-pause"></i> Pausar pedidos`;
+}
+// Dia de hoje em Brasília (AAAA-MM-DD), igual ao que o catálogo usa
+const _hojeSP = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+// "Encerramos por hoje" só vale no dia em que foi marcado (o site volta sozinho no dia seguinte)
+function _pausaAtiva() {
+  if (!_cfgLoja.lojaPausada) return false;
+  return !(_cfgLoja.pausaMotivo === "encerrou" && _cfgLoja.pausaDia && _cfgLoja.pausaDia !== _hojeSP());
 }
 async function alternarPausaLoja() {
-  const novo = !_cfgLoja.lojaPausada;
+  if (!_pausaAtiva()) {
+    // Pausar: pergunta o motivo que o cliente vai ver
+    const m = _cfgLoja.pausaMotivo && _cfgLoja.pausaMotivo !== "encerrou" ? _cfgLoja.pausaMotivo : "rapida";
+    document.querySelectorAll('input[name="pausa-motivo"]').forEach(r => { r.checked = r.value === m; });
+    document.getElementById("pausa-texto").value = _cfgLoja.pausaTexto || "";
+    previaPausa();
+    abrirModal("pausa-modal");
+    return;
+  }
   try {
-    await db.collection("configuracoes").doc("geral").set({ lojaPausada: novo }, { merge: true });
-    _cfgLoja.lojaPausada = novo;
+    await db.collection("configuracoes").doc("geral").set({ lojaPausada: false }, { merge: true });
+    _cfgLoja.lojaPausada = false;
     atualizarBotaoPausa();
-    toast(novo ? "Pedidos pausados: o site mostra que vocês voltam já já" : "Pedidos liberados de novo no site", "ok");
+    toast("Pedidos liberados de novo no site", "ok");
+  } catch (e) { toast("Não consegui salvar: " + e.message, "err"); }
+}
+function previaPausa() {
+  const m = document.querySelector('input[name="pausa-motivo"]:checked')?.value || "rapida";
+  const t = document.getElementById("pausa-texto");
+  t.hidden = m !== "outro";
+  if (!t.hidden) setTimeout(() => t.focus(), 30);
+}
+async function confirmarPausaLoja() {
+  const pausaMotivo = document.querySelector('input[name="pausa-motivo"]:checked')?.value || "rapida";
+  const pausaTexto = document.getElementById("pausa-texto").value.trim().slice(0, 160);
+  if (pausaMotivo === "outro" && !pausaTexto) { toast("Escreva a mensagem que o cliente vai ver.", "err"); document.getElementById("pausa-texto").focus(); return; }
+  const dados = { lojaPausada: true, pausaMotivo, pausaTexto, pausaDia: _hojeSP() };
+  try {
+    await db.collection("configuracoes").doc("geral").set(dados, { merge: true });
+    Object.assign(_cfgLoja, dados);
+    atualizarBotaoPausa();
+    fecharModal("pausa-modal");
+    toast(pausaMotivo === "encerrou" ? "Pedidos encerrados por hoje — amanhã o site volta sozinho" : "Pedidos pausados no site", "ok");
   } catch (e) { toast("Não consegui salvar: " + e.message, "err"); }
 }
 
@@ -6762,7 +6822,7 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, toleranciaMin, lojaPausada: !!_cfgLoja.lojaPausada, pixChave, pixNome, pixBanco, pixCidade, enderecoLoja, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
+      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, toleranciaMin, lojaPausada: !!_cfgLoja.lojaPausada, pausaMotivo: _cfgLoja.pausaMotivo || "rapida", pausaTexto: _cfgLoja.pausaTexto || "", pausaDia: _cfgLoja.pausaDia || "", pixChave, pixNome, pixBanco, pixCidade, enderecoLoja, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
       // campos do Estoque e do Post do dia (salvos fora desta tela)

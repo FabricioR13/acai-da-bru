@@ -251,6 +251,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             { aberto: true,  abre: "16:00", fecha: "23:00", pausaIni: "", pausaFim: "" },       // sábado
         ],
         lojaPausada: false, // "Pausar pedidos" no admin (ex.: acabou o açaí)
+        pausaMotivo: "rapida", // rapida | demanda | encerrou | outro (mensagem que o cliente vê)
+        pausaTexto: "",        // mensagem escrita pela dona (motivo "outro")
+        pausaDia: "",          // dia (AAAA-MM-DD) em que "encerrou por hoje" foi marcado: no dia seguinte volta sozinho
     };
     let configLoja = { ...CONFIG_PADRAO };
     try {
@@ -1846,9 +1849,32 @@ document.addEventListener("DOMContentLoaded", async () => {
         return { d: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(p.weekday), m: (Number(p.hour) % 24) * 60 + Number(p.minute) };
     };
 
+    // Mensagem do "Pausar pedidos", conforme o motivo escolhido no painel (null = não está pausado)
+    const mensagemPausa = (hs) => {
+        if (!configLoja.lojaPausada) return null;
+        const motivo = configLoja.pausaMotivo || "rapida";
+        // "Encerramos por hoje" vale só no dia em que foi marcado: no dia seguinte a loja volta sozinha
+        if (motivo === "encerrou" && configLoja.pausaDia && configLoja.pausaDia !== hojeEmSaoPaulo().iso) return null;
+        if (motivo === "demanda") return "Estamos com muitos pedidos agora 🔥 Pausamos por um tempinho para dar conta de todos com carinho. Já já voltamos! 💜";
+        if (motivo === "outro" && String(configLoja.pausaTexto || "").trim()) return String(configLoja.pausaTexto).trim().slice(0, 160);
+        if (motivo === "encerrou") {
+            // Próxima abertura a partir de amanhã
+            let volta = "";
+            if (hs.length === 7) {
+                const { d } = agoraSP();
+                for (let k = 1; k < 8 && !volta; k++) {
+                    const h = hs[(d + k) % 7] || {};
+                    if (h.aberto && h.abre) volta = `${k === 1 ? "Amanhã" : DIAS_SEMANA[(d + k) % 7].replace(/^./, (c) => c.toUpperCase())} abrimos às ${horaBonita(h.abre)}.`;
+                }
+            }
+            return `Encerramos os pedidos de hoje mais cedo devido à alta demanda 💜 Obrigada pelo carinho!${volta ? " " + volta : ""}`;
+        }
+        return "Pausamos os pedidos por um momento. Já já voltamos! 💜";
+    };
     const statusLoja = () => {
-        if (configLoja.lojaPausada) return { aberta: false, msg: "Pausamos os pedidos por um momento. Já já voltamos! 💜" };
         const hs = Array.isArray(configLoja.horarios) ? configLoja.horarios : [];
+        const pausa = mensagemPausa(hs);
+        if (pausa) return { aberta: false, pausa: true, msg: pausa };
         if (!configLoja.horarioAtivo || hs.length !== 7) return { aberta: true };
         const { d, m } = agoraSP();
         const dia = (i) => {
@@ -1910,7 +1936,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const doc = await db.collection("configuracoes").doc("geral").get();
             if (doc.exists) {
                 const d = doc.data();
-                ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo", "toleranciaMin"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
+                ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo", "toleranciaMin", "pausaMotivo", "pausaTexto", "pausaDia"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
             }
         } catch (e) { /* sem internet: segue com o que já tinha */ }
         const st = atualizarStatusLoja();
