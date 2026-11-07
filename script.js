@@ -237,9 +237,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         sobreLink: "https://www.instagram.com/acaidabru_cb/",
         // Horário de funcionamento (admin → Configurações). Desligado = sempre aberto.
         horarioAtivo: true,
-        // Fora do horário o cliente é avisado mas consegue enviar; o pedido chega marcado e a
-        // dona confirma. Só o "Pausar pedidos" bloqueia. Desligado = fora do horário não envia.
-        aceitarForaHorario: true,
+        // Minutos depois de fechar em que o cliente ainda pode enviar (avisado de que a loja
+        // vai confirmar); o pedido chega marcado no painel. Passou disso, fecha de vez. 0 = fecha na hora.
+        toleranciaMin: 60,
         // Horário do WhatsApp da Bru (nov/2026) — índice 0 = domingo
         horarios: [
             { aberto: true,  abre: "16:00", fecha: "23:00", pausaIni: "", pausaFim: "" },       // domingo
@@ -1865,14 +1865,24 @@ document.addEventListener("DOMContentLoaded", async () => {
             return { aberta: true };
         }
         if (ontem && ontem.f <= ontem.a && m < ontem.f) return { aberta: true }; // passou da meia-noite
+        // Acabou de fechar: dentro da tolerância o cliente ainda pode enviar para a loja confirmar
+        const tol = Math.max(0, Math.min(180, Number(configLoja.toleranciaMin ?? 60) || 0));
+        if (tol) {
+            const fimAbs = (x, desloc) => (x.f > x.a ? x.f : x.f + 1440) + desloc; // fechamento em minutos a partir de hoje 0h
+            const f = [hoje && fimAbs(hoje, 0), ontem && fimAbs(ontem, -1440)].find((x) => typeof x === "number" && m >= x && m < x + tol);
+            if (f !== undefined) {
+                const hf = ((f % 1440) + 1440) % 1440;
+                return { aberta: false, foraHorario: true, msg: `Acabamos de fechar (fechamos às ${horaBonita(`${Math.floor(hf / 60)}:${String(hf % 60).padStart(2, "0")}`)}) 💜` };
+            }
+        }
         // Próxima abertura
         for (let k = 0; k < 8; k++) {
             const x = dia(d + k);
             if (!x || (k === 0 && x.a <= m)) continue;
             const quando = k === 0 ? "hoje" : k === 1 ? "amanhã" : DIAS_SEMANA[(d + k) % 7];
-            return { aberta: false, foraHorario: configLoja.aceitarForaHorario !== false, msg: `Estamos fora do horário agora. Abrimos ${quando} às ${horaBonita(x.abre)} 💜` };
+            return { aberta: false, msg: `Estamos fechados agora. Abrimos ${quando} às ${horaBonita(x.abre)} 💜` };
         }
-        return { aberta: false, foraHorario: configLoja.aceitarForaHorario !== false, msg: "Estamos fora do horário no momento." };
+        return { aberta: false, msg: "Estamos fechados no momento." };
     };
     const avisoFechado = document.createElement("div");
     avisoFechado.className = "aviso-fechado";
@@ -1885,7 +1895,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!st.aberta) avisoFechado.innerHTML = st.intervalo
             ? `<i class="fa-solid fa-mug-hot" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Se quiser, já pode enviar seu pedido: ele fica na fila e preparamos assim que voltarmos.</span>`
             : st.foraHorario
-            ? `<i class="fa-solid fa-moon" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Se quiser, pode enviar seu pedido mesmo assim: a loja confirma pelo WhatsApp se consegue preparar.</span>`
+            ? `<i class="fa-solid fa-moon" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Se quiser, ainda dá para enviar seu pedido: a loja confirma pelo WhatsApp se consegue preparar.</span>`
             : `<i class="fa-solid fa-moon" aria-hidden="true"></i> <span><strong>${st.msg}</strong> Você pode olhar o cardápio e montar seu pedido.</span>`;
         finishOrderBtn.classList.toggle("loja-fechada", !st.aberta && !st.intervalo && !st.foraHorario);
         return st;
@@ -1900,7 +1910,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const doc = await db.collection("configuracoes").doc("geral").get();
             if (doc.exists) {
                 const d = doc.data();
-                ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo", "aceitarForaHorario"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
+                ["lojaPausada", "horarioAtivo", "horarios", "aceitarNoIntervalo", "toleranciaMin"].forEach((k) => { if (k in d) configLoja[k] = d[k]; });
             }
         } catch (e) { /* sem internet: segue com o que já tinha */ }
         const st = atualizarStatusLoja();
