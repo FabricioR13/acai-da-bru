@@ -201,6 +201,17 @@
     }
     .rank-pos { display: inline-block; min-width: 26px; color: var(--gold); font-weight: 700; font-size: .8rem; }
     .rank-zerado td { color: var(--muted); }
+    .btn-confirmar { background: #25d366; color: #fff; border: 0; font-weight: 700; }
+    .btn-confirmar:hover { filter: brightness(1.05); color: #fff; }
+    .msgs-cliente { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .msgs-cliente h3 { font-size: 1rem; margin-bottom: 6px; display: flex; gap: 8px; align-items: center; }
+    .msgs-ajuda { font-size: .78rem; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+    .msgs-ajuda code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; font-size: .74rem; color: var(--text); }
+    .msg-campo { margin-bottom: 16px; }
+    .msg-campo label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: 2px; }
+    .msg-campo small { display: block; color: var(--muted); font-size: .74rem; margin-bottom: 6px; }
+    .msg-campo textarea { width: 100%; min-height: 96px; resize: vertical; font-family: inherit; }
+    .msg-campo .msg-restaurar { background: none; border: 0; color: var(--muted); font-size: .74rem; text-decoration: underline; cursor: pointer; padding: 4px 0 0; }
     .stat-sub { display: block; font-size: .72rem; color: var(--muted); margin-top: 4px; }
     .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
     table { width: 100%; border-collapse: collapse; }
@@ -1493,6 +1504,16 @@
       <div class="modal-footer" style="justify-content:flex-start;margin-top:20px">
         <button class="btn btn-primary" onclick="salvarConfiguracoes()"><i class="fa-solid fa-floppy-disk"></i> Salvar Configurações</button>
       </div>
+
+      <section class="msgs-cliente" style="max-width:640px">
+        <h3><i class="fa-brands fa-whatsapp"></i> Mensagens para o cliente</h3>
+        <p class="msgs-ajuda">Esses são os textos que abrem no WhatsApp do cliente em cada etapa do pedido. Escreva do seu jeito. Os códigos entre chaves são trocados sozinhos:
+          <code>{nome}</code> primeiro nome · <code>{pedido}</code> código do pedido · <code>{total}</code> valor · <code>{pix}</code> chave PIX, recebedor e valor · <code>{link_pix}</code> página com QR Code e copia e cola · <code>{instagram}</code> link do Instagram · <code>{avaliacao}</code> link de avaliação no Google · <code>{previsao}</code> tempo de entrega · <code>{loja}</code> nome da loja</p>
+        <div id="msgs-campos"></div>
+        <div class="modal-footer" style="justify-content:flex-start;margin-top:12px">
+          <button class="btn btn-primary" onclick="salvarMensagensCliente()"><i class="fa-solid fa-floppy-disk"></i> Salvar mensagens</button>
+        </div>
+      </section>
     </div>
   </div>
   </div>
@@ -2214,41 +2235,95 @@ const _ehEntrega = (p) => !p.tipo || p.tipo === "entrega";
 const _etapaDe = (p) => ETAPAS[p.status] ? p.status : "recebido";
 
 // Mensagem pronta para cada etapa (o cliente recebe pelo WhatsApp da loja)
-function mensagemEtapa(p, etapa) {
-  const nome = String(p.cliente || "").trim().split(/\s+/)[0] || "tudo bem";
-  const loja = _cfgLoja.nomeLoja || "Açaí da Bru";
-  const c = _codigoCliente(p), n = c ? `${c} ` : ""; // "seu pedido #KP7Q2 …" (ou só "seu pedido …")
-  const tempo = _cfgLoja.tempoEntrega ? ` Previsão: ${_cfgLoja.tempoEntrega}.` : "";
-  return {
-    recebido: `Oi, ${nome}! 💜 Recebemos seu pedido ${n}aqui no ${loja}. Já já começamos a preparar!`,
-    preparo: `${nome}, seu pedido ${n}já está sendo preparado! 🍧${_ehEntrega(p) ? tempo : ""}` + _textoPix(p),
-    saiu: _ehEntrega(p)
-      ? `🛵 Seu pedido ${n}saiu para entrega!\n\nOba! Logo logo seu açaí chega aí, ${nome}! 💜\n\nEnquanto isso, aproveite para seguir nossas redes sociais e ficar por dentro das novidades e promoções do ${loja}! 🍧✨`
-        + `\n${/instagram\.com/i.test(_cfgLoja.sobreLink || "") ? String(_cfgLoja.sobreLink).split("?")[0] : "https://www.instagram.com/acaidabru_cb"}`
-        + `\n\nObrigada pela preferência! 💜`
-      : `${nome}, seu pedido ${n}está pronto para retirada! 🍧`,
-    // Com o link do Google, a avaliação vai direto para lá (ajuda a loja a aparecer nas buscas);
-    // sem ele, usa a página de avaliação do próprio site.
-    entregue: `Pedido ${n}entregue! Obrigada pela preferência, ${nome} 💜 Bom açaí!`
-      + (_linkGoogle()
-        ? `\n\nGostou? Deixa sua avaliação no Google ⭐ Leva 1 minutinho e ajuda muito a gente a crescer:\n${_linkGoogle()}`
-        : linkAvaliacao(p) ? `\n\nConta pra gente como foi? Leva 10 segundinhos ⭐\n${linkAvaliacao(p)}` : ""),
-    cancelado: `Oi, ${nome}. Seu pedido ${n}foi cancelado. Qualquer dúvida, é só chamar a gente por aqui.`,
-  }[etapa];
+// ── MENSAGENS PARA O CLIENTE ─────────────────────────────────────────────
+// Textos padrão = o jeito que a Bru já atendia antes do sistema. Ela edita em
+// Configurações → "Mensagens para o cliente" (salvo em configuracoes/geral.mensagens).
+const MSG_PADRAO = {
+  recebidoPix: "Recebemos seu pedido! 💜\n\nSegue abaixo nossa chave Pix para pagamento.\n\n{pix}\n\nApós realizar o pagamento, pedimos, por gentileza, que envie o comprovante para darmos continuidade ao seu pedido. 🥰",
+  recebido: "Pedido recebido! Muito obrigada pela preferência. 💜🥰 Previsão de entrega: aproximadamente 45 minutinhos! 🍧",
+  pixRecebido: "Pix recebido, muito obrigada! 💜🥰 Seu pedido já está em preparo. Previsão de entrega: aproximadamente 45 minutinhos.",
+  preparo: "Seu pedido está sendo preparado com muito carinho! 💜 Em seguida, sairá para entrega.",
+  saiu: "Seu pedido está a caminho! Siga a gente nas redes sociais e fique por dentro de todas as novidades e promoções! 💜🍧\n{instagram}",
+  retirada: "{nome}, seu pedido {pedido} está pronto para retirada! 🍧",
+  entregue: "Pedido entregue! Muito obrigada pela preferência. 💜\n\nGostou? Deixa sua avaliação no Google ⭐ Leva 1 minutinho e ajuda muito a gente a crescer:\n{avaliacao}",
+  cancelado: "Oi, {nome}. Seu pedido {pedido} foi cancelado. Qualquer dúvida, é só chamar a gente por aqui.",
+};
+const MSG_CAMPOS = [
+  ["recebidoPix", "Pedido recebido · pagamento PIX", "Botão \"Confirmar\" de um pedido novo pago por PIX. Use {pix} para mandar a chave."],
+  ["recebido", "Pedido recebido · cartão ou dinheiro", "Botão \"Confirmar\" de um pedido novo pago no cartão ou dinheiro."],
+  ["pixRecebido", "PIX recebido", "Abre quando você marca \"Pago\" num pedido PIX (o pedido passa sozinho para Em preparo)."],
+  ["preparo", "Em preparo (só quando atrasar)", "Não abre sozinho: use o botão \"Avisar\" do pedido quando quiser tranquilizar o cliente."],
+  ["saiu", "Saiu para entrega", "Abre ao tocar em \"Saiu para entrega\"."],
+  ["retirada", "Pronto para retirada", "Abre ao tocar em \"Pronto p/ retirada\" (pedidos de retirada)."],
+  ["entregue", "Entregue", "Abre ao tocar em \"Entregue\". Use {avaliacao} para pedir a avaliação no Google."],
+  ["cancelado", "Cancelado", "Abre ao cancelar um pedido avisando o cliente."],
+];
+const _modeloMsg = (chave) => {
+  const t = (_cfgLoja.mensagens || {})[chave];
+  return typeof t === "string" && t.trim() ? t : MSG_PADRAO[chave];
+};
+function _linkInstagram() {
+  return /instagram\.com/i.test(_cfgLoja.sobreLink || "") ? String(_cfgLoja.sobreLink).split("?")[0] : "https://www.instagram.com/acaidabru_cb";
 }
-// PIX na mensagem de "Em preparo" (só quando o pagamento escolhido é PIX e ainda não foi pago)
-function _textoPix(p) {
-  if (!/pix/i.test(p.pagamento || "") || p.pago || !_cfgLoja.pixChave || !_cfgLoja.pixNome) return "";
-  // Bairro fora da lista = taxa combinada pelo WhatsApp → o PIX vai sem valor
-  const lista = (Array.isArray(_cfgLoja.taxasEntrega) ? _cfgLoja.taxasEntrega : []).map(t => _normNome(t.bairro));
-  const semValor = _ehEntrega(p) && p.bairro && !lista.includes(_normNome(p.bairro)) && !Number(p.taxaEntrega);
+function _linkPagPix(p) {
   const base = location.href.split("#")[0].split("?")[0].replace(/[^/]*$/, "");
-  const link = `${base}pix.html?c=${encodeURIComponent(p.codigo || "")}${semValor ? "" : `&v=${Number(p.total || 0).toFixed(2)}`}`;
-  return `\n\n💳 *Pagamento via PIX${semValor ? "" : ` — ${_brl(p.total)}`}*`
-    + `\nToque no link para copiar o código (já com o valor) ou ver o QR Code:\n${link}`
-    + `\n\nOu use a chave PIX: ${formatarChavePix(_cfgLoja.pixChave)}`
-    + `\nRecebedor: ${_cfgLoja.pixNome}${_cfgLoja.pixBanco ? ` (${_cfgLoja.pixBanco})` : ""}`
-    + `\n\nDepois é só mandar o comprovante aqui 😉`;
+  return `${base}pix.html?c=${encodeURIComponent(p.codigo || "")}${_pixSemValor(p) ? "" : `&v=${Number(p.total || 0).toFixed(2)}`}`;
+}
+// Bairro fora da lista = taxa combinada pelo WhatsApp → o PIX vai sem valor
+function _pixSemValor(p) {
+  const lista = (Array.isArray(_cfgLoja.taxasEntrega) ? _cfgLoja.taxasEntrega : []).map(t => _normNome(t.bairro));
+  return _ehEntrega(p) && p.bairro && !lista.includes(_normNome(p.bairro)) && !Number(p.taxaEntrega);
+}
+function _blocoPix(p) {
+  if (!_cfgLoja.pixChave) return "";
+  return [
+    `Chave Pix: ${formatarChavePix(_cfgLoja.pixChave)}`,
+    _cfgLoja.pixNome ? `Recebedor: ${_cfgLoja.pixNome}${_cfgLoja.pixBanco ? ` (${_cfgLoja.pixBanco})` : ""}` : "",
+    _pixSemValor(p) ? "" : `Valor: ${_brl(p.total)}`,
+  ].filter(Boolean).join("\n");
+}
+// Troca os {códigos} do modelo pelos dados do pedido e limpa linhas que ficaram vazias
+function montarMensagem(modelo, p) {
+  const c = _codigoCliente(p);
+  const vals = {
+    nome: String(p.cliente || "").trim().split(/\s+/)[0] || "",
+    pedido: c || "", loja: _cfgLoja.nomeLoja || "Açaí da Bru", total: _brl(p.total),
+    previsao: _cfgLoja.tempoEntrega || "", pix: _blocoPix(p), link_pix: _cfgLoja.pixChave ? _linkPagPix(p) : "",
+    instagram: _linkInstagram(), avaliacao: _linkGoogle() || linkAvaliacao(p) || "",
+  };
+  return String(modelo)
+    .replace(/\{(\w+)\}/g, (m, k) => (k in vals ? vals[k] : m))
+    .replace(/ +([,.!?])/g, "$1").replace(/^, */gm, "").replace(/[ \t]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n").trim();
+}
+function mensagemEtapa(p, etapa) {
+  const pix = /pix/i.test(p.pagamento || "");
+  const chave = etapa === "recebido" ? (pix ? (p.pago ? "pixRecebido" : "recebidoPix") : "recebido")
+    : etapa === "saiu" ? (_ehEntrega(p) ? "saiu" : "retirada")
+    : etapa;
+  return MSG_PADRAO[chave] ? montarMensagem(_modeloMsg(chave), p) : "";
+}
+function renderMensagensConfig() {
+  const box = document.getElementById("msgs-campos");
+  if (!box) return;
+  box.innerHTML = MSG_CAMPOS.map(([k, titulo, dica]) => `<div class="msg-campo">
+      <label for="msg-${k}">${titulo}</label><small>${_escAttr(dica)}</small>
+      <textarea id="msg-${k}" rows="4">${_escAttr(_modeloMsg(k))}</textarea>
+      <button type="button" class="msg-restaurar" onclick="document.getElementById('msg-${k}').value = MSG_PADRAO['${k}']">Voltar ao texto padrão</button>
+    </div>`).join("");
+}
+async function salvarMensagensCliente() {
+  const mensagens = {};
+  MSG_CAMPOS.forEach(([k]) => {
+    const v = (document.getElementById(`msg-${k}`)?.value || "").trim().slice(0, 1500);
+    if (v && v !== MSG_PADRAO[k]) mensagens[k] = v; // só guarda o que foi personalizado
+  });
+  try {
+    // Sem merge no campo "mensagens": substitui inteiro (o que voltou ao padrão sai do banco)
+    await db.collection("configuracoes").doc("geral").update({ mensagens });
+    _cfgLoja = { ..._cfgLoja, mensagens };
+    toast("Mensagens salvas!", "ok");
+  } catch (e) { toast("Erro ao salvar as mensagens: " + e.message, "err"); }
 }
 // Mensagem para o grupo dos motoboys (abre o WhatsApp para escolher o grupo)
 function textoMotoboy(p) {
@@ -2392,7 +2467,9 @@ function cardPedido(p) {
     ? `${_escAttr(p.endereco.rua || "")}${p.endereco.numero ? `, ${_escAttr(p.endereco.numero)}` : ""} — ${_escAttr(p.endereco.bairro || p.bairro || "")}`
     : (_ehEntrega(p) ? _escAttr(p.bairro || "") : p.tipo === "balcao" ? "Balcão (na hora)" : "Retirada no local");
   const itens = (p.itens || []).map(it => `<li><strong>${it.quantidade}x ${_escAttr(it.nome)}${it.tamanho ? ` (${_escAttr(it.tamanho)})` : ""}</strong> <span>${_brl(it.preco * it.quantidade)}</span>${it.detalhes ? `<small>${_escAttr(it.detalhes)}</small>` : ""}</li>`).join("");
-  const botaoProx = prox ? `<button class="btn btn-primary btn-sm" onclick="avancarPedido('${p.docId}','${prox}',true)" title="Muda a etapa e abre o WhatsApp do cliente com o aviso"><i class="fa-solid ${ETAPAS[prox].icone}"></i> ${prox === "saiu" && !_ehEntrega(p) ? "Pronto p/ retirada" : ETAPAS[prox].nome}${temTel ? ` <i class="fa-brands fa-whatsapp"></i>` : ""}</button>` : "";
+  // "Em preparo" muda a etapa em silêncio (a Bru só avisa quando atrasa, pelo botão Avisar)
+  const avisaProx = prox && prox !== "preparo";
+  const botaoProx = prox ? `<button class="btn btn-primary btn-sm" onclick="avancarPedido('${p.docId}','${prox}',${avisaProx})" title="${avisaProx ? "Muda a etapa e abre o WhatsApp do cliente com o aviso" : "Muda a etapa sem mandar mensagem"}"><i class="fa-solid ${ETAPAS[prox].icone}"></i> ${prox === "saiu" && !_ehEntrega(p) ? "Pronto p/ retirada" : ETAPAS[prox].nome}${temTel && avisaProx ? ` <i class="fa-brands fa-whatsapp"></i>` : ""}</button>` : "";
   const fora = etapa !== "cancelado" ? _situacaoHorario(p) : null;
   const avisoFora = fora ? `<div class="ped-fora"><i class="fa-solid fa-clock"></i><div>
       <strong>Pedido entrou fora do horário</strong>${_escAttr(fora)}. Você decide se aceita.
@@ -2417,7 +2494,9 @@ function cardPedido(p) {
     <footer>
       <label class="toggle-row ped-pago"><input type="checkbox" ${p.pago ? "checked" : ""} onchange="marcarPago('${p.docId}', this.checked)"> Pago</label>
       <div class="ped-acoes">
-        ${temTel && etapa !== "cancelado" ? `<a class="btn btn-ghost btn-sm" href="${linkWhatsCliente(p, etapa)}" target="_blank" rel="noopener" title="Reenviar o aviso desta etapa"><i class="fa-brands fa-whatsapp"></i> Avisar</a>` : ""}
+        ${temTel && etapa !== "cancelado" ? (etapa === "recebido"
+          ? `<a class="btn btn-sm btn-confirmar" href="${linkWhatsCliente(p, etapa)}" target="_blank" rel="noopener" title="Abre o WhatsApp do cliente confirmando o pedido${/pix/i.test(p.pagamento || "") && !p.pago ? " com a chave PIX" : ""}"><i class="fa-brands fa-whatsapp"></i> Confirmar</a>`
+          : `<a class="btn btn-ghost btn-sm" href="${linkWhatsCliente(p, etapa)}" target="_blank" rel="noopener" title="Abre o WhatsApp do cliente com a mensagem desta etapa"><i class="fa-brands fa-whatsapp"></i> Avisar</a>`) : ""}
         ${_ehEntrega(p) && etapa !== "cancelado" && etapa !== "entregue" ? `<a class="btn btn-ghost btn-sm btn-motoboy" href="${linkMotoboy(p)}" target="_blank" rel="noopener" title="Mandar o endereço no grupo dos motoboys"><i class="fa-solid fa-motorcycle"></i> Motoboy</a>` : ""}
         <button class="btn btn-ghost btn-sm" onclick="imprimirPedido('${p.docId}')" title="Imprimir a comanda na impressora térmica"><i class="fa-solid fa-print"></i></button>
         <button class="btn btn-ghost btn-sm" onclick="abrirPedidoDetalhe('${p.docId}')" title="Mudar etapa sem avisar, cancelar ou excluir"><i class="fa-solid fa-ellipsis"></i></button>
@@ -2520,13 +2599,10 @@ async function recusarForaHorario(docId) {
 
 // Agradecimento do PIX: sai quando a Bru marca "Pago" num pedido pago por PIX
 function mensagemPixRecebido(p) {
-  const nome = String(p.cliente || "").trim().split(/\s+/)[0] || "tudo bem";
-  const c = _codigoCliente(p), n = c ? `${c} ` : "";
-  const etapa = _etapaDe(p), entrega = _ehEntrega(p);
-  const oi = `Oi, ${nome}! Recebemos seu PIX, muito obrigada 💜`;
-  if (etapa === "saiu") return `${oi}\n\n${entrega ? `Seu pedido ${n}já está a caminho! 🛵` : `Seu pedido ${n}já está pronto para retirada! 🍧`}`;
-  if (etapa === "entregue") return `${oi}\n\nObrigada pela preferência! 🍧`;
-  return `${oi}\n\nSeu pedido ${n}já está em preparo e ${entrega ? "logo sai para entrega! 🛵" : "logo fica pronto para retirada! 🍧"}`;
+  const etapa = _etapaDe(p);
+  // Pedido que já saiu/foi entregue: só agradece (o texto padrão fala de "em preparo")
+  if (etapa === "saiu" || etapa === "entregue") return "Pix recebido, muito obrigada! 💜🥰";
+  return montarMensagem(_modeloMsg("pixRecebido"), p);
 }
 
 async function marcarPago(docId, pago) {
@@ -2542,6 +2618,8 @@ async function marcarPago(docId, pago) {
   try {
     await db.collection("pedidos").doc(docId).update({ pago, pagoEm: pago ? firebase.firestore.FieldValue.serverTimestamp() : null });
     toast(pago ? `${_nomePedido(p)} marcado como pago` : `${_nomePedido(p)} voltou para "não pago"`, "ok");
+    // PIX caiu num pedido que ainda estava em "Recebido": já entra em preparo (a mensagem acima já avisou)
+    if (pago && p && /pix/i.test(p.pagamento || "") && _etapaDe(p) === "recebido") await avancarPedido(docId, "preparo", false);
   } catch (e) { toast("Erro: " + e.message, "err"); }
 }
 
@@ -6749,6 +6827,7 @@ async function carregarConfiguracoes() {
     document.getElementById("config-entrega-gratis").value = (Array.isArray(cfg.entregaGratis) ? cfg.entregaGratis : []).join("\n");
     document.getElementById("config-tempo-entrega").value = cfg.tempoEntrega || "";
     document.getElementById("config-google-review").value = cfg.googleReviewUrl || GOOGLE_REVIEW_PADRAO;
+    renderMensagensConfig();
     document.getElementById("config-complemento-extra").value = cfg.precoComplementoExtra ?? "";
     document.getElementById("config-custo-complemento-extra").value = cfg.custoComplementoExtra ?? "";
     document.getElementById("config-sobre-nome").value  = cfg.sobreNome  || "";
@@ -6889,7 +6968,9 @@ async function salvarConfiguracoes() {
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
       // campos do Estoque e do Post do dia (salvos fora desta tela)
-      indispEstoque: _indispEstoque, linkCatalogo: _cfgLoja.linkCatalogo || ""
+      indispEstoque: _indispEstoque, linkCatalogo: _cfgLoja.linkCatalogo || "",
+      // textos das mensagens (editados na seção "Mensagens para o cliente")
+      mensagens: _cfgLoja.mensagens || {}
     });
     toast("Configurações salvas!", "ok");
     await carregarConfiguracoes();
