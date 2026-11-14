@@ -398,6 +398,8 @@
     .est-pill { font-size: .68rem; font-weight: 700; border-radius: 999px; padding: 2px 8px; background: var(--surface); color: var(--muted); white-space: nowrap; }
     .est-pill-zerado { background: rgba(229,57,53,.15); color: var(--red); }
     .est-pill-baixo { background: rgba(212,162,76,.18); color: var(--gold); }
+    .est-porml { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 10px 0 4px; }
+    .est-porml small { display: block; color: var(--muted); font-size: .74rem; margin-top: 2px; font-weight: 400; }
     .est-vinculos { max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); padding: 4px; }
     .est-vinc-linha { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font-size: .85rem; cursor: pointer; flex-wrap: wrap; }
     .est-vinc-linha.on { background: var(--card); }
@@ -1866,13 +1868,15 @@
     <input type="hidden" id="est-id">
     <div class="np-grid">
       <label class="np-largo">Nome do item<input type="text" id="est-nome" maxlength="60" placeholder="Ex: Copo 500ml, Polpa de açaí, Sorvete Flocos"></label>
-      <label>Unidade<select id="est-unidade"><option>unidade</option><option>copo</option><option>pote</option><option>balde</option><option>caixa</option><option>pacote</option><option>lata</option><option>frasco</option><option>fardo</option><option>kit</option><option>kg</option><option>litro</option></select></label>
-      <label>Quantidade agora<input type="number" id="est-qtd" min="0" step="1" placeholder="Quanto tem hoje"></label>
-      <label>Avisar quando chegar a<input type="number" id="est-min" min="0" step="1" placeholder="Ex: 20"></label>
+      <label>Unidade<select id="est-unidade"><option>unidade</option><option>copo</option><option>pote</option><option>balde</option><option>caixa</option><option>pacote</option><option>lata</option><option>frasco</option><option>fardo</option><option>kit</option><option>kg</option><option>g</option><option>litro</option><option>ml</option></select></label>
+      <label>Quantidade agora<input type="number" id="est-qtd" min="0" step="any" placeholder="Quanto tem hoje"></label>
+      <label>Avisar quando chegar a<input type="number" id="est-min" min="0" step="any" placeholder="Ex: 20"></label>
       <label>Grupo<select id="est-grupo"></select></label>
       <label class="np-largo">Quando zerar, tira da loja o ingrediente <small style="color:var(--muted);font-weight:400">(opcional)</small><select id="est-ingrediente"></select></label>
     </div>
-    <h3 class="np-sec">Baixa sozinho quando vender <small style="color:var(--muted);font-weight:400">(opcional — marque o que gasta este item)</small></h3>
+    <label class="toggle-row est-porml" id="est-porml-box" hidden><input type="checkbox" id="est-porml" onchange="renderVinculosEstoque()">
+      <span><strong>Baixar pelos ml de cada açaí vendido</strong><small>Ex.: vendeu um açaí de 400ml → tira 0,4 kg da polpa. Vale para todos os açaís, combos e produtos novos, sem precisar marcar um por um.</small></span></label>
+    <h3 class="np-sec" id="est-vinc-titulo">Baixa sozinho quando vender <small style="color:var(--muted);font-weight:400">(opcional — marque o que gasta este item)</small></h3>
     <input type="text" id="est-vinc-busca" placeholder="Procurar produto…" oninput="renderVinculosEstoque()" style="width:100%;margin-bottom:6px">
     <div id="est-vinculos" class="est-vinculos"></div>
     <div class="modal-footer np-rodape">
@@ -3257,12 +3261,24 @@ const _qtdUn = (n, u) => `${_fmtQtd(n)} ${_plUn(n, u)}`.trim();
 function assinarEstoque() {
   db.collection("estoque").onSnapshot(snap => {
     _estoque = snap.docs.map(d => ({ docId: d.id, ...d.data() })).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+    ligarPolpaPorMl();
     renderEstoque();
     renderAvisoEstoquePainel();
     sincronizarEsgotados();
     sincronizarIngredientesPeloEstoque();
     if (typeof renderPostDia === "function" && document.getElementById("tab-post")?.classList.contains("active")) renderPostDia();
   }, e => console.warn("estoque:", e.message));
+}
+
+// Primeira vez: a polpa de açaí (em kg, g, litro ou ml) sem nada ligado passa a baixar pelos ml vendidos
+function ligarPolpaPorMl() {
+  _estoque.filter(e => /polpa/i.test(e.nome || "") && _unPorMl(e.unidade) && e.porMl === undefined && !(e.vinculos || []).length)
+    .forEach(e => {
+      e.porMl = true;
+      db.collection("estoque").doc(e.docId).update({ porMl: true })
+        .then(() => toast(`${e.nome}: agora baixa sozinha pelos ml de cada açaí vendido`, "ok"))
+        .catch(er => console.warn("polpa por ml:", er.message));
+    });
 }
 
 // Combinações vendáveis de um produto (tamanho × opção)
@@ -3291,6 +3307,40 @@ function _vincBate(v, prod, tam, op, detalhes) {
   }
   return true;
 }
+// ── Polpa por ml: quanto açaí (em ml) vai em cada tamanho vendido ──
+// "400ml" → 400 · "1L" → 1000 · "2 açaís de 400ml + 1 de 300ml" → 1100 · "200" (Kids) → 200
+const UN_POR_ML = { ml: 1, g: 1, litro: 1000, kg: 1000 };   // 1 ml de açaí ≈ 1 g
+const _unPorMl = (u) => UN_POR_ML[u] || 0;
+function _mlDoTexto(txt) {
+  const t = String(txt || "").toLowerCase().replace(",", ".");
+  let total = 0, achou = false;
+  // multiplicador só quando vem separado: "2 açaís de 400ml", "1 de 300ml", "2x 400ml"
+  t.replace(/(?:\b(\d+)\s*(?:x\s*|\s+(?:(?:a[çc]a[íi]s?|copos?)\s+)?de\s+|\s+(?:a[çc]a[íi]s?|copos?)\s+))?(\d+(?:\.\d+)?)\s*(ml|l|litros?)\b/g, (m, mult, n, un) => {
+    const v = Number(n) * (un === "ml" ? 1 : 1000);
+    const k = mult ? Number(mult) : 1;
+    total += v * (k > 0 && k < 10 ? k : 1); achou = true; return m;
+  });
+  if (!achou && /^\s*\d{2,4}\s*$/.test(t)) return Number(t);   // tamanho só com número ("200")
+  return achou ? total : 0;
+}
+const _ehAcaiTxt = (t) => /a[çc]a[íi]/i.test(String(t || ""));
+// ml de açaí de um produto num tamanho ("" ou "*" = tamanho único)
+function _mlAcai(prod, tam) {
+  const nomeT = tam && tam !== "*" ? tam : ((prod.tamanhos || [])[0] || {}).nome || "";
+  if (!_ehAcaiTxt(prod.nome) && !_ehAcaiTxt(nomeT)) return 0;
+  return _mlDoTexto(nomeT) || _mlDoTexto(prod.nome);
+}
+// Vínculos usados de fato: os marcados à mão, ou (porMl) um por tamanho de açaí, calculado na hora
+function _vinculosDe(e) {
+  if (!e.porMl || !_unPorMl(e.unidade)) return e.vinculos || [];
+  const vs = [];
+  todosProdutos.forEach(p => _combosProduto(p).forEach(c => {
+    if (c.opcao !== "*" && vs.some(v => v.produto === p.docId && v.tamanho === c.tamanho)) return;
+    const ml = _mlAcai(p, c.tamanho);
+    if (ml) vs.push({ produto: p.docId, tamanho: c.tamanho, opcao: "*", qtd: ml / _unPorMl(e.unidade) });
+  }));
+  return vs;
+}
 function _produtoDoItem(it) {
   if (it.docId) return todosProdutos.find(p => p.docId === it.docId);
   return todosProdutos.find(p => String(p.id) === String(it.produtoId));
@@ -3305,7 +3355,7 @@ function _consumoDeItens(itens, ehPdv) {
     const tam = it.tamanho !== undefined ? (it.tamanho || "") : (ehPdv ? null : "");
     _estoque.forEach(e => {
       if (!_estTemQtd(e)) return;
-      (e.vinculos || []).forEach(v => {
+      _vinculosDe(e).forEach(v => {
         if (_vincBate(v, prod, tam, it.opcao || "", it.detalhes)) consumo[e.docId] = (consumo[e.docId] || 0) + (Number(v.qtd) || 1) * q;
       });
     });
@@ -3313,7 +3363,7 @@ function _consumoDeItens(itens, ehPdv) {
   return consumo;
 }
 function _textoConsumo(consumo) {
-  return Object.entries(consumo).map(([id, q]) => { const e = _estoque.find(x => x.docId === id); return e ? `${_fmtQtd(q)} ${e.nome}` : ""; }).filter(Boolean).join(", ");
+  return Object.entries(consumo).map(([id, q]) => { const e = _estoque.find(x => x.docId === id); return !e ? "" : _unPorMl(e.unidade) ? `${_fmtQtd(q)} ${e.unidade} de ${e.nome}` : `${_fmtQtd(q)} ${e.nome}`; }).filter(Boolean).join(", ");
 }
 
 // Baixa (sinal -1) ou devolve (+1) o estoque de um pedido/venda — uma vez só, pela marca estoqueBaixado
@@ -3350,9 +3400,9 @@ function sincronizarEsgotados() {
   _syncEsgTimer = setTimeout(async () => {
     if (!todosProdutos.length) return;
     for (const p of todosProdutos) {
-      const ligados = _estoque.filter(e => _estTemQtd(e) && (e.vinculos || []).some(v => v.produto === p.docId));
+      const ligados = _estoque.filter(e => _estTemQtd(e) && _vinculosDe(e).some(v => v.produto === p.docId));
       const combos = _combosProduto(p);
-      const esg = combos.map(c => ligados.some(e => (e.vinculos || []).some(v =>
+      const esg = combos.map(c => ligados.some(e => _vinculosDe(e).some(v =>
         v.produto === p.docId && (v.tamanho === "*" || c.tamanho === "*" || _normNome(v.tamanho) === _normNome(c.tamanho)) &&
         (v.opcao === "*" || c.opcao === "*" || _normNome(v.opcao) === _normNome(c.opcao)) &&
         Number(e.quantidade) < (Number(v.qtd) || 1))));
@@ -3381,6 +3431,7 @@ function filtrarEstoque(f) {
   renderEstoque();
 }
 function _resumoVinculos(e) {
+  if (e.porMl && _unPorMl(e.unidade)) return `Baixa sozinho pelos ml de cada açaí vendido (${_vinculosDe(e).length} tamanhos)`;
   const vs = e.vinculos || [];
   if (!vs.length) return "Baixa manual (sem venda ligada)";
   const nomes = vs.map(v => {
@@ -3419,9 +3470,9 @@ function renderEstoque() {
     const pill = { zerado: `<span class="est-pill est-pill-zerado">Esgotado</span>`, baixo: `<span class="est-pill est-pill-baixo">Acabando</span>`, semqtd: `<span class="est-pill">Falta contar</span>`, ok: "" }[st];
     return `<div class="est-item est-${st}">
       <div class="est-topo"><strong>${_escAttr(e.nome)}</strong>${pill}</div>
-      <div class="est-qtd">${_estTemQtd(e) ? `<span>${_fmtQtd(e.quantidade)}</span> ${_escAttr(_plUn(e.quantidade, e.unidade))}` : `<button class="btn btn-ghost btn-sm" onclick="abrirItemEstoque('${e.docId}', true)">Informar quantidade</button>`}
+      <div class="est-qtd">${_estTemQtd(e) ? `<span>${_fmtQtd(e.quantidade)}</span> ${_escAttr(_plUn(e.quantidade, e.unidade))}${e.porMl && _unPorMl(e.unidade) === 1000 ? ` <small>≈ ${_fmtQtd(Number(e.quantidade) * 1000)} ml</small>` : ""}` : `<button class="btn btn-ghost btn-sm" onclick="abrirItemEstoque('${e.docId}', true)">Informar quantidade</button>`}
         ${Number(e.minimo) ? `<small>mínimo ${_fmtQtd(e.minimo)}</small>` : ""}</div>
-      <p class="est-vinc">${_escAttr(_resumoVinculos(e))}${e.ingrediente ? `${(e.vinculos || []).length ? " · " : ""}Zerou → tira <strong>${_escAttr(e.ingrediente)}</strong> da loja` : ""}</p>
+      <p class="est-vinc">${_escAttr(_resumoVinculos(e))}${e.ingrediente ? `${_vinculosDe(e).length ? " · " : ""}Zerou → tira <strong>${_escAttr(e.ingrediente)}</strong> da loja` : ""}</p>
       <div class="est-acoes">
         <button class="btn btn-primary btn-sm" onclick="abrirReposicao('${e.docId}')"><i class="fa-solid fa-truck-ramp-box"></i> Repor</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirItemEstoque('${e.docId}')"><i class="fa-solid fa-pen"></i> Editar / contar</button>
@@ -3456,6 +3507,8 @@ function abrirItemEstoque(docId, focarQtd) {
   document.getElementById("est-qtd").value = e && _estTemQtd(e) ? e.quantidade : "";
   document.getElementById("est-min").value = e && Number(e.minimo) ? e.minimo : "";
   _preencherSelectsEstoque(e);
+  document.getElementById("est-porml").checked = !!(e && e.porMl);
+  document.getElementById("est-unidade").onchange = renderVinculosEstoque;
   document.getElementById("est-excluir").hidden = !e;
   document.getElementById("est-vinc-busca").value = "";
   _estVinc = {};
@@ -3465,6 +3518,10 @@ function abrirItemEstoque(docId, focarQtd) {
   setTimeout(() => document.getElementById(focarQtd ? "est-qtd" : "est-nome").focus(), 50);
 }
 function renderVinculosEstoque() {
+  const podeMl = !!_unPorMl(document.getElementById("est-unidade").value);
+  document.getElementById("est-porml-box").hidden = !podeMl;
+  const porMl = podeMl && document.getElementById("est-porml").checked;
+  ["est-vinc-titulo", "est-vinc-busca", "est-vinculos"].forEach(id => document.getElementById(id).hidden = porMl);
   const busca = _normNome(document.getElementById("est-vinc-busca").value || "");
   const linhas = [];
   todosProdutos.forEach(p => _combosProduto(p).forEach(c => {
@@ -3489,7 +3546,8 @@ async function salvarItemEstoque() {
   const quantidade = qtdTxt === "" ? null : Math.max(0, Number(qtdTxt) || 0);
   const vinculos = Object.entries(_estVinc).map(([k, qtd]) => { const [produto, tamanho, opcao] = k.split("|"); return { produto, tamanho, opcao, qtd: Number(qtd) || 1 }; });
   const dados = { nome, unidade: document.getElementById("est-unidade").value, quantidade, minimo: Math.max(0, Number(document.getElementById("est-min").value) || 0), vinculos,
-    grupo: document.getElementById("est-grupo").value || "Outros", ingrediente: document.getElementById("est-ingrediente").value || "" };
+    grupo: document.getElementById("est-grupo").value || "Outros", ingrediente: document.getElementById("est-ingrediente").value || "",
+    porMl: !!_unPorMl(document.getElementById("est-unidade").value) && document.getElementById("est-porml").checked };
   try {
     const ant = docId ? _estoque.find(e => e.docId === docId) : null;
     const ref = docId ? db.collection("estoque").doc(docId) : db.collection("estoque").doc();
@@ -3679,7 +3737,7 @@ async function criarItensSugeridos() {
   });
   Object.keys(copos).sort((a, b) => (parseInt(a) * (a.endsWith("L") ? 1000 : 1)) - (parseInt(b) * (b.endsWith("L") ? 1000 : 1)))
     .forEach(tc => itens.unshift({ nome: `Copo ${tc}`, unidade: "copo", minimo: 20, vinculos: copos[tc] }));
-  itens.push({ nome: "Polpa de açaí", unidade: "kg", minimo: 5, vinculos: [] });
+  itens.push({ nome: "Polpa de açaí", unidade: "kg", minimo: 5, vinculos: [], porMl: true });
   itens.push({ nome: "Colheres", unidade: "pacote", minimo: 1, vinculos: [] });
   try {
     const lote = db.batch();
