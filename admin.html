@@ -1351,6 +1351,8 @@
           <input type="number" id="config-complemento-extra" min="0" step="0.5" placeholder="2,00">
           <label style="margin-top:8px">Custo de cada complemento extra <small style="color:var(--muted)">(quanto custa para você — opcional, usado no cálculo de lucro)</small></label>
           <input type="number" id="config-custo-complemento-extra" min="0" step="0.1" placeholder="0,50">
+          <label style="margin-top:8px">Acréscimo do açaí puro <small style="color:var(--muted)">(quando o cliente marca "Só açaí puro, sem complementos" num açaí ou num copo do combo — 0 = sem acréscimo)</small></label>
+          <input type="number" id="config-preco-acai-puro" min="0" step="0.5" placeholder="3,00">
         </div>
         <div class="form-group full">
           <label>Dias disponíveis para retirada</label>
@@ -6887,6 +6889,7 @@ async function carregarConfiguracoes() {
     document.getElementById("config-google-review").value = cfg.googleReviewUrl || GOOGLE_REVIEW_PADRAO;
     renderMensagensConfig();
     document.getElementById("config-complemento-extra").value = cfg.precoComplementoExtra ?? "";
+    document.getElementById("config-preco-acai-puro").value = cfg.precoAcaiPuro ?? 3;
     document.getElementById("config-custo-complemento-extra").value = cfg.custoComplementoExtra ?? "";
     document.getElementById("config-sobre-nome").value  = cfg.sobreNome  || "";
     document.getElementById("config-sobre-texto").value = cfg.sobreTexto || "";
@@ -6959,6 +6962,8 @@ async function salvarConfiguracoes() {
   const googleReviewUrl = document.getElementById("config-google-review").value.trim();
   const precoComplementoExtra = Math.max(0, Number(String(document.getElementById("config-complemento-extra").value).replace(",", ".")) || 0);
   const custoComplementoExtra = Math.max(0, Number(String(document.getElementById("config-custo-complemento-extra").value).replace(",", ".")) || 0);
+  const precoAcaiPuroTxt = String(document.getElementById("config-preco-acai-puro").value).trim();
+  const precoAcaiPuro = precoAcaiPuroTxt === "" ? 3 : Math.max(0, Number(precoAcaiPuroTxt.replace(",", ".")) || 0);
   const retiradaDisponivel = document.getElementById("config-retirada-disponivel").checked;
   const sobreNome  = document.getElementById("config-sobre-nome").value.trim();
   const sobreTexto = document.getElementById("config-sobre-texto").value.trim();
@@ -7022,7 +7027,7 @@ async function salvarConfiguracoes() {
       logoUrl,
       entregaDisponivel, retiradaDisponivel,
       sobreNome, sobreTexto, sobreFoto, sobreLink,
-      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, toleranciaMin, lojaPausada: !!_cfgLoja.lojaPausada, pausaMotivo: _cfgLoja.pausaMotivo || "rapida", pausaTexto: _cfgLoja.pausaTexto || "", pausaDia: _cfgLoja.pausaDia || "", abertoAgoraDia: _cfgLoja.abertoAgoraDia || "", pixChave, pixNome, pixBanco, pixCidade, enderecoLoja, tempoEntrega, precoComplementoExtra, custoComplementoExtra, googleReviewUrl,
+      taxasEntrega, aceitarOutrosBairros, entregaGratis, horarioAtivo, horarios, aceitarNoIntervalo, toleranciaMin, lojaPausada: !!_cfgLoja.lojaPausada, pausaMotivo: _cfgLoja.pausaMotivo || "rapida", pausaTexto: _cfgLoja.pausaTexto || "", pausaDia: _cfgLoja.pausaDia || "", abertoAgoraDia: _cfgLoja.abertoAgoraDia || "", pixChave, pixNome, pixBanco, pixCidade, enderecoLoja, tempoEntrega, precoComplementoExtra, custoComplementoExtra, precoAcaiPuro, googleReviewUrl,
       // mantém o que é editado na aba "Ingredientes"
       indisponiveis: _indisponiveis, complementosLoja: _complementosLoja, adicionaisLoja: _adicionaisLoja,
       // campos do Estoque e do Post do dia (salvos fora desta tela)

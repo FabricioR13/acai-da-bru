@@ -777,6 +777,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     let detailComplementosPorCopo = [[]];
     // Adicionais também por copo: no combo, cada açaí tem os seus (o 1º pode ter Nutella e o 2º não)
     let detailAdicionaisPorCopo = [[]];
+    // "Só açaí puro" por copo: o cliente marca quando não quer complemento nenhum (tem acréscimo)
+    let detailPuroPorCopo = [false];
     const adicionaisSelecionadosTodos = () => detailAdicionaisPorCopo.flat();
 
     const detailTamanhoAtual = () => {
@@ -791,6 +793,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         return Number(v) > 0 ? Number(v) : 0;
     };
     const limiteGratisPorCopo = () => Number(detailTamanhoAtual()?.complementosGratis) || 0;
+    // Acréscimo do açaí puro (sem complementos): campo do produto, senão o da loja, senão R$ 3
+    const temEscolhaComplementos = (produto) => Array.isArray(produto?.complementosLista) && produto.complementosLista.length > 0
+        && limiteGratisPorCopo() > 0 && !/puro/i.test(produto?.nome || "");
+    const precoAcaiPuro = (produto) => {
+        const v = produto?.precoAcaiPuro ?? configLoja.precoAcaiPuro;
+        return v === undefined || v === null || v === "" ? 3 : Math.max(0, Number(v) || 0);
+    };
+    const qtdCoposPuros = () => temEscolhaComplementos(detailProdutoAtual) ? detailPuroPorCopo.filter(Boolean).length : 0;
     const qtdComplementosExtras = () => {
         const limite = limiteGratisPorCopo();
         return detailComplementosPorCopo.reduce((acc, sel) => acc + Math.max(0, sel.length - limite), 0);
@@ -800,7 +810,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const base = detailTamanhoAtual()?.preco || 0;
         const adicionais = adicionaisSelecionadosTodos().reduce((acc, a) => acc + (Number(a.preco) || 0), 0);
         const extras = qtdComplementosExtras() * precoComplementoExtra(detailProdutoAtual);
-        return base + adicionais + extras;
+        return base + adicionais + extras + qtdCoposPuros() * precoAcaiPuro(detailProdutoAtual);
     };
 
     const renderDetailComplementos = () => {
@@ -821,9 +831,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             const extras = Math.max(0, sel.length - limite);
             return extras ? `${limite}/${limite} grátis + ${extras} extra${extras > 1 ? "s" : ""}` : `${sel.length}/${limite}`;
         };
+        const precoPuro = precoAcaiPuro(detailProdutoAtual);
+        const puroHtml = (copoIdx) => {
+            const on = !!detailPuroPorCopo[copoIdx];
+            return `<label class="detail-checklist-item opcao-puro${on ? " selecionado" : ""}">
+                    <span class="detail-checklist-item-nome"><input type="checkbox" data-puro="${copoIdx}" ${on ? "checked" : ""}> Só açaí puro, sem complementos</span>
+                    ${precoPuro ? `<span class="detail-checklist-item-preco">+ ${formatarMoeda(precoPuro)}</span>` : ""}
+                </label>`;
+        };
         const itensHtml = (sel, copoIdx) => {
             const atingiuLimite = sel.length >= limite;
-            return lista.map((nome) => {
+            return puroHtml(copoIdx) + lista.map((nome) => {
                 const marcado = sel.includes(nome);
                 // Sem preço de extra configurado, mantém o comportamento antigo: trava no limite grátis
                 const desabilitado = !marcado && atingiuLimite && !precoExtra;
@@ -841,7 +859,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             detailComplementosContador.textContent = "";
             const tamCopos = tamanhosDosCopos(detailTamanhoAtual()?.nome || "", copos);
             detailComplementosLista.innerHTML = detailComplementosPorCopo.map((sel, i) => `
-                <div class="copo-bloco">
+                <div class="copo-bloco" data-copo-bloco="${i}">
                     <p class="copo-titulo"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i> ${i + 1}º açaí${tamCopos[i] ? ` (${tamCopos[i]})` : ""}</p>
                     <p class="copo-subtitulo">Complementos
                         <span class="detail-option-counter${sel.length >= limite ? " limite-atingido" : ""}">${contador(sel)}</span></p>
@@ -919,6 +937,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         detailTamanhoIdx = 0;
         detailComplementosPorCopo = Array.from({ length: coposDoProduto(produto) }, () => []);
         detailAdicionaisPorCopo = Array.from({ length: coposDoProduto(produto) }, () => []);
+        detailPuroPorCopo = Array.from({ length: coposDoProduto(produto) }, () => false);
 
         const tamanhos = tamanhosDoProduto(produto);
         const temTamanhos = tamanhos.length > 1;
@@ -1011,17 +1030,26 @@ document.addEventListener("DOMContentLoaded", async () => {
             atualizarPrecoDetalhe();
             return;
         }
-        const input = e.target.closest("input[data-complemento]");
+        const inputPuro = e.target.closest("input[data-puro]");
+        const input = inputPuro || e.target.closest("input[data-complemento]");
         if (!input) return;
+        if (inputPuro) {
+            // Açaí puro: tira os complementos desse copo (os adicionais pagos continuam)
+            const i = Number(inputPuro.dataset.puro) || 0;
+            detailPuroPorCopo[i] = inputPuro.checked;
+            if (inputPuro.checked) detailComplementosPorCopo[i] = [];
+        } else {
         const nome = input.dataset.complemento;
         const copoIdx = Number(input.dataset.copo) || 0;
         let sel = detailComplementosPorCopo[copoIdx] || [];
         if (input.checked) {
             if (!sel.includes(nome)) sel = [...sel, nome];
+            detailPuroPorCopo[copoIdx] = false;   // escolheu complemento → não é mais puro
         } else {
             sel = sel.filter((c) => c !== nome);
         }
         detailComplementosPorCopo[copoIdx] = sel;
+        }
         // Mantém a rolagem de cada lista no lugar ao redesenhar
         const rolagens = [...detailComplementosLista.querySelectorAll(".detail-checklist")].map((l) => l.scrollTop);
         const rolagemPrincipal = detailComplementosLista.scrollTop;
@@ -1062,7 +1090,25 @@ document.addEventListener("DOMContentLoaded", async () => {
             detailInclusoSelect.focus();
             return;
         }
+        // Todo açaí precisa ter complemento OU estar marcado como "Só açaí puro"
+        if (temEscolhaComplementos(detailProdutoAtual)) {
+            const vazio = detailComplementosPorCopo.findIndex((sel, i) => !sel.length && !detailPuroPorCopo[i]);
+            if (vazio >= 0) {
+                const copos = coposDoProduto(detailProdutoAtual);
+                const tc = tamanhosDosCopos(detailTamanhoAtual()?.nome || "", copos);
+                const qual = copos > 1 ? `do ${vazio + 1}º açaí${tc[vazio] ? ` (${tc[vazio]})` : ""}` : "do seu açaí";
+                alert(`Escolha os complementos ${qual} ou marque "Só açaí puro, sem complementos"${precoAcaiPuro(detailProdutoAtual) ? ` (+ ${formatarMoeda(precoAcaiPuro(detailProdutoAtual))})` : ""}.`);
+                const alvo = detailComplementosLista.querySelector(`[data-copo-bloco="${vazio}"]`) || detailComplementosGroup;
+                alvo.scrollIntoView({ behavior: "smooth", block: "center" });
+                alvo.classList.add("pedir-atencao");
+                setTimeout(() => alvo.classList.remove("pedir-atencao"), 1600);
+                return;
+            }
+        }
+        const puros = temEscolhaComplementos(detailProdutoAtual) ? detailPuroPorCopo.map(Boolean) : null;
         adicionarAoCarrinho(detailProdutoAtual.id, null, {
+            acaiPuroPorCopo: puros && puros.some(Boolean) ? puros : null,
+            precoPuro: precoAcaiPuro(detailProdutoAtual),
             tamanho: detailSizeGroup.hidden ? null : detailTamanhoAtual().nome,
             opcaoInclusa: detailInclusoGroup.hidden ? null : detailInclusoSelect.value,
             complementos: detailComplementosPorCopo.flat(),
@@ -1375,6 +1421,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const nomeTamanhoBase = opcoes.nomeTamanhoBase || "";
         const limiteGratis = Number(opcoes.limiteGratis) || 0;
         const precoExtra = Number(opcoes.precoExtra) || 0;
+        const acaiPuroPorCopo = Array.isArray(opcoes.acaiPuroPorCopo) ? opcoes.acaiPuroPorCopo : null;
+        const precoPuro = Number(opcoes.precoPuro) || 0;
         const preco = opcoes.preco !== undefined ? opcoes.preco : (tamanhosDoProduto(produto)[0]?.preco || Number(produto.preco) || 0);
 
         const chave = [
@@ -1387,6 +1435,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             adicionaisPorCopo
                 ? adicionaisPorCopo.map((sel) => sel.map((a) => a.nome).sort().join(",")).join("|")
                 : adicionais.map((a) => a.nome).sort().join(","),
+            acaiPuroPorCopo ? acaiPuroPorCopo.map((x) => (x ? 1 : 0)).join("") : "",
         ].join("__");
 
         const qtdAtualTotal = carrinho
@@ -1419,6 +1468,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             nomeTamanhoBase,
             limiteGratis,
             precoExtra,
+            acaiPuroPorCopo,
+            precoPuro,
             adicionaisSelecionados: adicionais,
             adicionaisPorCopo,
             _chave: chave,
@@ -1470,8 +1521,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             const tamCopos = tamanhosDosCopos(item.tamanhoSelecionado, item.complementosPorCopo.length);
             item.complementosPorCopo.forEach((sel, i) => {
                 const adic = (item.adicionaisPorCopo?.[i] || []).map((a) => `+ ${a.nome}`);
-                partes.push(`${i + 1}º açaí${tamCopos[i] ? ` (${tamCopos[i]})` : ""}: ${sel.length ? sel.join(", ") : "sem complementos"}${adic.length ? ` (${adic.join(", ")})` : ""}`);
+                const puro = item.acaiPuroPorCopo?.[i];
+                partes.push(`${i + 1}º açaí${tamCopos[i] ? ` (${tamCopos[i]})` : ""}: ${puro ? "AÇAÍ PURO (sem complementos)" : sel.length ? sel.join(", ") : "sem complementos"}${adic.length ? ` (${adic.join(", ")})` : ""}`);
             });
+        } else if (item.acaiPuroPorCopo?.[0]) {
+            partes.push("AÇAÍ PURO (sem complementos)");
         } else if (item.complementosSelecionados?.length) {
             partes.push(`Complementos: ${item.complementosSelecionados.join(", ")}`);
         }
@@ -1653,8 +1707,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         const blocos = item.complementosPorCopo?.length > 1
             ? (() => { const tc = tamanhosDosCopos(item.tamanhoSelecionado, item.complementosPorCopo.length);
                 return item.complementosPorCopo.map((sel, i) => ({ rotulo: `${i + 1}º açaí${tc[i] ? ` (${tc[i]})` : ""} — `, sel })); })()
-            : (item.complementosSelecionados?.length ? [{ rotulo: "", sel: item.complementosSelecionados }] : []);
+            : (item.complementosSelecionados?.length || item.acaiPuroPorCopo?.[0] ? [{ rotulo: "", sel: item.complementosSelecionados || [] }] : []);
         blocos.forEach(({ rotulo, sel }, copoIdx) => {
+            if (item.acaiPuroPorCopo?.[copoIdx]) {
+                linhas.push(`   • ${rotulo}${rotulo ? "a" : "A"}çaí PURO, sem complementos: + ${formatarMoeda(Number(item.precoPuro) || 0)}`);
+                (item.adicionaisPorCopo?.[copoIdx] || []).forEach((a) => linhas.push(`   • ${rotulo}+ ${a.nome}: ${formatarMoeda(Number(a.preco) || 0)}`));
+                return;
+            }
             const gratis = limite ? sel.slice(0, limite) : sel;
             const extras = limite ? sel.slice(limite) : [];
             const C = rotulo ? "complementos" : "Complementos";

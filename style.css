@@ -676,3 +676,8 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 .btn-google-review{display:flex;align-items:center;justify-content:center;gap:.5rem;margin:1rem auto 0;max-width:340px;padding:.8rem 1.1rem;border-radius:999px;background:#fff;color:#1f1f1f;border:1px solid #dadce0;font-weight:700;font-size:.92rem;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .btn-google-review i{color:#4285F4;font-size:1.05rem}
 .btn-google-review:active{transform:scale(.98)}
+
+/* "Só açaí puro" no topo dos complementos de cada açaí */
+.detail-checklist-item.opcao-puro{border-style:dashed;font-weight:600}
+.pedir-atencao{animation:pedirAtencao .5s ease 3;border-color:#d93025 !important;box-shadow:0 0 0 2px rgba(217,48,37,.25)}
+@keyframes pedirAtencao{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
