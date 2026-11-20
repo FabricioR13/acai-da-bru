@@ -1185,6 +1185,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         return s;
     };
     const naVitrine = (p) => ["promocao", "novidade"].includes(seloDe(p));
+    // Ordem dos destaques escolhida no admin (vale para o carrossel e para as listas de produtos)
+    const ordemDest = (p) => (naVitrine(p) && p.ordemDestaque !== undefined && p.ordemDestaque !== null && p.ordemDestaque !== "" && Number.isFinite(Number(p.ordemDestaque)) ? Number(p.ordemDestaque) : 9999);
     const seloHtml = (p, classe) => {
         const s = seloDe(p);
         return s ? `<span class="${classe} selo-${s}"><i class="fa-solid ${SELOS[s].icone}" aria-hidden="true"></i> ${SELOS[s].nome}</span>` : "";
@@ -1199,7 +1201,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const renderPromocoes = () => {
         // Ordem escolhida pela Bru no admin (Produtos → Ordem dos destaques);
         // sem escolha, promoções (têm prazo) antes das novidades
-        const ordemDest = (p) => (p.ordemDestaque !== undefined && p.ordemDestaque !== null && p.ordemDestaque !== "" && Number.isFinite(Number(p.ordemDestaque)) ? Number(p.ordemDestaque) : 9999);
         const promos = produtos.filter(naVitrine).sort((a, b) => ordemDest(a) - ordemDest(b) || (seloDe(a) === "promocao" ? 0 : 1) - (seloDe(b) === "promocao" ? 0 : 1));
         const temPromo = promos.some((p) => seloDe(p) === "promocao"), temNovo = promos.some((p) => seloDe(p) === "novidade");
         const kicker = document.getElementById("promo-kicker");
@@ -1355,9 +1356,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                     (produto.descricao || "").toLowerCase().includes(termo),
             );
         }
-        // Produtos com selo aparecem primeiro (mantendo a ordem entre eles estável)
+        // Produtos com selo aparecem primeiro; entre as promoções/novidades vale a
+        // mesma "Ordem dos destaques" do carrossel (o resto mantém a ordem de sempre)
         produtosFiltrados = [...produtosFiltrados].sort(
-            (a, b) => (seloDe(b) ? 1 : 0) - (seloDe(a) ? 1 : 0),
+            (a, b) => (seloDe(b) ? 1 : 0) - (seloDe(a) ? 1 : 0) || ordemDest(a) - ordemDest(b),
         );
         // "Mostrar ao lado de" (ex.: Açaí Kids logo depois do Açaí no Copo).
         // Produto com selo Kids sem posição marcada vai ao lado do Açaí no Copo.
