@@ -1337,6 +1337,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Função para filtrar e mostrar produtos.
     // Sem filtro: todos os produtos já na primeira tela, agrupados por categoria.
     // Com categoria ou busca: só os que batem, numa grade única.
+    // No celular são 2 por linha: quando sobra um produto sozinho na última linha,
+    // ele vira um card largo (foto ao lado do texto) e não fica um espaço vazio do lado
+    const cardsSemBuraco = (lista) => lista.map((p, i) => {
+        const html = cardDoProduto(p);
+        return lista.length % 2 === 1 && i === lista.length - 1
+            ? html.replace('class="product-card', 'class="product-card product-card--largo')
+            : html;
+    }).join("");
+
     const filtrarEMostrarProdutos = () => {
         renderFiltros();
         const container = document.querySelector(".products-container");
@@ -1395,14 +1404,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             const semCategoria = produtosFiltrados.filter((p) => !categorias.some((c) => c.id === catDe(p)));
             if (semCategoria.length) grupos.push({ c: { nome: "Outros" }, itens: semCategoria });
             container.innerHTML = grupos
-                .map((g) => `<h3 class="products-group-title">${g.c.nome}</h3>${g.itens.map(cardDoProduto).join("")}`)
+                .map((g) => `<h3 class="products-group-title">${g.c.nome}</h3>${cardsSemBuraco(g.itens)}`)
                 .join("");
             return;
         }
 
         container.innerHTML =
             (buscando ? `<h3 class="products-group-title">Resultado da busca</h3>` : "") +
-            produtosFiltrados.map(cardDoProduto).join("");
+            cardsSemBuraco(produtosFiltrados);
     };
 
     // Produtos personalizados (tamanho/opção/complementos/adicionais) geram uma "chave"
