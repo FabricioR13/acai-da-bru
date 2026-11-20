@@ -682,11 +682,13 @@ footer{background:var(--secondary-color);color:#fff;text-align:center;padding:2r
 .pedir-atencao{animation:pedirAtencao .5s ease 3;border-color:#d93025 !important;box-shadow:0 0 0 2px rgba(217,48,37,.25)}
 @keyframes pedirAtencao{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 
-/* Celular: produto que sobraria sozinho na linha ocupa a largura toda (foto ao lado do texto) */
+/* Celular: todos os produtos em lista, um por linha (foto ao lado do texto).
+   O carrossel de destaques do topo não muda. */
 @media (max-width:767px){
-  .products-container:not(.category-tiles-view) .product-card--largo{grid-column:1/-1;flex-direction:row;align-items:stretch}
-  .products-container:not(.category-tiles-view) .product-card--largo .product-img{width:42%;flex:0 0 42%;aspect-ratio:1/1;height:auto;align-self:center}
-  .products-container:not(.category-tiles-view) .product-card--largo .product-info{padding:.75rem .85rem .8rem}
-  .products-container:not(.category-tiles-view) .product-card--largo .product-name{font-size:1rem}
-  .products-container:not(.category-tiles-view) .product-card--largo .product-description{-webkit-line-clamp:3}
+  .products-container:not(.category-tiles-view){grid-template-columns:1fr}
+  .products-container:not(.category-tiles-view) .product-card{flex-direction:row;align-items:stretch}
+  .products-container:not(.category-tiles-view) .product-img{width:38%;flex:0 0 38%;aspect-ratio:1/1;height:auto;align-self:center}
+  .products-container:not(.category-tiles-view) .product-info{padding:.75rem .85rem .8rem}
+  .products-container:not(.category-tiles-view) .product-name{font-size:1rem}
+  .products-container:not(.category-tiles-view) .product-description{-webkit-line-clamp:3}
 }

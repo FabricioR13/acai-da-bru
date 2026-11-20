@@ -1337,14 +1337,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Função para filtrar e mostrar produtos.
     // Sem filtro: todos os produtos já na primeira tela, agrupados por categoria.
     // Com categoria ou busca: só os que batem, numa grade única.
-    // No celular são 2 por linha: quando sobra um produto sozinho na última linha,
-    // ele vira um card largo (foto ao lado do texto) e não fica um espaço vazio do lado
-    const cardsSemBuraco = (lista) => lista.map((p, i) => {
-        const html = cardDoProduto(p);
-        return lista.length % 2 === 1 && i === lista.length - 1
-            ? html.replace('class="product-card', 'class="product-card product-card--largo')
-            : html;
-    }).join("");
+    // No celular os produtos ficam em lista, um por linha (ver style.css), então não sobra buraco
+    const cardsSemBuraco = (lista) => lista.map(cardDoProduto).join("");
 
     const filtrarEMostrarProdutos = () => {
         renderFiltros();
