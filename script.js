@@ -1197,8 +1197,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         promoTrack = document.getElementById("promo-track"),
         promoDots = document.getElementById("promo-dots");
     const renderPromocoes = () => {
-        // Promoções e novidades primeiro as promoções (têm prazo), depois as novidades
-        const promos = produtos.filter(naVitrine).sort((a, b) => (seloDe(a) === "promocao" ? 0 : 1) - (seloDe(b) === "promocao" ? 0 : 1));
+        // Ordem escolhida pela Bru no admin (Produtos → Ordem dos destaques);
+        // sem escolha, promoções (têm prazo) antes das novidades
+        const ordemDest = (p) => (p.ordemDestaque !== undefined && p.ordemDestaque !== null && p.ordemDestaque !== "" && Number.isFinite(Number(p.ordemDestaque)) ? Number(p.ordemDestaque) : 9999);
+        const promos = produtos.filter(naVitrine).sort((a, b) => ordemDest(a) - ordemDest(b) || (seloDe(a) === "promocao" ? 0 : 1) - (seloDe(b) === "promocao" ? 0 : 1));
         const temPromo = promos.some((p) => seloDe(p) === "promocao"), temNovo = promos.some((p) => seloDe(p) === "novidade");
         const kicker = document.getElementById("promo-kicker");
         if (kicker) kicker.innerHTML = temPromo && temNovo
